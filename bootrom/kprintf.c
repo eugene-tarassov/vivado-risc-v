@@ -1,4 +1,3 @@
-// See LICENSE for license details.
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdbool.h>
