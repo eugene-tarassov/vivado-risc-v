@@ -12,8 +12,10 @@ Also can be used to run bare-metal or RTOS.
 
 ## Hardware
 Xilinx VC707 or Digilent Nexys Video board.
+
 VC707 allows to prototype more powerful system: 2X cores (4 vs 2),
 2X memory (1GB vs 512MB), 2X CPU clock frequency (100MHz vs 50MHz).
+
 Nexys Video is several time less expensive, academic discount is avaialble.
 
 ## Workstation
@@ -21,7 +23,9 @@ Ubuntu 18 LTS machine is recommended.
 sudo access required.
 
 ## Software
-Vivado 2019.1. Nexys Video is supported by free version of Vivado. VC707 requires Vivado license.
+[Vivado 2019.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2019-1.html)
+
+Nexys Video is supported by free version of Vivado. VC707 requires Vivado license.
 
 # Usage
 ```
@@ -57,8 +61,8 @@ Prebuild FPGA bitstream for Nexy Video board, and SD card image are available in
 
 # Notes
 
-Rocket Chip is used as RISC-V implementation: [UC Berkeley Architecture Research - Rocket Chip Generator](https://bar.eecs.berkeley.edu/projects/rocket_chip.html)
-Rocket Chip is configured to include MMU, instruction and data caches, cache coherent interconnect, floating point, etc.
+Rocket Chip is used as RISC-V implementation: [UC Berkeley Architecture Research - Rocket Chip Generator](https://bar.eecs.berkeley.edu/projects/rocket_chip.html).
+Rocket Chip is configured to include virtual memory, instruction and data caches, coherent interconnect, floating point, and all the relevant infastructure.
 See rocket.scala for details.
 
 RISC-V SoC in this repo contains bootrom, which differ from original Rocket Chip bootrom.
