@@ -1,0 +1,369 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
+#include <linux/delay.h>
+#include <linux/dma-mapping.h>
+#include <linux/err.h>
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/iopoll.h>
+#include <linux/platform_device.h>
+#include <linux/clk.h>
+#include <linux/io.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
+#include <linux/pinctrl/consumer.h>
+#include <linux/regulator/consumer.h>
+#include <linux/reset.h>
+#include <linux/mmc/card.h>
+#include <linux/mmc/host.h>
+#include <linux/mmc/mmc.h>
+#include <linux/mmc/slot-gpio.h>
+#include <linux/ktime.h>
+
+/*
+ * AXI SD Card driver.
+ *
+ * AXI SD Card is open source Verilog implementation of high speed SD card controller.
+ * It is mainly used in FPGA designs.
+ */
+
+#ifdef CONFIG_DEBUG_INFO
+#pragma GCC optimize("O0")
+#endif
+
+// Command status bits
+#define SDC_CMD_INT_STATUS_CC   0x0001  // Command complete
+#define SDC_CMD_INT_STATUS_EI   0x0002  // Any error
+#define SDC_CMD_INT_STATUS_CTE  0x0004  // Timeout
+#define SDC_CMD_INT_STATUS_CCRC 0x0008  // CRC error
+#define SDC_CMD_INT_STATUS_CIE  0x0010  // Command code check error
+
+// Data status bits
+#define SDC_DAT_INT_STATUS_TRS  0x0001  // Transfer complete
+#define SDC_DAT_INT_STATUS_ERR  0x0002  // Any error
+#define SDC_DAT_INT_STATUS_CTE  0x0004  // Timeout
+#define SDC_DAT_INT_STATUS_CRC  0x0008  // CRC error
+#define SDC_DAT_INT_STATUS_CFE  0x0010  // Data FIFO underrun or overrun
+
+#define CMD_TIMEOUT 0xfffff
+
+struct sdc_regs {
+    volatile uint32_t argument;
+    volatile uint32_t command;
+    volatile uint32_t response1;
+    volatile uint32_t response2;
+    volatile uint32_t response3;
+    volatile uint32_t response4;
+    volatile uint32_t data_timeout;
+    volatile uint32_t control;
+    volatile uint32_t cmd_timeout;
+    volatile uint32_t clock_divider;
+    volatile uint32_t software_reset;
+    volatile uint32_t power_control;
+    volatile uint32_t capability;
+    volatile uint32_t cmd_int_status;
+    volatile uint32_t cmd_int_enable;
+    volatile uint32_t dat_int_status;
+    volatile uint32_t dat_int_enable;
+    volatile uint32_t block_size;
+    volatile uint32_t block_count;
+    volatile uint32_t res_4c;
+    volatile uint32_t res_50;
+    volatile uint32_t res_54;
+    volatile uint32_t res_58;
+    volatile uint32_t res_5c;
+    volatile uint32_t dma_addres;
+};
+
+struct sdc_host {
+    struct platform_device * pdev;
+    struct sdc_regs __iomem * regs;
+    uint32_t clk_freq;
+    struct mutex mutex;
+    struct mmc_request * mrq;
+    int acmd;
+};
+
+static const struct of_device_id axi_sdc_of_match_table[] = {
+    { .compatible = "riscv,axi-sd-card-1.0" },
+    {},
+};
+MODULE_DEVICE_TABLE(of, axi_sdc_of_match_table);
+
+/* Set clock prescalar value based on the required clock in HZ */
+static void sdc_set_clock(struct sdc_host * host, uint clock) {
+    unsigned clk_div;
+
+    /* Min clock frequency should be 400KHz */
+    if (clock < 400000) clock = 400000;
+
+    clk_div = host->clk_freq / (2 * clock);
+    if (clk_div > 0x100) clk_div = 0x100;
+    if (clk_div < 1) clk_div = 1;
+
+    if (host->regs->clock_divider != clk_div - 1) {
+        host->regs->clock_divider = clk_div - 1;
+        udelay(10000);
+    }
+}
+
+static int sdc_finish(struct sdc_host * host, struct mmc_command * cmd) {
+    while (1) {
+        unsigned status = host->regs->cmd_int_status;
+        if (status) {
+            // clear interrupts
+            host->regs->cmd_int_status = 0;
+            while (host->regs->software_reset != 0) {}
+            if (status == SDC_CMD_INT_STATUS_CC) {
+                // get response
+                cmd->resp[0] = host->regs->response1;
+                if (cmd->flags & MMC_RSP_136) {
+                    cmd->resp[1] = host->regs->response2;
+                    cmd->resp[2] = host->regs->response3;
+                    cmd->resp[3] = host->regs->response4;
+                }
+                host->acmd = cmd->opcode == MMC_APP_CMD;
+                return 0;
+            }
+            if (status & SDC_CMD_INT_STATUS_CTE) cmd->error = -ETIME;
+            else cmd->error = -EIO;
+            break;
+        }
+    }
+    return cmd->error;
+}
+
+static int sdc_data_finish(struct sdc_host * host, struct mmc_data * data) {
+    int status;
+    int command;
+
+    while ((status = host->regs->dat_int_status) == 0) {}
+    host->regs->dat_int_status = 0;
+    while (host->regs->software_reset != 0) {}
+
+    if (status == SDC_DAT_INT_STATUS_TRS) {
+        data->bytes_xfered = data->blksz * data->blocks;
+        return 0;
+    }
+
+    if (status & SDC_DAT_INT_STATUS_CTE) data->error = -ETIME;
+    else data->error = -EIO;
+
+    command = (MMC_STOP_TRANSMISSION << 8) | 1 | (1 << 2) | (1 << 3) | (1 << 4);
+    host->regs->command = command;
+    host->regs->cmd_timeout = CMD_TIMEOUT;
+    host->regs->argument = 0;
+    while ((status = host->regs->cmd_int_status) == 0) {}
+
+    return data->error;
+}
+
+static int sdc_setup_data_xfer(struct sdc_host * host, struct mmc_host * mmc, struct mmc_data * data) {
+    unsigned timeout = data->blocks * data->blksz * 8 / (1 << mmc->ios.bus_width);
+    uint64_t addr = sg_phys(data->sg);
+
+    data->bytes_xfered = 0;
+
+    if (addr & 3) return -EINVAL;
+    if (data->blksz & 3) return -EINVAL;
+    if (data->blksz < 4) return -EINVAL;
+    if (data->blksz > 0x200) return -EINVAL;
+    if (data->blocks > 0x10000) return -EINVAL;
+    if (addr + data->blksz * data->blocks > 0x100000000) return -EINVAL;
+    if (data->sg->length < data->blksz * data->blocks) return -EINVAL;
+
+    timeout += mmc->ios.clock / 100; // 10ms
+    if (timeout > 0xffffff) timeout = 0;
+
+    host->regs->dma_addres = (uint32_t)addr;
+    host->regs->block_size = data->blksz - 1;
+    host->regs->block_count = data->blocks - 1;
+    host->regs->data_timeout = timeout;
+
+    return 0;
+}
+
+static int sdc_send_cmd(struct sdc_host * host, struct mmc_host * mmc, struct mmc_command * cmd, struct mmc_data * data) {
+    int xfer = 0;
+    int command = cmd->opcode << 8;
+
+    if (cmd->flags & MMC_RSP_PRESENT) {
+        if (cmd->flags & MMC_RSP_136)
+            command |= 2;
+        else {
+            command |= 1;
+        }
+    }
+    if (cmd->flags & MMC_RSP_BUSY) command |= 1 << 2;
+    if (cmd->flags & MMC_RSP_CRC) command |= 1 << 3;
+    if (cmd->flags & MMC_RSP_OPCODE) command |= 1 << 4;
+
+    if (data && (data->flags & (MMC_DATA_READ | MMC_DATA_WRITE)) && data->blocks) {
+        if (data->flags & MMC_DATA_READ) command |= 1 << 5;
+        if (data->flags & MMC_DATA_WRITE) command |= 1 << 6;
+        data->error = sdc_setup_data_xfer(host, mmc, data);
+        if (data->error < 0) return data->error;
+        xfer = 1;
+    }
+
+    host->regs->command = command;
+    host->regs->cmd_timeout = CMD_TIMEOUT;
+    host->regs->argument = cmd->arg;
+
+    if (sdc_finish(host, cmd) < 0) return cmd->error;
+    if (xfer) return sdc_data_finish(host, data);
+
+    return 0;
+}
+
+static void sdc_request(struct mmc_host * mmc, struct mmc_request * mrq) {
+    struct sdc_host * host = mmc_priv(mmc);
+
+    /* Clear the error statuses in case this is a retry */
+    if (mrq->sbc) mrq->sbc->error = 0;
+    if (mrq->cmd) mrq->cmd->error = 0;
+    if (mrq->data) mrq->data->error = 0;
+    if (mrq->stop) mrq->stop->error = 0;
+
+    mutex_lock(&host->mutex);
+    host->mrq = mrq;
+
+    if (!mrq->sbc || sdc_send_cmd(host, mmc, mrq->sbc, NULL) == 0) {
+        if (sdc_send_cmd(host, mmc, mrq->cmd, mrq->data) == 0) {
+            if (mrq->stop) sdc_send_cmd(host, mmc, mrq->stop, NULL);
+        }
+    }
+
+    mmc_request_done(mmc, mrq);
+
+    host->mrq = NULL;
+    mutex_unlock(&host->mutex);
+}
+
+static void sdc_set_ios(struct mmc_host * mmc, struct mmc_ios *ios) {
+    struct sdc_host * host = mmc_priv(mmc);
+
+    mutex_lock(&host->mutex);
+
+    sdc_set_clock(host, ios->clock);
+    host->regs->control = ios->bus_width == MMC_BUS_WIDTH_4;
+
+    mutex_unlock(&host->mutex);
+}
+
+static void sdc_reset(struct mmc_host * mmc) {
+    struct sdc_host * host = mmc_priv(mmc);
+
+    mutex_lock(&host->mutex);
+
+    sdc_set_clock(host, 400000);
+
+    // software reset
+    host->regs->software_reset = 1;
+    while ((host->regs->software_reset & 1) == 0) {}
+    // clear software reset
+    host->regs->software_reset = 0;
+    while (host->regs->software_reset != 0) {}
+    udelay(10000);
+
+    // set bus width 1 bit
+    host->regs->control = 0;
+
+    // disable all interrupts
+    host->regs->cmd_int_enable = 0;
+    host->regs->dat_int_enable = 0;
+    // clear all interrupts
+    host->regs->cmd_int_status = 0;
+    host->regs->dat_int_status = 0;
+    while (host->regs->software_reset != 0) {}
+
+    mutex_unlock(&host->mutex);
+}
+
+/*---------------------------------------------------------------------*/
+
+static const struct mmc_host_ops axi_sdc_ops = {
+    .request = sdc_request,
+    .set_ios = sdc_set_ios,
+    .hw_reset = sdc_reset,
+};
+
+static int axi_sdc_probe(struct platform_device * pdev) {
+    struct device * dev = &pdev->dev;
+    struct resource * iomem;
+    struct sdc_host * host;
+    struct mmc_host * mmc;
+    void __iomem * ioaddr;
+    int ret = 0;
+
+    iomem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+    ioaddr = devm_ioremap_resource(dev, iomem);
+    if (IS_ERR(ioaddr)) return PTR_ERR(ioaddr);
+
+    mmc = mmc_alloc_host(sizeof(*host), dev);
+    if (!mmc) return -ENOMEM;
+
+    mmc->ops = &axi_sdc_ops;
+    host = mmc_priv(mmc);
+    host->pdev = pdev;
+    host->regs = (struct sdc_regs __iomem *)ioaddr;
+
+    ret = of_property_read_u32(dev->of_node, "clock", &host->clk_freq);
+    if (ret) {
+        host->clk_freq = 100000000;
+    }
+
+    ret = mmc_of_parse(mmc);
+    if (ret) {
+        mmc_free_host(mmc);
+        return ret;
+    }
+
+    if (mmc->f_min == 0) mmc->f_min = host->clk_freq / 0x200; /* maximum clock division 256 * 2 */
+    if (mmc->f_max == 0) mmc->f_max = host->clk_freq / 2; /* minimum clock division 2 */
+    mmc->caps |= MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED;
+    mmc->caps2 |= MMC_CAP2_NO_SDIO;
+    mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
+    mmc->max_segs = 1;
+    mmc->max_req_size = 0x2000000;
+    mmc->max_seg_size = 0x2000000;
+    mmc->max_blk_size = 0x200;
+    mmc->max_blk_count = 0x10000;
+
+    sdc_reset(mmc);
+
+    ret = mmc_add_host(mmc);
+    if (ret) {
+        mmc_free_host(mmc);
+        return ret;
+    }
+
+    mutex_init(&host->mutex);
+
+    platform_set_drvdata(pdev, host);
+    return 0;
+}
+
+static int axi_sdc_remove(struct platform_device * pdev) {
+    struct sdc_host * host = platform_get_drvdata(pdev);
+    struct mmc_host * mmc = mmc_from_priv(host);
+
+    mmc_remove_host(mmc);
+    mmc_free_host(mmc);
+    return 0;
+}
+
+static struct platform_driver axi_sdc_driver = {
+    .driver = {
+        .name = "riscv-axi-sdc",
+        .of_match_table = axi_sdc_of_match_table,
+    },
+    .probe = axi_sdc_probe,
+    .remove = axi_sdc_remove,
+};
+
+module_platform_driver(axi_sdc_driver);
+
+MODULE_DESCRIPTION("AXI SD Card driver");
+MODULE_AUTHOR("Eugene Tarassov");
+MODULE_LICENSE("GPL v2");

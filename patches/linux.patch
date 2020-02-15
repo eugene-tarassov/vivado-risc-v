@@ -1,0 +1,60 @@
+diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
+index 49ea02c467bf..40c17e58a8e9 100644
+--- a/drivers/mmc/host/Kconfig
++++ b/drivers/mmc/host/Kconfig
+@@ -1019,3 +1019,12 @@ config MMC_SDHCI_AM654
+ 	  If you have a controller with this interface, say Y or M here.
+ 
+ 	  If unsure, say N.
++
++config FPGA_AXI_SDC
++	tristate "FPGA AXI SD Card Controller"
++	help
++	  This selects the FPGA AXI SD Card controller. If you have
++	  a FPGA development board with SD or MMC devices, say Y or M here.
++
++	  If unsure, say N.
++
+diff --git a/drivers/mmc/host/Makefile b/drivers/mmc/host/Makefile
+index 11c4598e91d9..a1db61e102c1 100644
+--- a/drivers/mmc/host/Makefile
++++ b/drivers/mmc/host/Makefile
+@@ -73,6 +73,7 @@ obj-$(CONFIG_MMC_SUNXI)		+= sunxi-mmc.o
+ obj-$(CONFIG_MMC_USDHI6ROL0)	+= usdhi6rol0.o
+ obj-$(CONFIG_MMC_TOSHIBA_PCI)	+= toshsd.o
+ obj-$(CONFIG_MMC_BCM2835)	+= bcm2835.o
++obj-$(CONFIG_FPGA_AXI_SDC)	+= fpga-axi-sdc.o
+ 
+ obj-$(CONFIG_MMC_REALTEK_PCI)	+= rtsx_pci_sdmmc.o
+ obj-$(CONFIG_MMC_REALTEK_USB)	+= rtsx_usb_sdmmc.o
+diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
+index e8e9c166185d..156d3e46133b 100644
+--- a/drivers/net/ethernet/Kconfig
++++ b/drivers/net/ethernet/Kconfig
+@@ -154,6 +154,14 @@ config ETHOC
+ 	---help---
+ 	  Say Y here if you want to use the OpenCores 10/100 Mbps Ethernet MAC.
+ 
++config FPGA_AXI_ETH
++	tristate "FPGA AXI Ethernet controller"
++	---help---
++	  This selects the FPGA AXI Ethernet controller. If you have
++	  a FPGA development board with Ethernet phy, say Y or M here.
++
++	  If unsure, say N.
++
+ source "drivers/net/ethernet/packetengines/Kconfig"
+ source "drivers/net/ethernet/pasemi/Kconfig"
+ source "drivers/net/ethernet/pensando/Kconfig"
+diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
+index 05abebc17804..4e568698b73c 100644
+--- a/drivers/net/ethernet/Makefile
++++ b/drivers/net/ethernet/Makefile
+@@ -68,6 +68,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
+ obj-$(CONFIG_LPC_ENET) += nxp/
+ obj-$(CONFIG_NET_VENDOR_OKI) += oki-semi/
+ obj-$(CONFIG_ETHOC) += ethoc.o
++obj-$(CONFIG_FPGA_AXI_ETH) += fpga-axi-eth.o
+ obj-$(CONFIG_NET_VENDOR_PACKET_ENGINES) += packetengines/
+ obj-$(CONFIG_NET_VENDOR_PASEMI) += pasemi/
+ obj-$(CONFIG_NET_VENDOR_QLOGIC) += qlogic/

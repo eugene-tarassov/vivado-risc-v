@@ -1,0 +1,19 @@
+diff --git a/src/main/scala/devices/tilelink/Plic.scala b/src/main/scala/devices/tilelink/Plic.scala
+index a53cd214..5a905e92 100644
+--- a/src/main/scala/devices/tilelink/Plic.scala
++++ b/src/main/scala/devices/tilelink/Plic.scala
+@@ -29,10 +29,12 @@ class LevelGateway extends Module {
+     val plic = new GatewayPLICIO
+   }
+ 
++  val inWaiting = Reg(init=Bool(false))
+   val inFlight = Reg(init=Bool(false))
+-  when (io.interrupt && io.plic.ready) { inFlight := true }
++  when (io.interrupt && !inWaiting) { inWaiting := true }
++  when (io.plic.valid && io.plic.ready) { inFlight := true; inWaiting := false }
+   when (io.plic.complete) { inFlight := false }
+-  io.plic.valid := io.interrupt && !inFlight
++  io.plic.valid := (io.interrupt || inWaiting) && !inFlight
+ }
+ 
+ object PLICConsts

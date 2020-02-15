@@ -1,0 +1,15 @@
+[submodule "rocket-chip"]
+	path = rocket-chip
+	url = https://github.com/ucb-bar/rocket-chip.git
+[submodule "riscv-pk"]
+	path = riscv-pk
+	url = https://github.com/riscv/riscv-pk.git
+[submodule "u-boot"]
+	path = u-boot
+	url = https://github.com/u-boot/u-boot.git
+[submodule "linux-stable"]
+	path = linux-stable
+	url = git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
+[submodule "ethernet/verilog-ethernet"]
+	path = ethernet/verilog-ethernet
+	url = https://github.com/alexforencich/verilog-ethernet.git

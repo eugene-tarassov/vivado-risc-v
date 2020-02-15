@@ -1,0 +1,108 @@
+#!/bin/bash
+
+set -e
+cd `dirname $0`
+
+while getopts r: name
+do
+  case $name in
+  r)
+    RSYNC_BOOT=$OPTARG
+    ;;
+  esac
+done
+
+if [ -z "$KERNEL_VER" ] ; then
+  echo "Error: KERNEL_VER is not set"
+  exit 1
+fi
+
+# --- Retrive Debian disk image ---
+
+DEBIAN_RISCV64=file:///home/eugene/jenkins/releases/debian-riscv64
+
+mkdir -p debian-riscv64
+if [ ! -r debian-riscv64/initrd ] ; then
+  curl $DEBIAN_RISCV64/initrd -o debian-riscv64/initrd
+fi
+if [ ! -r debian-riscv64/rootfs.tar.gz ] ; then
+  curl $DEBIAN_RISCV64/rootfs.tar.gz -o debian-riscv64/rootfs.tar.gz
+fi
+
+# --- build SD card image ---
+
+SD_SIZE=2000
+SD_IMG=debian-riscv64/debian-riscv64.sd.img
+
+losetup -a | grep `pwd` | while IFS=':' read -ra LINE ; do
+  sudo umount ${LINE[0]}p1 || true
+  sudo umount ${LINE[0]}p2 || true
+  sudo losetup -d ${LINE[0]}
+done
+
+rm -f $SD_IMG
+dd if=/dev/zero of=$SD_IMG bs=1M count=$SD_SIZE
+sudo losetup -f $SD_IMG
+
+SD_LOOP=$(
+losetup -a | grep `pwd` | while IFS=':' read -ra LINE ; do
+  echo ${LINE[0]}
+done
+)
+
+echo "SD image device: ${SD_LOOP}"
+
+sudo sfdisk ${SD_LOOP} <<-__EOF__
+1M,400M,0xE,*
+,,,-
+__EOF__
+
+sudo partprobe ${SD_LOOP}
+
+UUID=68d82fa1-1bb5-435f-a5e3-862176586eec
+sudo mkfs.vfat -F 16 -n BOOT ${SD_LOOP}p1
+sudo mkfs.ext4 -L rootfs -U $UUID ${SD_LOOP}p2
+
+cat >debian-riscv64/extlinux.conf <<EOF
+menu title RISC-V Boot Options.
+timeout 50
+default Debain $KERNEL_VER
+label Debain $KERNEL_VER
+ kernel /extlinux/image-$KERNEL_VER
+ initrd /extlinux/initrd-$KERNEL_VER.img
+ append ro root=UUID=$UUID earlycon console=ttyUL0,115200n8 LANG=en_US.UTF-8
+EOF
+
+mkdir -p debian-riscv64/boot
+mkdir -p debian-riscv64/rootfs
+
+sudo mount ${SD_LOOP}p1 debian-riscv64/boot
+sudo mount ${SD_LOOP}p2 debian-riscv64/rootfs
+
+pushd debian-riscv64/rootfs
+sudo tar xf ../rootfs.tar.gz
+sudo rm initrd.* vmlinuz*
+popd
+
+pushd debian-riscv64/boot
+sudo mkdir extlinux
+sudo cp ../extlinux.conf extlinux
+sudo cp ../initrd extlinux/initrd-$KERNEL_VER.img
+sudo cp ../../linux-stable/vmlinux extlinux/vmlinux-$KERNEL_VER
+sudo cp ../../linux-stable/arch/riscv/boot/Image extlinux/image-$KERNEL_VER
+sudo cp ../../riscv-pk/build/bbl boot.elf
+popd
+
+sudo chown root:root debian-riscv64/rootfs
+sudo chmod 755 debian-riscv64/rootfs
+
+ls -l debian-riscv64/rootfs
+
+if [ ! -z "$RSYNC_BOOT" ] ; then
+  rsync -r --delete debian-riscv64/boot/ $RSYNC_BOOT
+fi
+
+sudo umount ${SD_LOOP}p1
+sudo umount ${SD_LOOP}p2
+sudo fsck -f -p ${SD_LOOP}p2
+sudo losetup -d ${SD_LOOP}
