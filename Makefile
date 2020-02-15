@@ -121,6 +121,7 @@ workspace/$(CONFIG)/system-$(BOARD).v: rocket.scala workspace/$(CONFIG)/system.v
 	cp rocket-chip/vsim/generated-src/freechips.rocketchip.system.$(CONFIG_SCALA).v $@
 
 workspace/$(CONFIG)/rocket.vhdl: workspace/$(CONFIG)/system.v
+	mkdir -p vhdl-wrapper/bin
 	javac -g -nowarn \
 	  -sourcepath vhdl-wrapper/src -d vhdl-wrapper/bin \
 	  -classpath vhdl-wrapper/antlr-4.7.2-complete.jar \

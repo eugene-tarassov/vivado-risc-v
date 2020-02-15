@@ -3,6 +3,6 @@
 /bootrom/system.dtb
 /bootrom/system.dts
 /vhdl-wrapper/bin/
-/rocket*/webtalk.*
 /debian-riscv64/
 /workspace
+/mk-gate
