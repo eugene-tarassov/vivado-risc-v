@@ -12,10 +12,7 @@ do
   esac
 done
 
-if [ -z "$KERNEL_VER" ] ; then
-  echo "Error: KERNEL_VER is not set"
-  exit 1
-fi
+KERNEL_VER=$(cd linux-stable && git describe --exact-match --abbrev=0)
 
 # --- Retrive Debian disk image ---
 

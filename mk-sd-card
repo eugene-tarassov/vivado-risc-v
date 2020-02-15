@@ -3,8 +3,6 @@
 set -e
 cd `dirname $0`
 
-export PATH=/home/eugene/Xilinx/Vivado/2019.1/bin:$PATH
-
 make linux
 make bbl
 ./mk-sd-image
