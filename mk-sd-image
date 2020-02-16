@@ -69,8 +69,7 @@ sudo mount ${SD_LOOP}p1 debian-riscv64/boot
 sudo mount ${SD_LOOP}p2 debian-riscv64/rootfs
 
 pushd debian-riscv64/rootfs
-sudo tar xf ../rootfs.tar.gz
-sudo rm initrd.* vmlinuz*
+sudo tar xzf ../rootfs.tar.gz
 popd
 
 pushd debian-riscv64/boot
