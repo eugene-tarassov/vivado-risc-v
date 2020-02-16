@@ -4,6 +4,28 @@ update-submodules:
 clean-submodules:
 	git submodule foreach --recursive git clean -xfdq
 
+# --- download tools, initrd and rootfs ---
+
+workspace/gcc/riscv:
+	mkdir -p workspace/gcc
+	cd workspace/gcc &&\
+	  curl --netrc --location --header 'Accept: application/octet-stream' \
+	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/18060315 |\
+	  tar xz
+
+debian-riscv64/initrd:
+	mkdir -p debian-riscv64
+	curl --netrc --location --header 'Accept: application/octet-stream' \
+	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/18058965 \
+	  -o $@
+
+debian-riscv64/rootfs.tar.gz:
+	mkdir -p debian-riscv64
+	curl --netrc --location --header 'Accept: application/octet-stream' \
+	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/18058976 \
+	  -o $@
+
+
 # --- build Linux kernel ---
 
 linux: linux-stable/arch/riscv/boot/Image
@@ -88,10 +110,10 @@ ifeq ($(BOARD),nexys-video)
 endif
 
 ifeq ($(findstring rocket64,$(CONFIG)),)
-  CROSS_COMPILE_NO_OS_TOOLS = /home/eugene/jenkins/releases/riscv/bin/riscv32-unknown-elf-
+  CROSS_COMPILE_NO_OS_TOOLS = $(realpath workspace/gcc/riscv/bin)/riscv32-unknown-elf-
   CROSS_COMPILE_NO_OS_FLAGS = -march=rv32im -mabi=ilp32
 else
-  CROSS_COMPILE_NO_OS_TOOLS = /home/eugene/jenkins/releases/riscv/bin/riscv64-unknown-elf-
+  CROSS_COMPILE_NO_OS_TOOLS = $(realpath workspace/gcc/riscv/bin)/riscv64-unknown-elf-
   CROSS_COMPILE_NO_OS_FLAGS = -march=rv64im -mabi=lp64
 endif
 
@@ -106,7 +128,7 @@ workspace/$(CONFIG)/system.v: rocket.scala
 	cp rocket-chip/vsim/generated-src/freechips.rocketchip.system.$(CONFIG_SCALA).behav_srams.v workspace/$(CONFIG)/srams.v
 	cp rocket-chip/vsim/generated-src/freechips.rocketchip.system.$(CONFIG_SCALA).v $@
 
-workspace/$(CONFIG)/system-$(BOARD).v: rocket.scala workspace/$(CONFIG)/system.v
+workspace/$(CONFIG)/system-$(BOARD).v: workspace/gcc/riscv rocket.scala workspace/$(CONFIG)/system.v
 	cat workspace/$(CONFIG)/system.dts bootrom/bootrom.dts >bootrom/system.dts
 	sed -i "s#reg = <0x80000000 0x40000000>#reg = <0x80000000 $(MEMORY_SIZE)>#g" bootrom/system.dts
 	sed -i "s#clock-frequency = <100000000>#clock-frequency = <$(ROCKET_FREQ)000000>#g" bootrom/system.dts

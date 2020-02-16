@@ -16,15 +16,7 @@ KERNEL_VER=$(cd linux-stable && git describe --exact-match --abbrev=0)
 
 # --- Retrive Debian disk image ---
 
-DEBIAN_RISCV64=file:///home/eugene/jenkins/releases/debian-riscv64
-
-mkdir -p debian-riscv64
-if [ ! -r debian-riscv64/initrd ] ; then
-  curl $DEBIAN_RISCV64/initrd -o debian-riscv64/initrd
-fi
-if [ ! -r debian-riscv64/rootfs.tar.gz ] ; then
-  curl $DEBIAN_RISCV64/rootfs.tar.gz -o debian-riscv64/rootfs.tar.gz
-fi
+make debian-riscv64/initrd debian-riscv64/rootfs.tar.gz
 
 # --- build SD card image ---
 

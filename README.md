@@ -16,7 +16,7 @@ Xilinx VC707 or Digilent Nexys Video board.
 VC707 allows to prototype more powerful system: 2X cores (4 vs 2),
 2X memory (1GB vs 512MB), 2X CPU clock frequency (100MHz vs 50MHz).
 
-Nexys Video is several time less expensive, academic discount is avaialble.
+Nexys Video is several times less expensive, academic discount is avaialble.
 
 ## Workstation
 Ubuntu 18 LTS machine is recommended.
