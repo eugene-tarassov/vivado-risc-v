@@ -29,14 +29,13 @@ Nexys Video is supported by free version of Vivado. VC707 requires Vivado licens
 
 # Usage
 ```
-sudo apt update
-sudo apt install git make gcc-riscv64-linux-gnu
+sudo apt install git make
 git clone https://github.com/eugene-tarassov/vivado-risc-v.git
 cd vivado-risc-v
+make apt-install
 make update-submodules
 source /opt/Xilinx/Vivado/2019.1/settings64.sh
 make CONFIG=rocket64b2 BOARD=nexys-video bitstream
-make linux bbl
 ```
 Use USB SD card reader to connect SD card to the workstation, and run:
 ```
@@ -62,8 +61,8 @@ Prebuild FPGA bitstream for Nexy Video board, and SD card image are available in
 # Notes
 
 Rocket Chip is used as RISC-V implementation: [UC Berkeley Architecture Research - Rocket Chip Generator](https://bar.eecs.berkeley.edu/projects/rocket_chip.html).
-Rocket Chip is configured to include virtual memory, instruction and data caches, coherent interconnect, floating point, and all the relevant infastructure.
-See rocket.scala for details.
+Rocket Chip is configured to include virtual memory, instruction and data caches, coherent interconnect, floating point, and all the relevant infrastructure.
+See rocket.scala for Rocket Chip configuration classes.
 
 RISC-V SoC in this repo contains bootrom, which differ from original Rocket Chip bootrom.
 The modified bootrom contains SD card boot loader and extended device tree.

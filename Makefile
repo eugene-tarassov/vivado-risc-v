@@ -1,3 +1,9 @@
+apt-install:
+	sudo apt update
+	sudo apt upgrade
+	sudo apt -y install default-jdk device-tree-compiler python \
+	 libmpc-dev gcc gcc-riscv64-linux-gnu gcc-8-riscv64-linux-gnu flex bison
+
 update-submodules:
 	git submodule update --init --force --recursive
 
