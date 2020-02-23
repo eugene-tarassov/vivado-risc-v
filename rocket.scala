@@ -41,7 +41,6 @@ class RocketBaseConfig extends Config(
   new WithBootROM("../bootrom/bootrom.img") ++
   new WithExtMemSize(0x40000000) ++ // 1GB
   new WithNExtTopInterrupts(8) ++
-  new WithNBreakpoints(4) ++
   new WithDTS("freechips,rocketchip-vivado", Nil) ++
   new WithDebugSBA ++
   /* new WithEdgeDataBits(128) ++ VHDL wrapper does not work */
@@ -49,12 +48,14 @@ class RocketBaseConfig extends Config(
 
 class Rocket32s1 extends Config(
   new WithCoreFreq(100000000) ++
+  new WithNBreakpoints(8) ++
   new WithNSmallCores(1)  ++
   new WithRV32            ++
   new RocketBaseConfig)
 
 class Rocket32s2j extends Config(
   new WithCoreFreq(100000000) ++
+  new WithNBreakpoints(8) ++
   new WithJtagDTM         ++
   new WithNSmallCores(2)  ++
   new WithRV32            ++
@@ -62,40 +63,47 @@ class Rocket32s2j extends Config(
 
 class Rocket32s2 extends Config(
   new WithCoreFreq(100000000) ++
+  new WithNBreakpoints(8) ++
   new WithNSmallCores(2)  ++
   new WithRV32            ++
   new RocketBaseConfig)
 
 class Rocket32s4 extends Config(
   new WithCoreFreq(100000000) ++
+  new WithNBreakpoints(8) ++
   new WithNSmallCores(4)  ++
   new WithRV32            ++
   new RocketBaseConfig)
 
 class Rocket32s8 extends Config(
   new WithCoreFreq(100000000) ++
+  new WithNBreakpoints(8) ++
   new WithNSmallCores(8)  ++
   new WithRV32            ++
   new RocketBaseConfig)
 
 class Rocket32s16 extends Config(
   new WithCoreFreq(100000000) ++
+  new WithNBreakpoints(8) ++
   new WithNSmallCores(16) ++
   new WithRV32            ++
   new RocketBaseConfig)
 
 class Rocket64b2 extends Config(
+  new WithNBreakpoints(8) ++
   new WithCoreFreq(100000000) ++
   new WithNBigCores(2)    ++
   new RocketBaseConfig)
 
 class Rocket64b4 extends Config(
   new WithCoreFreq(100000000) ++
+  new WithNBreakpoints(8) ++
   new WithNBigCores(4)    ++
   new RocketBaseConfig)
 
 class Rocket64b8 extends Config(
   new WithCoreFreq(90000000) ++
+  new WithNBreakpoints(8) ++
   new WithNBigCores(8)    ++
   new RocketBaseConfig)
 
