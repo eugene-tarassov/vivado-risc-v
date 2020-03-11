@@ -183,8 +183,8 @@ static void axi_eth_get_stats64(struct net_device * dev, struct rtnl_link_stats6
         lb_stats = per_cpu_ptr(dev->lstats, i);
         do {
             start = u64_stats_fetch_begin_irq(&lb_stats->syncp);
-            tbytes = lb_stats->bytes;
-            tpackets = lb_stats->packets;
+            tpackets = u64_stats_read(&lb_stats->packets);
+            tbytes = u64_stats_read(&lb_stats->bytes);
         }
         while (u64_stats_fetch_retry_irq(&lb_stats->syncp, start));
         bytes   += tbytes;
