@@ -60,6 +60,7 @@ struct eth_regs {
     volatile uint32_t rx_out;
     volatile uint32_t tx_inp;
     volatile uint32_t tx_out;
+    volatile uint32_t mac_control;
 };
 
 struct eth_pkt_regs {
@@ -96,6 +97,12 @@ struct axi_eth_ring_item {
     dma_addr_t dma_addr;
 };
 
+struct axi_eth_stats {
+    u64 packets;
+    u64 bytes;
+    struct u64_stats_sync syncp;
+};
+
 struct axi_eth_priv {
     struct eth_regs __iomem * regs;
     struct eth_pkt_regs __iomem * rx_pkt_regs;
@@ -111,6 +118,9 @@ struct axi_eth_priv {
     uint32_t rx_out;
     uint32_t tx_inp;
     uint32_t tx_out;
+
+    struct axi_eth_stats rx_stats;
+    struct axi_eth_stats tx_stats;
 };
 
 #define tx_ring_free(p) ((p->tx_out - p->tx_inp - 1) & AXI_ETH_RING_MASK)
@@ -121,49 +131,80 @@ static const struct of_device_id axi_eth_of_match_table[] = {
 };
 MODULE_DEVICE_TABLE(of, axi_eth_of_match_table);
 
+static void axi_eth_rx_done(struct net_device * dev, struct axi_eth_ring_item * i) {
+    struct axi_eth_priv * priv = netdev_priv(dev);
+    struct sk_buff * skb = i->skb;
+    skb->dev = dev;
+    skb_put(skb, priv->rx_pkt_regs[priv->rx_out].done);
+    skb->protocol = eth_type_trans(skb, dev);
+    skb->ip_summed = CHECKSUM_NONE;
+    u64_stats_update_begin(&priv->rx_stats.syncp);
+    priv->rx_stats.packets++;
+    priv->rx_stats.bytes += skb->len;
+    u64_stats_update_end(&priv->rx_stats.syncp);
+    dma_unmap_single(&priv->pdev->dev, i->dma_addr, dev->mtu + ETH_HLEN, DMA_FROM_DEVICE);
+    netif_rx(skb);
+    i->skb = NULL;
+}
+
+static void axi_eth_tx_done(struct net_device * dev, struct axi_eth_ring_item * i) {
+    struct axi_eth_priv * priv = netdev_priv(dev);
+    struct sk_buff * skb = i->skb;
+    u64_stats_update_begin(&priv->tx_stats.syncp);
+    priv->tx_stats.packets++;
+    priv->tx_stats.bytes += skb->len;
+    u64_stats_update_end(&priv->tx_stats.syncp);
+    dev_consume_skb_irq(skb);
+    dma_unmap_single(&priv->pdev->dev, i->dma_addr, skb->len, DMA_TO_DEVICE);
+    i->skb = NULL;
+}
+
 static netdev_tx_t axi_eth_xmit(struct sk_buff * skb, struct net_device * dev) {
     struct axi_eth_priv * priv = netdev_priv(dev);
     uint32_t tx_next = (priv->tx_inp + 1) & AXI_ETH_RING_MASK;
     dma_addr_t dma_addr;
+    int drop = 0;
 
     if (skb->len < ETH_ZLEN && skb_padto(skb, ETH_ZLEN)) {
         netdev_err(dev, "Padding error\n");
         dev_kfree_skb_any(skb);
-        return NETDEV_TX_OK;
+        drop = 1;
+    }
+    else {
+        dma_addr = dma_map_single(&priv->pdev->dev, skb->data, skb->len, DMA_TO_DEVICE);
+        if (dma_mapping_error(&priv->pdev->dev, dma_addr)) {
+            netdev_err(dev, "DMA mapping error\n");
+            dev_kfree_skb_any(skb);
+            drop = 1;
+        }
     }
 
     spin_lock_irq(&priv->lock);
 
-    if (tx_next == priv->tx_out) {
-        struct axi_eth_ring_item * i = priv->tx_ring + priv->tx_out;
-        struct sk_buff * skb = i->skb;
-        while (priv->tx_out == priv->regs->tx_out) {}
-        if (skb) {
-            dev_consume_skb_any(skb);
-            dma_unmap_single(&priv->pdev->dev, i->dma_addr, skb->len, DMA_TO_DEVICE);
-            i->skb = NULL;
-        }
-        priv->tx_out = (priv->tx_out + 1) & AXI_ETH_RING_MASK;
-    }
-
-    skb_tx_timestamp(skb);
-
-    dma_addr = dma_map_single(&priv->pdev->dev, skb->data, skb->len, DMA_TO_DEVICE);
-    if (dma_mapping_error(&priv->pdev->dev, dma_addr)) {
-        netdev_err(dev, "DMA mapping error\n");
-        dev_kfree_skb_any(skb);
+    if (drop) {
+        dev->stats.tx_dropped++;
     }
     else {
         struct axi_eth_ring_item * i = priv->tx_ring + priv->tx_inp;
+        if (tx_next == priv->tx_out) {
+            struct axi_eth_ring_item * i = priv->tx_ring + priv->tx_out;
+            while (priv->tx_out == priv->regs->tx_out) {}
+            if (i->skb) axi_eth_tx_done(dev, i);
+            priv->tx_out = (priv->tx_out + 1) & AXI_ETH_RING_MASK;
+        }
+
+        skb_tx_timestamp(skb);
+
         i->skb = skb;
         i->dma_addr = dma_addr;
         priv->tx_pkt_regs[priv->tx_inp].addr = i->dma_addr;
         priv->tx_pkt_regs[priv->tx_inp].size = skb->len;
-        priv->regs->tx_inp = priv->tx_inp = tx_next;
-        dev->stats.tx_bytes += skb->len;
-    }
 
-    if (tx_ring_free(priv) == 0) netif_stop_queue(dev);
+        wmb();
+        priv->regs->tx_inp = priv->tx_inp = tx_next;
+
+        if (tx_ring_free(priv) == 0) netif_stop_queue(dev);
+    }
 
     spin_unlock_irq(&priv->lock);
 
@@ -171,49 +212,82 @@ static netdev_tx_t axi_eth_xmit(struct sk_buff * skb, struct net_device * dev) {
 }
 
 static void axi_eth_get_stats64(struct net_device * dev, struct rtnl_link_stats64 * stats) {
-    u64 bytes = 0;
-    u64 packets = 0;
-    int i;
+    struct axi_eth_priv * priv = netdev_priv(dev);
+    unsigned int start;
 
-    for_each_possible_cpu(i) {
-        const struct pcpu_lstats *lb_stats;
-        u64 tbytes, tpackets;
-        unsigned int start;
+    netdev_stats_to_stats64(stats, &dev->stats);
 
-        lb_stats = per_cpu_ptr(dev->lstats, i);
-        do {
-            start = u64_stats_fetch_begin_irq(&lb_stats->syncp);
-            tpackets = u64_stats_read(&lb_stats->packets);
-            tbytes = u64_stats_read(&lb_stats->bytes);
-        }
-        while (u64_stats_fetch_retry_irq(&lb_stats->syncp, start));
-        bytes   += tbytes;
-        packets += tpackets;
+    do {
+        start = u64_stats_fetch_begin_irq(&priv->rx_stats.syncp);
+        stats->rx_packets = priv->rx_stats.packets;
+        stats->rx_bytes = priv->rx_stats.bytes;
     }
-    stats->rx_packets = packets;
-    stats->tx_packets = packets;
-    stats->rx_bytes   = bytes;
-    stats->tx_bytes   = bytes;
+    while (u64_stats_fetch_retry_irq(&priv->rx_stats.syncp, start));
+
+    do {
+        start = u64_stats_fetch_begin_irq(&priv->tx_stats.syncp);
+        stats->tx_packets = priv->tx_stats.packets;
+        stats->tx_bytes = priv->tx_stats.bytes;
+    }
+    while (u64_stats_fetch_retry_irq(&priv->tx_stats.syncp, start));
+}
+
+static void axi_eth_add_rx_buffers(struct net_device * dev) {
+    struct axi_eth_priv * priv = netdev_priv(dev);
+    for (;;) {
+        struct axi_eth_ring_item * i;
+        struct sk_buff * skb;
+        uint32_t rx_next = (priv->rx_inp + 1) & AXI_ETH_RING_MASK;
+        if (rx_next == priv->rx_out) break;
+        i = priv->rx_ring + priv->rx_inp;
+        skb = netdev_alloc_skb_ip_align(dev, dev->mtu + ETH_HLEN);
+        if (!skb) {
+            netdev_err(dev, "Cannot allocate DMA buffer\n");
+            dev->stats.rx_errors++;
+            return;
+        }
+        i->dma_addr = dma_map_single(&priv->pdev->dev, skb->data, dev->mtu + ETH_HLEN, DMA_FROM_DEVICE);
+        if (dma_mapping_error(&priv->pdev->dev, i->dma_addr)) {
+            netdev_err(dev, "DMA mapping error\n");
+            dev->stats.rx_errors++;
+            dev_kfree_skb_irq(skb);
+            return;
+        }
+        i->skb = skb;
+        priv->rx_pkt_regs[priv->rx_inp].addr = i->dma_addr;
+        priv->rx_pkt_regs[priv->rx_inp].size = dev->mtu + ETH_HLEN;
+        priv->regs->rx_inp = priv->rx_inp = rx_next;
+    }
 }
 
 static int axi_eth_change_mtu(struct net_device * dev, int new_mtu) {
     struct axi_eth_priv * priv = netdev_priv(dev);
 
-    spin_lock_irq(&priv->lock);
+    if (dev->mtu < new_mtu) {
+        spin_lock_irq(&priv->lock);
 
-    while (priv->rx_inp != priv->rx_out) {
-        struct axi_eth_ring_item * i = priv->rx_ring + priv->rx_out;
-        struct sk_buff * skb = i->skb;
-        while (priv->rx_out == priv->regs->rx_out) {}
-        if (skb) {
-            dev_kfree_skb_any(skb);
-            dma_unmap_single(&priv->pdev->dev, i->dma_addr, dev->mtu + ETH_HLEN, DMA_FROM_DEVICE);
-            i->skb = NULL;
+        /* Disable RX */
+        priv->regs->mac_control &= ~1;
+        /* Wait active RX to finish */
+        while (priv->regs->mac_status & 1) {}
+        /* Dispose RX buffers - too small for new MTU */
+        while (priv->rx_inp != priv->rx_out) {
+            struct axi_eth_ring_item * i = priv->rx_ring + priv->rx_out;
+            struct sk_buff * skb = i->skb;
+            if (skb) {
+                dev_kfree_skb_any(skb);
+                dma_unmap_single(&priv->pdev->dev, i->dma_addr, dev->mtu + ETH_HLEN, DMA_FROM_DEVICE);
+                i->skb = NULL;
+            }
+            priv->rx_out = (priv->rx_out + 1) & AXI_ETH_RING_MASK;
         }
-        priv->rx_out = (priv->rx_out + 1) & AXI_ETH_RING_MASK;
-    }
+        priv->regs->rx_out = priv->rx_out;
+        axi_eth_add_rx_buffers(dev);
+        /* Enable RX */
+        priv->regs->mac_control |= 1;
 
-    spin_unlock_irq(&priv->lock);
+        spin_unlock_irq(&priv->lock);
+    }
 
     dev->mtu = new_mtu;
     return 0;
@@ -228,52 +302,17 @@ static irqreturn_t axi_eth_isr(int irq, void * dev_id) {
 
     for (;;) {
         int cont = 0;
-        uint32_t rx_next = (priv->rx_inp + 1) & AXI_ETH_RING_MASK;
-        if (rx_next != priv->rx_out) {
-            struct axi_eth_ring_item * i = priv->rx_ring + priv->rx_inp;
-            struct sk_buff * skb = netdev_alloc_skb_ip_align(dev, dev->mtu + ETH_HLEN);
-            if (!skb) {
-                dev->stats.rx_dropped++;
-                break;
-            }
-            i->dma_addr = dma_map_single(&priv->pdev->dev, skb->data, dev->mtu + ETH_HLEN, DMA_FROM_DEVICE);
-            if (dma_mapping_error(&priv->pdev->dev, i->dma_addr)) {
-                netdev_err(dev, "DMA mapping error\n");
-                dev_kfree_skb_irq(skb);
-                break;
-            }
-            i->skb = skb;
-            priv->rx_pkt_regs[priv->rx_inp].addr = i->dma_addr;
-            priv->rx_pkt_regs[priv->rx_inp].size = dev->mtu + ETH_HLEN;
-            priv->regs->rx_inp = priv->rx_inp = rx_next;
-            cont = 1;
-        }
+        axi_eth_add_rx_buffers(dev);
         priv->regs->int_status = 0;
         if (priv->rx_out != priv->regs->rx_out) {
             struct axi_eth_ring_item * i = priv->rx_ring + priv->rx_out;
-            struct sk_buff * skb = i->skb;
-            if (skb) {
-                skb->dev = dev;
-                skb_put(skb, priv->rx_pkt_regs[priv->rx_out].done);
-                skb->protocol = eth_type_trans(skb, dev);
-                skb->ip_summed = CHECKSUM_NONE;
-                dev->stats.rx_packets++;
-                dev->stats.rx_bytes += skb->len;
-                dma_unmap_single(&priv->pdev->dev, i->dma_addr, dev->mtu + ETH_HLEN, DMA_FROM_DEVICE);
-                netif_rx(skb);
-                i->skb = NULL;
-            }
+            if (i->skb) axi_eth_rx_done(dev, i);
             priv->rx_out = (priv->rx_out + 1) & AXI_ETH_RING_MASK;
             cont = 1;
         }
         if (priv->tx_out != priv->regs->tx_out) {
             struct axi_eth_ring_item * i = priv->tx_ring + priv->tx_out;
-            struct sk_buff * skb = i->skb;
-            if (skb) {
-                dev_consume_skb_irq(skb);
-                dma_unmap_single(&priv->pdev->dev, i->dma_addr, skb->len, DMA_TO_DEVICE);
-                i->skb = NULL;
-            }
+            if (i->skb) axi_eth_tx_done(dev, i);
             priv->tx_out = (priv->tx_out + 1) & AXI_ETH_RING_MASK;
             cont = 1;
         }
@@ -302,9 +341,6 @@ static int axi_eth_dev_init(struct net_device * dev) {
     struct axi_eth_priv * priv = netdev_priv(dev);
     int ret;
 
-    dev->lstats = netdev_alloc_pcpu_stats(struct pcpu_lstats);
-    if (!dev->lstats) return -ENOMEM;
-
     spin_lock_irq(&priv->lock);
 
     priv->regs->int_enable = priv->int_enable = 0;
@@ -316,7 +352,14 @@ static int axi_eth_dev_init(struct net_device * dev) {
     priv->tx_inp = priv->regs->tx_inp;
     priv->tx_out = priv->regs->tx_out;
 
+    u64_stats_init(&priv->rx_stats.syncp);
+    u64_stats_init(&priv->tx_stats.syncp);
+
+    axi_eth_add_rx_buffers(dev);
     priv->regs->int_enable = priv->int_enable = (1 << 16) | (1 << 17);
+
+    /* Enable RX, TX */
+    priv->regs->mac_control = 3;
 
     spin_unlock_irq(&priv->lock);
 
@@ -330,10 +373,14 @@ static void axi_eth_dev_free(struct net_device * dev) {
 
     priv->regs->int_enable = 0;
 
+    /* Disable RX, TX */
+    priv->regs->mac_control = 0;
+    /* Wait active RX, TX to finish */
+    while (priv->regs->mac_status & 3) {}
+
     while (priv->rx_inp != priv->rx_out) {
         struct axi_eth_ring_item * i = priv->rx_ring + priv->rx_out;
         struct sk_buff * skb = i->skb;
-        while (priv->rx_out == priv->regs->rx_out) {}
         if (skb) {
             dev_kfree_skb_any(skb);
             dma_unmap_single(&priv->pdev->dev, i->dma_addr, dev->mtu + ETH_HLEN, DMA_FROM_DEVICE);
@@ -341,22 +388,19 @@ static void axi_eth_dev_free(struct net_device * dev) {
         }
         priv->rx_out = (priv->rx_out + 1) & AXI_ETH_RING_MASK;
     }
+    priv->regs->rx_out = priv->rx_out;
+
     while (priv->tx_inp != priv->tx_out) {
         struct axi_eth_ring_item * i = priv->tx_ring + priv->tx_out;
-        struct sk_buff * skb = i->skb;
         while (priv->tx_out == priv->regs->tx_out) {}
-        if (skb) {
-            dev_consume_skb_any(skb);
-            dma_unmap_single(&priv->pdev->dev, i->dma_addr, skb->len, DMA_TO_DEVICE);
-            i->skb = NULL;
-        }
+        if (i->skb) axi_eth_tx_done(dev, i);
         priv->tx_out = (priv->tx_out + 1) & AXI_ETH_RING_MASK;
     }
+    priv->regs->tx_out = priv->tx_out;
 
     spin_unlock_irq(&priv->lock);
 
     free_irq(priv->irq, priv);
-    free_percpu(dev->lstats);
 }
 
 static const struct net_device_ops axi_eth_ops = {

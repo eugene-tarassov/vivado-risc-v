@@ -196,6 +196,8 @@ reg [`pkt_ptr_bits-1:0] tx_pkt_out;
 reg [31:0] tx_addr[`pkt_ptr_max:0];
 reg [13:0] tx_size[`pkt_ptr_max:0];
 
+reg rx_enable;
+reg tx_enable;
 reg rx_start;
 reg tx_start;
 reg rx_axis_start;
@@ -234,6 +236,8 @@ always @(posedge clock) begin
         rx_pkt_out <= 0;
         tx_pkt_inp <= 0;
         tx_pkt_out <= 0;
+        rx_enable <= 0;
+        tx_enable <= 0;
         rx_start <= 0;
         tx_start <= 0;
         int_enable <= 0;
@@ -256,6 +260,7 @@ always @(posedge clock) begin
                 10'h014: s_axi_rdata <= rx_pkt_out;
                 10'h018: s_axi_rdata <= tx_pkt_inp;
                 10'h01c: s_axi_rdata <= tx_pkt_out;
+                10'h020: s_axi_rdata <= { tx_enable, rx_enable };
                 endcase
             end else if (read_addr[11:10] == 2) begin
                 case (read_addr[3:0])
@@ -290,6 +295,7 @@ always @(posedge clock) begin
                 10'h00c: begin rx_int <= write_data[16]; tx_int <= write_data[17]; end
                 10'h010: rx_pkt_inp <= write_data;
                 10'h018: tx_pkt_inp <= write_data;
+                10'h020: begin rx_enable <= write_data[0]; tx_enable <= write_data[1]; end
                 endcase
             end else if (write_addr[11:10] == 2) begin
                 case (write_addr[3:0])
@@ -306,14 +312,14 @@ always @(posedge clock) begin
             s_axi_bvalid <= 1;
             wr_req <= 0;
         end
-        if (!rx_start && !rx_axis_stop && !rx_m_axi_stop && rx_pkt_inp != rx_pkt_out) begin
+        if (rx_enable && !rx_start && !rx_axis_stop && !rx_m_axi_stop && rx_pkt_inp != rx_pkt_out && rx_axis_tvalid) begin
             rx_start <= 1;
         end else if (rx_start && rx_axis_stop && rx_m_axi_stop) begin
             rx_start <= 0;
             rx_pkt_out <= rx_pkt_out + 1;
             rx_int <= 1;
         end
-        if (!tx_start && !tx_axis_stop && !tx_m_axi_stop && tx_pkt_inp != tx_pkt_out) begin
+        if (tx_enable && !tx_start && !tx_axis_stop && !tx_m_axi_stop && tx_pkt_inp != tx_pkt_out && tx_axis_tready) begin
             tx_start <= 1;
         end else if (tx_start && tx_axis_stop && tx_m_axi_stop) begin
             tx_start <= 0;
