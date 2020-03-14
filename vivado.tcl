@@ -67,7 +67,8 @@ set file_obj [get_files -of_objects $constraint_fileset [list "*/*.xdc"]]
 set_property -name "file_type" -value "XDC" -objects $file_obj
 
 # Create block design
-source ../../board/${vivado_board_name}/riscv.tcl
+set current_vivado_version [version -short]
+source ../../board/${vivado_board_name}/riscv-${current_vivado_version}.tcl
 regenerate_bd_layout
 save_bd_design
 

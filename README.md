@@ -11,7 +11,8 @@ Also can be used to run bare-metal or RTOS.
 # Prerequisites
 
 ## Hardware
-Xilinx VC707 or Digilent Nexys Video board.
+[Xilinx VC707](https://www.xilinx.com/products/boards-and-kits/ek-v7-vc707-g.html) or
+[Digilent Nexys Video](https://store.digilentinc.com/nexys-video-artix-7-fpga-trainer-board-for-multimedia-applications/) board.
 
 VC707 allows to prototype more powerful system: 2X cores (4 vs 2),
 2X memory (1GB vs 512MB), 2X CPU clock frequency (100MHz vs 50MHz).
@@ -23,9 +24,13 @@ Ubuntu 18 LTS machine is recommended.
 sudo access required.
 
 ## Software
-[Vivado 2019.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2019-1.html)
+[Vivado 2019.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2019-1.html) or
+[Vivado 2019.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2019-2.html) or
+[Vitis 2019.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis.html).
 
 Nexys Video is supported by free version of Vivado. VC707 requires Vivado license.
+
+If using Nexys Video, install [Vivado Board Files for Digilent FPGA Boards](https://github.com/Digilent/vivado-boards).
 
 # Usage
 ```
@@ -56,7 +61,7 @@ Root login and password: root root
 
 # Prebuild images
 
-Prebuild FPGA bitstream for Nexy Video board, and SD card image are available in releases area.
+Prebuild FPGA bitstream for Nexys Video board, and SD card image are available in releases area.
 
 # Notes
 

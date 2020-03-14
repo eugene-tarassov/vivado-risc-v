@@ -19,5 +19,4 @@ set_max_delay -from [get_ports sdio_cmd] -to ${sdio_clock} -datapath_only 8.0
 set_max_delay -from [get_ports sdio_dat*] -to ${sdio_clock} -datapath_only 8.0
 
 set_false_path -through [get_pins -hier SD/async_resetn]
-set_false_path -through [get_pins -hier SD/int_cmd]
-set_false_path -through [get_pins -hier SD/int_data]
+set_false_path -through [get_pins -hier SD/interrupt]
