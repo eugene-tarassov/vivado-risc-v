@@ -1,43 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <linux/kernel.h>
-#include <linux/jiffies.h>
 #include <linux/module.h>
 #include <linux/interrupt.h>
-#include <linux/fs.h>
-#include <linux/types.h>
-#include <linux/string.h>
-#include <linux/socket.h>
-#include <linux/errno.h>
-#include <linux/fcntl.h>
-#include <linux/in.h>
-
-#include <linux/uaccess.h>
-#include <linux/io.h>
-
-#include <linux/inet.h>
-#include <linux/netdevice.h>
 #include <linux/etherdevice.h>
-#include <linux/skbuff.h>
-#include <linux/ethtool.h>
-#include <net/sock.h>
-#include <net/checksum.h>
-#include <linux/if_ether.h> /* For the statistics structure. */
-#include <linux/if_arp.h>   /* For ARPHRD_ETHER */
-#include <linux/ip.h>
-#include <linux/tcp.h>
-#include <linux/percpu.h>
-#include <linux/net_tstamp.h>
-#include <net/net_namespace.h>
-#include <linux/u64_stats_sync.h>
-#include <linux/of.h>
 #include <linux/of_device.h>
-#include <linux/dma-mapping.h>
 
 /*
 * AXI Ethernet driver.
 *
-* AXI Ethernet is open source Verilog implementation of high speed ethernet controller.
+* AXI Ethernet is open source Verilog implementation of high speed ethernet adapter.
 * It is mainly used in FPGA designs.
 */
 
@@ -250,7 +222,7 @@ static void axi_eth_add_rx_buffers(struct net_device * dev) {
         if (dma_mapping_error(&priv->pdev->dev, i->dma_addr)) {
             netdev_err(dev, "DMA mapping error\n");
             dev->stats.rx_errors++;
-            dev_kfree_skb_irq(skb);
+            dev_kfree_skb_any(skb);
             return;
         }
         i->skb = skb;
