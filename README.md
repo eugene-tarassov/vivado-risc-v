@@ -2,11 +2,12 @@
 
 # Xilinx Vivado block designs for FPGA RISC-V SoC running Debian Linux distro.
 
-This repository helps to create RISC-V SoC HDL, Vivado project, FPGA bitstream and bootable SD card.
+This repository contains FPGA prototype of fully functional RISC-V Linux server.
+It includes scripts and sources to generate RISC-V SoC HDL, Xilinx Vivado project, FPGA bitstream, and bootable SD card.
 The SD card contains Berkeley Boot Loader, U-Boot, Linux kernel and Debian root FS.
 Linux package repositories and regular updates are provided by Debian.
 
-Also can be used to run bare-metal or RTOS.
+Also can be used to run bare-metal or RTOS software.
 
 # Prerequisites
 
