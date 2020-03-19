@@ -2,9 +2,9 @@
 
 # Xilinx Vivado block designs for FPGA RISC-V SoC running Debian Linux distro.
 
-This repository contains FPGA prototype of fully functional RISC-V Linux server.
+This repository contains FPGA prototype of fully functional [RISC-V](https://riscv.org/) Linux server.
 It includes scripts and sources to generate RISC-V SoC HDL, Xilinx Vivado project, FPGA bitstream, and bootable SD card.
-The SD card contains Berkeley Boot Loader, U-Boot, Linux kernel and Debian root FS.
+The SD card contains [Berkeley Boot Loader (aka RISC-V Proxy Kernel)](https://github.com/riscv/riscv-pk), [U-Boot](https://github.com/u-boot/u-boot), [Linux kernel](https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/) and Debian root FS.
 Linux package repositories and regular updates are provided by Debian.
 
 Also can be used to run bare-metal or RTOS software.
@@ -21,7 +21,7 @@ VC707 allows to prototype more powerful system: 2X cores (4 vs 2),
 Nexys Video is several times less expensive, academic discount is avaialble.
 
 ## Workstation
-Ubuntu 18 LTS machine is recommended.
+[Ubuntu 18 LTS](https://ubuntu.com/download/desktop) machine is recommended.
 sudo access required.
 
 ## Software
@@ -68,7 +68,7 @@ Prebuild FPGA bitstream for Nexys Video board, and SD card image are available i
 
 Rocket Chip is used as RISC-V implementation: [UC Berkeley Architecture Research - Rocket Chip Generator](https://bar.eecs.berkeley.edu/projects/rocket_chip.html).
 Rocket Chip is configured to include virtual memory, instruction and data caches, coherent interconnect, floating point, and all the relevant infrastructure.
-See rocket.scala for Rocket Chip configuration classes.
+See [rocket.scala](https://github.com/eugene-tarassov/vivado-risc-v/blob/master/rocket.scala) for Rocket Chip configuration classes.
 
 RISC-V SoC in this repo contains bootrom, which differ from original Rocket Chip bootrom.
 The modified bootrom contains SD card boot loader and extended device tree.
@@ -79,7 +79,7 @@ DDR and UART are provided by Vivado, SD and Ethernet are open source Verilog.
 Linux kernel and U-Boot use device tree, which is stored in RISC-V bootrom in FPGA.
 So, same SD card should boot OK on any board or RISC-V configuration.
 
-Nexys Video board can be configured to load FPGA bitstream from SD card.
+Nexys Video board can be configured to [load FPGA bitstream from SD card](https://reference.digilentinc.com/reference/programmable-logic/nexys-video/reference-manual#usb_host_and_micro_sd_programming).
 
 The device tree contains Ethernet MAC address, which is not unique.
 It might be necessary to rebuild bitstream with different MAC, see Makefile for details.
