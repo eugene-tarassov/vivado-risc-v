@@ -26,6 +26,9 @@ _hartx_loop:
   # enable software interrupt
   csrwi mie, 0x8
   wfi
+  # check for valid trap vector
+  lw t1, 0(t0)
+  beqz t1, _hartx_loop
   # jump to code in RAM
   ecall
   j _hartx_loop

@@ -43,6 +43,7 @@ SECTIONS {
   .bss 0x80000000 (NOLOAD) : {
     PROVIDE(_fbss = .);
     PROVIDE(__global_pointer$ = . + 0x7C0);
+    . += 8; /* Trap vector */
     *(.sbss .sbss.* .gnu.linkonce.sb.*)
     *(.bss .bss.* .gnu.linkonce.b.*)
     . = ALIGN(8);
