@@ -1,5 +1,5 @@
 diff --git a/src/main/scala/devices/tilelink/Plic.scala b/src/main/scala/devices/tilelink/Plic.scala
-index a53cd214..5a905e92 100644
+index a53cd2148..5a905e92f 100644
 --- a/src/main/scala/devices/tilelink/Plic.scala
 +++ b/src/main/scala/devices/tilelink/Plic.scala
 @@ -29,10 +29,12 @@ class LevelGateway extends Module {
