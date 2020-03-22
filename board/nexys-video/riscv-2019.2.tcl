@@ -133,7 +133,6 @@ if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
 xilinx.com:ip:clk_wiz:6.0\
 xilinx.com:ip:util_vector_logic:2.0\
-xilinx.com:ip:xlconstant:1.1\
 xilinx.com:ip:smartconnect:1.0\
 xilinx.com:ip:mig_7series:4.2\
 xilinx.com:ip:proc_sys_reset:5.0\
@@ -402,6 +401,7 @@ proc create_hier_cell_IO { parentCell nameHier } {
   create_bd_pin -dir O -type clk sdio_clk
   create_bd_pin -dir IO sdio_cmd
   create_bd_pin -dir IO -from 3 -to 0 sdio_dat
+  create_bd_pin -dir O -type rst sdio_reset
   create_bd_pin -dir I sys_reset
 
   # Create instance: Ethernet, and set properties
@@ -540,20 +540,21 @@ proc create_hier_cell_IO { parentCell nameHier } {
   # Create port connections
   connect_bd_net -net Ethernet_interrupt [get_bd_pins Ethernet/interrupt] [get_bd_pins synchronizer_0/dinp]
   connect_bd_net -net Ethernet_reset [get_bd_pins Ethernet/reset] [get_bd_pins ethernet_nexys_video_0/reset]
-  connect_bd_net -net Net [get_bd_pins sdio_cmd] [get_bd_pins SD/sdio_cmd]
-  connect_bd_net -net Net1 [get_bd_pins sdio_dat] [get_bd_pins SD/sdio_dat]
   connect_bd_net -net SD_interrupt [get_bd_pins SD/interrupt] [get_bd_pins synchronizer_1/dinp]
+  connect_bd_net -net SD_sdio_cmd [get_bd_pins sdio_cmd] [get_bd_pins SD/sdio_cmd]
+  connect_bd_net -net SD_sdio_dat [get_bd_pins sdio_dat] [get_bd_pins SD/sdio_dat]
+  connect_bd_net -net SD_sdio_reset [get_bd_pins sdio_reset] [get_bd_pins SD/sdio_reset]
   connect_bd_net -net axi_uartlite_0_interrupt [get_bd_pins axi_uartlite_0/interrupt] [get_bd_pins xlconcat_0/In0]
   connect_bd_net -net clk_wiz_1_clk_out3 [get_bd_pins clk_wiz_1/clk_out3] [get_bd_pins ethernet_nexys_video_0/clock125_90]
   connect_bd_net -net clk_wiz_1_locked [get_bd_pins mmcm_locked] [get_bd_pins clk_wiz_1/locked]
   connect_bd_net -net clk_wiz_clk_out1 [get_bd_pins ACLK] [get_bd_pins axi_interconnect_0/ACLK] [get_bd_pins axi_interconnect_0/M01_ACLK] [get_bd_pins axi_interconnect_0/S00_ACLK] [get_bd_pins axi_uartlite_0/s_axi_aclk] [get_bd_pins sdc_controller_0_axi_periph/ACLK] [get_bd_pins sdc_controller_0_axi_periph/M00_ACLK] [get_bd_pins smartconnect_0/aclk] [get_bd_pins synchronizer_0/clock] [get_bd_pins synchronizer_1/clock]
-  connect_bd_net -net clock_200MHz_1 [get_bd_pins clock_200MHz] [get_bd_pins clk_wiz_1/clk_in1] [get_bd_pins ethernet_nexys_video_0/clock200]
-  connect_bd_net -net eth_ref_clk_1 [get_bd_pins Ethernet/clock] [get_bd_pins axi_interconnect_0/M02_ACLK] [get_bd_pins clk_wiz_1/clk_out2] [get_bd_pins ethernet_nexys_video_0/clock125] [get_bd_pins sdc_controller_0_axi_periph/S01_ACLK]
+  connect_bd_net -net clock_200MHz [get_bd_pins clock_200MHz] [get_bd_pins clk_wiz_1/clk_in1] [get_bd_pins ethernet_nexys_video_0/clock200]
+  connect_bd_net -net eth_ref_clk [get_bd_pins Ethernet/clock] [get_bd_pins axi_interconnect_0/M02_ACLK] [get_bd_pins clk_wiz_1/clk_out2] [get_bd_pins ethernet_nexys_video_0/clock125] [get_bd_pins sdc_controller_0_axi_periph/S01_ACLK]
   connect_bd_net -net ethernet_0_resetn [get_bd_pins Ethernet/resetn] [get_bd_pins axi_interconnect_0/M02_ARESETN] [get_bd_pins sdc_controller_0_axi_periph/S01_ARESETN]
   connect_bd_net -net ethernet_nexys_video_0_status_vector [get_bd_pins Ethernet/status_vector] [get_bd_pins ethernet_nexys_video_0/status_vector]
   connect_bd_net -net reset_1 [get_bd_pins sys_reset] [get_bd_pins clk_wiz_1/reset]
   connect_bd_net -net rst_clk_wiz_100M_peripheral_aresetn [get_bd_pins ARESETN] [get_bd_pins Ethernet/async_resetn] [get_bd_pins SD/async_resetn] [get_bd_pins axi_interconnect_0/ARESETN] [get_bd_pins axi_interconnect_0/M01_ARESETN] [get_bd_pins axi_interconnect_0/S00_ARESETN] [get_bd_pins axi_uartlite_0/s_axi_aresetn] [get_bd_pins sdc_controller_0_axi_periph/ARESETN] [get_bd_pins sdc_controller_0_axi_periph/M00_ARESETN] [get_bd_pins smartconnect_0/aresetn]
-  connect_bd_net -net sd_ref_clk_1 [get_bd_pins SD/clock] [get_bd_pins axi_interconnect_0/M00_ACLK] [get_bd_pins clk_wiz_1/clk_out1] [get_bd_pins sdc_controller_0_axi_periph/S00_ACLK]
+  connect_bd_net -net sd_ref_clk [get_bd_pins SD/clock] [get_bd_pins axi_interconnect_0/M00_ACLK] [get_bd_pins clk_wiz_1/clk_out1] [get_bd_pins sdc_controller_0_axi_periph/S00_ACLK]
   connect_bd_net -net sdc_controller_0_upgraded_ipi_axi_reset [get_bd_pins SD/resetn] [get_bd_pins axi_interconnect_0/M00_ARESETN] [get_bd_pins sdc_controller_0_axi_periph/S00_ARESETN]
   connect_bd_net -net sdc_controller_0_upgraded_ipi_sdio_clk [get_bd_pins sdio_clk] [get_bd_pins SD/sdio_clk]
   connect_bd_net -net synchronizer_0_dout [get_bd_pins synchronizer_0/dout] [get_bd_pins xlconcat_0/In3]
@@ -706,7 +707,7 @@ proc create_root_design { parentCell } {
   set sdio_clk [ create_bd_port -dir O sdio_clk ]
   set sdio_cmd [ create_bd_port -dir IO sdio_cmd ]
   set sdio_dat [ create_bd_port -dir IO -from 3 -to 0 sdio_dat ]
-  set sdio_reset [ create_bd_port -dir O -from 0 -to 0 sdio_reset ]
+  set sdio_reset [ create_bd_port -dir O -type rst sdio_reset ]
   set sys_clock [ create_bd_port -dir I -type clk sys_clock ]
 
   # Create instance: DDR
@@ -762,12 +763,6 @@ proc create_root_design { parentCell } {
    CONFIG.LOGO_FILE {data/sym_notgate.png} \
  ] $util_vector_logic_0
 
-  # Create instance: xlconstant_0, and set properties
-  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
-  set_property -dict [ list \
-   CONFIG.CONST_VAL {0} \
- ] $xlconstant_0
-
   # Create interface connections
   connect_bd_intf_net -intf_net DDR_ddr3_sdram [get_bd_intf_ports ddr3_sdram] [get_bd_intf_pins DDR/ddr3_sdram]
   connect_bd_intf_net -intf_net IO_RGMII_0 [get_bd_intf_ports rgmii] [get_bd_intf_pins IO/RGMII]
@@ -780,22 +775,22 @@ proc create_root_design { parentCell } {
   connect_bd_net -net DDR_init_calib_complete [get_bd_pins DDR/init_calib_complete] [get_bd_pins RocketChip/mem_ok]
   connect_bd_net -net IO_interrupts [get_bd_pins IO/interrupts] [get_bd_pins RocketChip/interrupts]
   connect_bd_net -net IO_mmcm_locked [get_bd_pins IO/mmcm_locked] [get_bd_pins RocketChip/io_ok]
-  connect_bd_net -net Net [get_bd_ports sdio_cmd] [get_bd_pins IO/sdio_cmd]
-  connect_bd_net -net Net1 [get_bd_ports sdio_dat] [get_bd_pins IO/sdio_dat]
+  connect_bd_net -net IO_sdio_clk [get_bd_ports sdio_clk] [get_bd_pins IO/sdio_clk]
+  connect_bd_net -net IO_sdio_cmd [get_bd_ports sdio_cmd] [get_bd_pins IO/sdio_cmd]
+  connect_bd_net -net IO_sdio_dat [get_bd_ports sdio_dat] [get_bd_pins IO/sdio_dat]
+  connect_bd_net -net IO_sdio_reset [get_bd_ports sdio_reset] [get_bd_pins IO/sdio_reset]
   connect_bd_net -net clk_wiz_0_locked [get_bd_pins RocketChip/clock_ok] [get_bd_pins clk_wiz_0/locked]
   connect_bd_net -net clk_wiz_clk_out1 [get_bd_pins DDR/aclk] [get_bd_pins IO/ACLK] [get_bd_pins RocketChip/clock] [get_bd_pins clk_wiz_0/clk_out1]
-  connect_bd_net -net clock_200MHz_1 [get_bd_pins DDR/clock_200MHz] [get_bd_pins IO/clock_200MHz] [get_bd_pins clk_wiz_0/clk_out2]
+  connect_bd_net -net clock_200MHz [get_bd_pins DDR/clock_200MHz] [get_bd_pins IO/clock_200MHz] [get_bd_pins clk_wiz_0/clk_out2]
   connect_bd_net -net reset_1 [get_bd_pins DDR/sys_reset] [get_bd_pins IO/sys_reset] [get_bd_pins RocketChip/sys_reset] [get_bd_pins clk_wiz_0/reset] [get_bd_pins util_vector_logic_0/Res]
   connect_bd_net -net reset_2 [get_bd_ports reset] [get_bd_pins util_vector_logic_0/Op1]
   connect_bd_net -net rst_clk_wiz_100M_peripheral_aresetn [get_bd_ports eth_rst_b] [get_bd_pins DDR/aresetn] [get_bd_pins IO/ARESETN] [get_bd_pins RocketChip/aresetn]
-  connect_bd_net -net sdc_controller_0_sdio_clk [get_bd_ports sdio_clk] [get_bd_pins IO/sdio_clk]
-  connect_bd_net -net sys_clock_1 [get_bd_ports sys_clock] [get_bd_pins clk_wiz_0/clk_in1]
-  connect_bd_net -net xlconstant_0_dout [get_bd_ports sdio_reset] [get_bd_pins xlconstant_0/dout]
+  connect_bd_net -net sys_clock [get_bd_ports sys_clock] [get_bd_pins clk_wiz_0/clk_in1]
 
   # Create address segments
+  assign_bd_address -offset 0x60020000 -range 0x00010000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/Ethernet/S_AXI_LITE/reg0] -force
   assign_bd_address -offset 0x60000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/SD/S_AXI_LITE/reg0] -force
   assign_bd_address -offset 0x60010000 -range 0x00010000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/axi_uartlite_0/S_AXI/Reg] -force
-  assign_bd_address -offset 0x60020000 -range 0x00010000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/Ethernet/S_AXI_LITE/reg0] -force
   assign_bd_address -offset 0x80000000 -range 0x20000000 -target_address_space [get_bd_addr_spaces RocketChip/MEM_AXI4] [get_bd_addr_segs DDR/mig_7series_0/memmap/memaddr] -force
   assign_bd_address -offset 0x00000000 -range 0x000100000000 -target_address_space [get_bd_addr_spaces IO/Ethernet/M_AXI] [get_bd_addr_segs RocketChip/DMA_AXI4/reg0] -force
   assign_bd_address -offset 0x00000000 -range 0x000100000000 -target_address_space [get_bd_addr_spaces IO/SD/M_AXI] [get_bd_addr_segs RocketChip/DMA_AXI4/reg0] -force

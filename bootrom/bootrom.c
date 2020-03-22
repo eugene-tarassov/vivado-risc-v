@@ -48,6 +48,14 @@
 #define CMD56   (56)
 #define ACMD41  (0x80+41)       /* SEND_OP_COND (ACMD) */
 
+// Capability bits
+#define SDC_CAPABILITY_SD_4BIT  0x0001
+#define SDC_CAPABILITY_SD_RESET 0x0002
+
+// Control bits
+#define SDC_CONTROL_SD_4BIT     0x0001
+#define SDC_CONTROL_SD_RESET    0x0002
+
 // Command status bits
 #define SDC_CMD_INT_STATUS_CC   0x0001  // Command complete
 #define SDC_CMD_INT_STATUS_EI   0x0002  // Any error
@@ -310,6 +318,7 @@ DRESULT disk_read(BYTE drv, BYTE * buf, DWORD sector, BYTE count) {
 DSTATUS disk_initialize(BYTE drv) {
     unsigned rca;
 
+    /* Reset controller */
     regs->software_reset = 1;
     regs->clock_divider = 0x7c;
     usleep(5000);
@@ -325,6 +334,14 @@ DSTATUS disk_initialize(BYTE drv) {
     if (drv_status & STA_NODISK) {
         kprintf("No SD card present.\n");
         return drv_status;
+    }
+
+    if (regs->capability & SDC_CAPABILITY_SD_RESET) {
+        /* Power cycle SD card */
+        regs->control |= SDC_CONTROL_SD_RESET;
+        usleep(1000000);
+        regs->control &= ~SDC_CONTROL_SD_RESET;
+        usleep(100000);
     }
 
     /* Enter Idle state */
@@ -602,7 +619,7 @@ int main(void) {
         else if (download() != 0) {
             kprintf("Cannot read BOOT.ELF: %s\n", errno_to_str());
         }
-        usleep(2000000);
+        usleep(1000000);
     }
     return 0;
 }

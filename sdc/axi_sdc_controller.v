@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2013 Authors                                   ////
+//// Copyright (C) 2013-2020 Authors                              ////
 ////                                                              ////
 //// Based on original work by                                    ////
 ////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
@@ -122,6 +122,9 @@ module sdc_controller (
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 sdio_clk CLK" *)
     (* X_INTERFACE_PARAMETER = "FREQ_HZ 50000000" *)
     output reg sdio_clk,
+    (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 sdio_reset RST" *)
+    (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_HIGH" *)
+    output wire sdio_reset,
 
     // Interrupts
     output wire interrupt
@@ -174,7 +177,7 @@ wire [31:0] response_1_reg;
 wire [31:0] response_2_reg;
 wire [31:0] response_3_reg;
 reg  [`BLKSIZE_W-1:0] block_size_reg;
-reg  [0:0] controll_setting_reg;
+reg  [1:0] controll_setting_reg;
 wire [`INT_CMD_SIZE-1:0] cmd_int_status_reg;
 wire [`INT_DATA_SIZE-1:0] data_int_status_reg;
 wire [`INT_DATA_SIZE-1:0] data_int_status;
@@ -199,7 +202,12 @@ reg clock_data_in;
 
 always @(posedge clock)
 begin
-    if (clock_cnt == clock_divider_reg) begin
+    if (sdio_reset) begin
+        clock_cnt <= 0;
+        clock_state <= 0;
+        clock_posedge <= 0;
+        clock_data_in <= 0;
+    end else if (clock_cnt == clock_divider_reg) begin
         clock_state <= !clock_state;
         clock_posedge <= !clock_state;
         if (clock_divider_reg == 0)
@@ -216,6 +224,8 @@ begin
 end
 
 assign resetn = !reset;
+
+assign sdio_reset = controll_setting_reg[1];
 
 // ------ SD IO Buffers
 
@@ -239,10 +249,17 @@ IOBUF IOBUF_dat3 (.O(sd_dat_i[3]), .IO(sdio_dat[3]), .I(sd_dat_reg_o[3]), .T(sd_
 always @(negedge clock) begin
     // Output data delayed by 1/2 clock cycle (5ns) to ensure
     // required hold time: default speed - min 5ns, high speed - min 2ns (actual 5ns)
-    sd_cmd_reg_o <= sd_cmd_o;
-    sd_dat_reg_o <= sd_dat_o;
-    sd_cmd_reg_t <= !sd_cmd_oe;
-    sd_dat_reg_t <= !(sd_dat_oe | (cmd_start_tx & (command_reg == 0)));
+    if (sdio_reset) begin
+        sd_cmd_reg_o <= 0;
+        sd_dat_reg_o <= 0;
+        sd_cmd_reg_t <= 0;
+        sd_dat_reg_t <= 0;
+    end else begin
+        sd_cmd_reg_o <= sd_cmd_o;
+        sd_dat_reg_o <= sd_dat_o;
+        sd_cmd_reg_t <= !sd_cmd_oe;
+        sd_dat_reg_t <= !(sd_dat_oe || (cmd_start_tx && (command_reg == 0)));
+    end
 end
 
 // ------ AXI Slave Interface
@@ -258,7 +275,7 @@ assign s_axi_awready = !wr_req[0] && !s_axi_bvalid;
 assign s_axi_wready = !wr_req[1] && !s_axi_bvalid;
 
 parameter voltage_controll_reg = `SUPPLY_VOLTAGE_mV;
-parameter capabilies_reg = 16'b0000_0000_0000_0000;
+parameter capabilies_reg = 16'b0000_0000_0000_0011;
 
 assign data_int_status_reg = { data_int_status[`INT_DATA_SIZE-1:1],
     !m_bus_stb_o & !m_axi_cyc & rx_fifo_empty & data_int_status[0] };
