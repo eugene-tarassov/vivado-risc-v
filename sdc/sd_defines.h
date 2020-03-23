@@ -81,6 +81,7 @@
 `define data_iser 8'h40
 `define blksize 8'h44
 `define blkcnt 8'h48
+`define card_detect 8'h4c
 `define dst_src_addr 8'h60
 
 //wb module defines

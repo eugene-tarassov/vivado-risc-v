@@ -42,7 +42,7 @@ module sdc_controller (
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 S_AXI_LITE AWADDR" *)
     (* X_INTERFACE_PARAMETER = "CLK_DOMAIN clock, ID_WIDTH 0, PROTOCOL AXI4LITE, DATA_WIDTH 32" *)
-    input wire [31:0] s_axi_awaddr,
+    input wire [15:0] s_axi_awaddr,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 S_AXI_LITE AWVALID" *)
     input wire s_axi_awvalid,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 S_AXI_LITE AWREADY" *)
@@ -60,7 +60,7 @@ module sdc_controller (
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 S_AXI_LITE BREADY" *)
     input wire s_axi_bready,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 S_AXI_LITE ARADDR" *)
-    input wire [31:0] s_axi_araddr,
+    input wire [15:0] s_axi_araddr,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 S_AXI_LITE ARVALID" *)
     input wire s_axi_arvalid,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 S_AXI_LITE ARREADY" *)
@@ -125,6 +125,7 @@ module sdc_controller (
     (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 sdio_reset RST" *)
     (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_HIGH" *)
     output wire sdio_reset,
+    input wire sdio_cd,
 
     // Interrupts
     output wire interrupt
@@ -177,7 +178,7 @@ wire [31:0] response_1_reg;
 wire [31:0] response_2_reg;
 wire [31:0] response_3_reg;
 reg  [`BLKSIZE_W-1:0] block_size_reg;
-reg  [1:0] controll_setting_reg;
+reg  [1:0] controller_setting_reg;
 wire [`INT_CMD_SIZE-1:0] cmd_int_status_reg;
 wire [`INT_DATA_SIZE-1:0] data_int_status_reg;
 wire [`INT_DATA_SIZE-1:0] data_int_status;
@@ -225,7 +226,7 @@ end
 
 assign resetn = !reset;
 
-assign sdio_reset = controll_setting_reg[1];
+assign sdio_reset = controller_setting_reg[1];
 
 // ------ SD IO Buffers
 
@@ -262,10 +263,27 @@ always @(negedge clock) begin
     end
 end
 
+// ------ SD card detect
+
+parameter sdio_card_detect_level = 1;
+reg [25:0] sd_detect_cnt;
+wire sd_insert_int = sd_detect_cnt[25];
+wire sd_remove_int = !sd_detect_cnt[25];
+reg sd_insert_ie;
+reg sd_remove_ie;
+
+always @(posedge clock) begin
+    if (sdio_cd != sdio_card_detect_level) begin
+        sd_detect_cnt <= 0;
+    end else if (!sd_insert_int) begin
+        sd_detect_cnt <= sd_detect_cnt + 1;
+    end
+end
+
 // ------ AXI Slave Interface
 
-reg [7:0] read_addr;
-reg [7:0] write_addr;
+reg [15:0] read_addr;
+reg [15:0] write_addr;
 reg [31:0] write_data;
 reg rd_req;
 reg [1:0] wr_req;
@@ -301,12 +319,14 @@ always @(posedge clock) begin
         cmd_timeout_reg <= 0;
         data_timeout_reg <= 0;
         block_size_reg <= 0;
-        controll_setting_reg <= 0;
+        controller_setting_reg <= 0;
         cmd_int_enable_reg <= 0;
         data_int_enable_reg <= 0;
         software_reset_reg <= 0;
         clock_divider_reg <= 124; // 400KHz
         block_count_reg <= 0;
+        sd_insert_ie <= 0;
+        sd_remove_ie <= 0;
         dma_addr_reg <= 0;
     end else begin
         if (clock_posedge) begin
@@ -323,28 +343,31 @@ always @(posedge clock) begin
             s_axi_rvalid <= 0;
         end else if (!s_axi_rvalid && rd_req) begin
             s_axi_rdata <= 0;
-            case (read_addr)
-                `argument     : s_axi_rdata <= argument_reg;
-                `command      : s_axi_rdata <= command_reg;
-                `resp0        : s_axi_rdata <= response_0_reg;
-                `resp1        : s_axi_rdata <= response_1_reg;
-                `resp2        : s_axi_rdata <= response_2_reg;
-                `resp3        : s_axi_rdata <= response_3_reg;
-                `controller   : s_axi_rdata <= controll_setting_reg;
-                `blksize      : s_axi_rdata <= block_size_reg;
-                `voltage      : s_axi_rdata <= voltage_controll_reg;
-                `capa         : s_axi_rdata <= capabilies_reg;
-                `clock_d      : s_axi_rdata <= clock_divider_reg;
-                `reset        : s_axi_rdata <= { cmd_start, data_int_rst, cmd_int_rst, ctrl_rst };
-                `cmd_timeout  : s_axi_rdata <= cmd_timeout_reg;
-                `data_timeout : s_axi_rdata <= data_timeout_reg;
-                `cmd_isr      : s_axi_rdata <= cmd_int_status_reg;
-                `cmd_iser     : s_axi_rdata <= cmd_int_enable_reg;
-                `data_isr     : s_axi_rdata <= data_int_status_reg;
-                `data_iser    : s_axi_rdata <= data_int_enable_reg;
-                `blkcnt       : s_axi_rdata <= block_count_reg;
-                `dst_src_addr : s_axi_rdata <= dma_addr_reg;
-            endcase
+            if (read_addr[15:8] == 0) begin
+                case (read_addr[7:0])
+                    `argument     : s_axi_rdata <= argument_reg;
+                    `command      : s_axi_rdata <= command_reg;
+                    `resp0        : s_axi_rdata <= response_0_reg;
+                    `resp1        : s_axi_rdata <= response_1_reg;
+                    `resp2        : s_axi_rdata <= response_2_reg;
+                    `resp3        : s_axi_rdata <= response_3_reg;
+                    `controller   : s_axi_rdata <= controller_setting_reg;
+                    `blksize      : s_axi_rdata <= block_size_reg;
+                    `voltage      : s_axi_rdata <= voltage_controll_reg;
+                    `capa         : s_axi_rdata <= capabilies_reg;
+                    `clock_d      : s_axi_rdata <= clock_divider_reg;
+                    `reset        : s_axi_rdata <= { cmd_start, data_int_rst, cmd_int_rst, ctrl_rst };
+                    `cmd_timeout  : s_axi_rdata <= cmd_timeout_reg;
+                    `data_timeout : s_axi_rdata <= data_timeout_reg;
+                    `cmd_isr      : s_axi_rdata <= cmd_int_status_reg;
+                    `cmd_iser     : s_axi_rdata <= cmd_int_enable_reg;
+                    `data_isr     : s_axi_rdata <= data_int_status_reg;
+                    `data_iser    : s_axi_rdata <= data_int_enable_reg;
+                    `blkcnt       : s_axi_rdata <= block_count_reg;
+                    `card_detect  : s_axi_rdata <= { sd_remove_int, sd_remove_ie, sd_insert_int, sd_insert_ie };
+                    `dst_src_addr : s_axi_rdata <= dma_addr_reg;
+                endcase
+            end
             s_axi_rresp <= 0;
             s_axi_rvalid <= 1;
             rd_req <= 0;
@@ -360,22 +383,25 @@ always @(posedge clock) begin
         if (s_axi_bvalid && s_axi_bready) begin
             s_axi_bvalid <= 0;
         end else if (!s_axi_bvalid && wr_req == 2'b11) begin
-            case (write_addr)
-                `argument     : begin argument_reg <= write_data; cmd_start <= 1; end
-                `command      : command_reg <= write_data;
-                `reset        : software_reset_reg <= write_data;
-                `cmd_timeout  : cmd_timeout_reg <= write_data;
-                `data_timeout : data_timeout_reg <= write_data;
-                `blksize      : block_size_reg <= write_data;
-                `controller   : controll_setting_reg <= write_data;
-                `cmd_isr      : cmd_int_rst <= 1;
-                `cmd_iser     : cmd_int_enable_reg <= write_data;
-                `clock_d      : clock_divider_reg <= write_data;
-                `data_isr     : data_int_rst <= 1;
-                `data_iser    : data_int_enable_reg <= write_data;
-                `blkcnt       : block_count_reg <= write_data;
-                `dst_src_addr : dma_addr_reg <= write_data;
-            endcase
+            if (write_addr[15:8] == 0) begin
+                case (write_addr[7:0])
+                    `argument     : begin argument_reg <= write_data; cmd_start <= 1; end
+                    `command      : command_reg <= write_data;
+                    `reset        : software_reset_reg <= write_data;
+                    `cmd_timeout  : cmd_timeout_reg <= write_data;
+                    `data_timeout : data_timeout_reg <= write_data;
+                    `blksize      : block_size_reg <= write_data;
+                    `controller   : controller_setting_reg <= write_data;
+                    `cmd_isr      : cmd_int_rst <= 1;
+                    `cmd_iser     : cmd_int_enable_reg <= write_data;
+                    `clock_d      : clock_divider_reg <= write_data;
+                    `data_isr     : data_int_rst <= 1;
+                    `data_iser    : data_int_enable_reg <= write_data;
+                    `blkcnt       : block_count_reg <= write_data;
+                    `card_detect  : begin sd_remove_ie <= write_data[2]; sd_insert_ie <= write_data[0]; end
+                    `dst_src_addr : dma_addr_reg <= write_data;
+                endcase
+            end
             s_axi_bresp <= 0;
             s_axi_bvalid <= 1;
             wr_req <= 0;
@@ -556,7 +582,7 @@ sd_data_serial_host sd_data_serial_host0(
     .DAT_dat_o      (sd_dat_o),
     .DAT_dat_i      (sd_dat_i),
     .blksize        (block_size_reg),
-    .bus_4bit       (controll_setting_reg[0]),
+    .bus_4bit       (controller_setting_reg[0]),
     .blkcnt         (block_count_reg),
     .start          ({d_read, d_write}),
     .byte_alignment (dma_addr_reg),
@@ -578,6 +604,8 @@ sd_data_xfer_trig sd_data_xfer_trig0 (
 
 assign interrupt =
     |(cmd_int_status_reg & cmd_int_enable_reg) ||
-    |(data_int_status_reg & data_int_enable_reg);
+    |(data_int_status_reg & data_int_enable_reg) ||
+    (sd_insert_int & sd_insert_ie) ||
+    (sd_remove_int & sd_remove_ie);
 
 endmodule
