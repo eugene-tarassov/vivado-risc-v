@@ -126,7 +126,7 @@ static void axi_eth_tx_done(struct net_device * dev, struct axi_eth_ring_item * 
     priv->tx_stats.packets++;
     priv->tx_stats.bytes += skb->len;
     u64_stats_update_end(&priv->tx_stats.syncp);
-    dev_consume_skb_irq(skb);
+    dev_consume_skb_any(skb);
     dma_unmap_single(&priv->pdev->dev, i->dma_addr, skb->len, DMA_TO_DEVICE);
     i->skb = NULL;
 }
