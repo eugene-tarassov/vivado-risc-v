@@ -9,6 +9,8 @@ Linux package repositories and regular updates are provided by Debian.
 
 Also can be used to run bare-metal or RTOS software.
 
+The project is used as a reference design to validate RISC-V support in [Eclipse TCF](https://wiki.eclipse.org/TCF/RISC-V).
+
 # Prerequisites
 
 ## Hardware
