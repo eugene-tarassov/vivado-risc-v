@@ -62,7 +62,7 @@ Use USB SD card reader to connect SD card to the workstation, and run:
 The script looks for USB memory device and asks confirmation before using it.
 Make sure to confirm right SD card device - all old data will be erased.
 
-## Programm the FPGA flash memory
+## Program the FPGA flash memory
 - Open Vivado
 ```
 source /opt/Xilinx/Vivado/2019.1/settings64.sh
