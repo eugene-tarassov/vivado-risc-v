@@ -98,7 +98,7 @@ or, after Linux boot, over SSH:
 ssh debian@debian
 ```
 
-# Prebuild images
+# Prebuilt images
 
 Prebuild FPGA bitstream for Nexys Video board, and SD card image are available in releases area.
 
