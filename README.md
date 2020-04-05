@@ -2,7 +2,8 @@
 
 # Xilinx Vivado block designs for FPGA RISC-V SoC running Debian Linux distro.
 
-This repository contains FPGA prototype of fully functional [RISC-V](https://riscv.org/) Linux server.
+This repository contains FPGA prototype of fully functional [RISC-V](https://riscv.org/) Linux server
+with networking, online Linux package repository and daily package updates.
 It includes scripts and sources to generate RISC-V SoC HDL, Xilinx Vivado project, FPGA bitstream, and bootable SD card.
 The SD card contains [Berkeley Boot Loader (aka RISC-V Proxy Kernel)](https://github.com/riscv/riscv-pk), [U-Boot](https://github.com/u-boot/u-boot), [Linux kernel](https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/) and Debian root FS.
 Linux package repositories and regular updates are provided by Debian.
@@ -36,15 +37,24 @@ Nexys Video is supported by free version of Vivado. VC707 requires Vivado licens
 If using Nexys Video, install [Vivado Board Files for Digilent FPGA Boards](https://github.com/Digilent/vivado-boards).
 
 # Usage
+
+## Checkout the repository, install required packages and update submodules
 ```
 sudo apt install git make
 git clone https://github.com/eugene-tarassov/vivado-risc-v.git
 cd vivado-risc-v
 make apt-install
 make update-submodules
+```
+
+## Build FPGA bitstream
+```
 source /opt/Xilinx/Vivado/2019.1/settings64.sh
 make CONFIG=rocket64b2 BOARD=nexys-video bitstream
 ```
+For VC707, use BOARD=vc707
+
+## Prepare the SD card
 Use USB SD card reader to connect SD card to the workstation, and run:
 ```
 ./mk-sd-card
@@ -52,15 +62,41 @@ Use USB SD card reader to connect SD card to the workstation, and run:
 The script looks for USB memory device and asks confirmation before using it.
 Make sure to confirm right SD card device - all old data will be erased.
 
-See the board and Vivado docs on how to setup the board and program FPGA.
+## Programm the FPGA flash memory
+- Open Vivado
+```
+source /opt/Xilinx/Vivado/2019.1/settings64.sh
+make CONFIG=rocket64b2 BOARD=nexys-video vivado-gui
+```
+- Open the hardware manager and open the target board
+- Select Tools - Add Configuration Memory Device
+- Select the following device:
+  - Nexys Video: Spansion s25fl256xxxxxx0
+  - VC707: Micron mt28gu01gaaxle
+- Add configuration file:
+  - Nexys Video: workspace/rocket64b2/nexys-video-riscv.mcs
+  - VC707: workspace/rocket64b2/vc707-riscv.mcs
+- Press Ok. Flashing will take a couple of minutes.
+- Right click on the FPGA device - Boot from Configuration Memory Device (or press the program button on the board)
 
-After Linux boots, you can login over UART console or SSH.
+See the board and Vivado docs for more details.
+
+## Linux login
 
 Host name: debian
 
 User login and password: debian debian
 
 Root login and password: root root
+
+You can login over UART console:
+```
+sudo miniterm /dev/ttyUSB0 115200
+```
+or, after Linux boot, over SSH:
+```
+ssh debian@debian
+```
 
 # Prebuild images
 
@@ -77,6 +113,11 @@ The modified bootrom contains SD card boot loader and extended device tree.
 
 RISC-V SoC in this repo contains DDR, UART, SD and Ethernet controllers.
 DDR and UART are provided by Vivado, SD and Ethernet are open source Verilog.
+
+SD controller implements SD HS (High Speed) specs, 25MB/s read/write speed.
+
+Ethernet controller is based on [Verilog Ethernet Components](https://github.com/alexforencich/verilog-ethernet) project,
+which is a collection of Ethernet-related components for gigabit, 10G, and 25G packet processing.
 
 Linux kernel and U-Boot use device tree, which is stored in RISC-V bootrom in FPGA.
 So, same SD card should boot OK on any board or RISC-V configuration.

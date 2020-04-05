@@ -103,6 +103,7 @@ ifeq ($(BOARD),vc707)
   ROCKET_FREQ ?= 100
   BOARD_PART  ?= xilinx.com:vc707:part0:1.4
   XILINX_PART ?= xc7vx485tffg1761-2
+  CFG_DEVICE  ?= bpix16 -size 128
   MEMORY_SIZE ?= 0x40000000
   ETHER_MAC   ?= 00 0a 35 00 00 00
 endif
@@ -111,6 +112,7 @@ ifeq ($(BOARD),nexys-video)
   ROCKET_FREQ ?= 50
   BOARD_PART  ?= digilentinc.com:nexys_video:part0:1.1
   XILINX_PART ?= xc7a200tsbg484-1
+  CFG_DEVICE  ?= SPIx4 -size 256
   MEMORY_SIZE ?= 0x20000000
   ETHER_MAC   ?= 00 0a 35 00 00 01
 endif
@@ -162,10 +164,13 @@ workspace/$(CONFIG)/rocket.vhdl: workspace/$(CONFIG)/system.v
 
 # --- generate Vivado Project ---
 
+.PHONY: vivado-tcl vivado-project vivado-gui bitstream
+
 proj_name = $(BOARD)-riscv
 proj_path = workspace/$(CONFIG)/vivado-$(proj_name)
 proj_file = $(proj_path)/$(proj_name).xpr
 bitstream = $(proj_path)/$(proj_name).runs/impl_1/riscv_wrapper.bit
+mcs_file  = workspace/$(CONFIG)/$(proj_name).mcs
 vivado    = vivado -mode batch -nojournal -nolog -notrace -quiet
 
 workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl workspace/$(CONFIG)/system-$(BOARD).v
@@ -179,17 +184,17 @@ workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl workspa
 
 vivado-tcl: workspace/$(CONFIG)/system-$(BOARD).tcl
 
-$(proj_file): vivado-tcl
-	rm -rf $(proj_path)
-	$(vivado) -source workspace/$(CONFIG)/system-$(BOARD).tcl
+$(proj_file): workspace/$(CONFIG)/system-$(BOARD).tcl
+	if [ ! -e $(proj_path) ] ; then $(vivado) -source workspace/$(CONFIG)/system-$(BOARD).tcl ; fi
 
 vivado-project: $(proj_file)
 
-$(proj_path)/make-bitstream.tcl: vivado-project
+$(proj_path)/make-bitstream.tcl: $(proj_file)
 	echo "open_project $(proj_file)">$@
 	echo "update_compile_order -fileset sources_1">>$@
 	echo "launch_runs impl_1 -to_step write_bitstream -jobs 4">>$@
 	echo "wait_on_run impl_1">>$@
+	echo "write_cfgmem -format mcs -interface $(CFG_DEVICE) -loadbit \"up 0x0 $(bitstream)\" -file $(mcs_file) -force">>$@
 
 $(bitstream): $(proj_path)/make-bitstream.tcl
 	$(vivado) -source $(proj_path)/make-bitstream.tcl
@@ -197,5 +202,5 @@ $(bitstream): $(proj_path)/make-bitstream.tcl
 
 bitstream: $(bitstream)
 
-vivado-gui: vivado-project
+vivado-gui: $(proj_file)
 	vivado $(proj_file) &
