@@ -1,8 +1,8 @@
 diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
-index d06b2dfe3c95..4f84d1537788 100644
+index 3a5089f0332c..105fefaddd7a 100644
 --- a/drivers/mmc/host/Kconfig
 +++ b/drivers/mmc/host/Kconfig
-@@ -1033,6 +1033,14 @@ config MMC_SDHCI_AM654
+@@ -1036,6 +1036,14 @@ config MMC_SDHCI_AM654
  
  	  If unsure, say N.
  
