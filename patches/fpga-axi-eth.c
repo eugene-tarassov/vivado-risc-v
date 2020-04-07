@@ -106,16 +106,27 @@ MODULE_DEVICE_TABLE(of, axi_eth_of_match_table);
 static void axi_eth_rx_done(struct net_device * dev, struct axi_eth_ring_item * i) {
     struct axi_eth_priv * priv = netdev_priv(dev);
     struct sk_buff * skb = i->skb;
-    skb->dev = dev;
-    skb_put(skb, priv->rx_pkt_regs[priv->rx_out].done);
-    skb->protocol = eth_type_trans(skb, dev);
-    skb->ip_summed = CHECKSUM_NONE;
-    u64_stats_update_begin(&priv->rx_stats.syncp);
-    priv->rx_stats.packets++;
-    priv->rx_stats.bytes += skb->len;
-    u64_stats_update_end(&priv->rx_stats.syncp);
+    uint32_t status = priv->rx_pkt_regs[priv->rx_out].status;
     dma_unmap_single(&priv->pdev->dev, i->dma_addr, dev->mtu + ETH_HLEN, DMA_FROM_DEVICE);
-    netif_rx(skb);
+    if (status & 1) {
+        dev_kfree_skb_any(skb);
+        dev->stats.rx_dropped++;
+    }
+    else if (status & 2) {
+        dev_kfree_skb_any(skb);
+        dev->stats.rx_error++;
+    }
+    else {
+        skb->dev = dev;
+        skb_put(skb, priv->rx_pkt_regs[priv->rx_out].done);
+        skb->protocol = eth_type_trans(skb, dev);
+        skb->ip_summed = CHECKSUM_NONE;
+        u64_stats_update_begin(&priv->rx_stats.syncp);
+        priv->rx_stats.packets++;
+        priv->rx_stats.bytes += skb->len;
+        u64_stats_update_end(&priv->rx_stats.syncp);
+        netif_rx(skb);
+    }
     i->skb = NULL;
 }
 
@@ -133,7 +144,6 @@ static void axi_eth_tx_done(struct net_device * dev, struct axi_eth_ring_item * 
 
 static netdev_tx_t axi_eth_xmit(struct sk_buff * skb, struct net_device * dev) {
     struct axi_eth_priv * priv = netdev_priv(dev);
-    uint32_t tx_next = (priv->tx_inp + 1) & AXI_ETH_RING_MASK;
     dma_addr_t dma_addr;
     int drop = 0;
 
@@ -157,6 +167,7 @@ static netdev_tx_t axi_eth_xmit(struct sk_buff * skb, struct net_device * dev) {
         dev->stats.tx_dropped++;
     }
     else {
+        uint32_t tx_next = (priv->tx_inp + 1) & AXI_ETH_RING_MASK;
         struct axi_eth_ring_item * i = priv->tx_ring + priv->tx_inp;
         if (tx_next == priv->tx_out) {
             struct axi_eth_ring_item * i = priv->tx_ring + priv->tx_out;
@@ -278,6 +289,7 @@ static irqreturn_t axi_eth_isr(int irq, void * dev_id) {
         priv->regs->int_status = 0;
         if (priv->rx_out != priv->regs->rx_out) {
             struct axi_eth_ring_item * i = priv->rx_ring + priv->rx_out;
+            wmb();
             if (i->skb) axi_eth_rx_done(dev, i);
             priv->rx_out = (priv->rx_out + 1) & AXI_ETH_RING_MASK;
             cont = 1;

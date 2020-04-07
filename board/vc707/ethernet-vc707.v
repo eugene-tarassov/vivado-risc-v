@@ -94,7 +94,9 @@ eth_mac_1g_fifo #(
     .TX_FIFO_DEPTH(4096),
     .TX_FRAME_FIFO(1),
     .RX_FIFO_DEPTH(4096),
-    .RX_FRAME_FIFO(1)
+    .RX_FRAME_FIFO(1),
+    .RX_DROP_BAD_FRAME(0),
+    .RX_DROP_WHEN_FULL(1)
 )
 eth_mac_inst (
     .rx_clk(clock),

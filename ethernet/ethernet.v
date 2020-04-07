@@ -190,6 +190,7 @@ reg [`pkt_ptr_bits-1:0] rx_pkt_out;
 reg [31:0] rx_addr[`pkt_ptr_max:0];
 reg [13:0] rx_size[`pkt_ptr_max:0];
 reg [13:0] rx_done[`pkt_ptr_max:0];
+reg [1:0] rx_status[`pkt_ptr_max:0];
 
 reg [`pkt_ptr_bits-1:0] tx_pkt_inp;
 reg [`pkt_ptr_bits-1:0] tx_pkt_out;
@@ -203,6 +204,7 @@ reg tx_start;
 reg rx_axis_start;
 reg tx_axis_start;
 reg rx_axis_stop;
+reg rx_bad_frame;
 reg tx_axis_stop;
 reg rx_m_axi_stop;
 reg tx_m_axi_stop;
@@ -267,6 +269,7 @@ always @(posedge clock) begin
                 4'h00: s_axi_rdata <= rx_addr[read_addr[4+:`pkt_ptr_bits]];
                 4'h04: s_axi_rdata <= rx_size[read_addr[4+:`pkt_ptr_bits]];
                 4'h08: s_axi_rdata <= rx_done[read_addr[4+:`pkt_ptr_bits]];
+                4'h0c: s_axi_rdata <= rx_status[read_addr[4+:`pkt_ptr_bits]];
                 endcase
             end else if (read_addr[11:10] == 3) begin
                 case (read_addr[3:0])
@@ -447,7 +450,7 @@ reg  [13:0] rx_pkt_offs;
 wire [13:0] rx_byte_left;
 wire [13:0] rx_word_left;
 
-assign m_axi_bready = m_axi_wr_cyc;
+assign m_axi_bready = m_axi_wr_cyc && !m_axi_wvalid;
 assign m_axi_wdata = rx_burst_buf[rx_burst_out];
 assign rx_burst_inp_next = rx_burst_inp + 1;
 assign rx_burst_out_next = rx_burst_out + 1;
@@ -470,27 +473,24 @@ always @(posedge clock) begin
         rx_burst_out <= 0;
         rx_axis_start <= 0;
         rx_axis_stop <= 0;
+        rx_bad_frame <= 0;
     end else begin
         if (!rx_start) begin
             rx_burst_inp <= 0;
             rx_burst_out <= 0;
             rx_axis_start <= 0;
             rx_axis_stop <= 0;
+            rx_bad_frame <= 1;
         end else if (!rx_axis_start) begin
-            m_axi_wr_err <= 0;
-            rx_axis_byte <= rx_pkt_addr[1:0];
-            rx_done[rx_pkt_out] <= 0;
+            rx_axis_byte <= rx_addr[rx_pkt_out][1:0];
             rx_axis_start <= 1;
-            m_axi_wstrb <= 4'b1111 << rx_addr[rx_pkt_out][1:0];
-            rx_pkt_addr <= rx_addr[rx_pkt_out];
-            rx_pkt_size <= rx_size[rx_pkt_out];
-            rx_pkt_offs <= 0;
         end else if (rx_axis_tvalid && rx_axis_tready) begin
             rx_burst_buf[rx_burst_inp][rx_axis_byte*8+:8] <= rx_axis_tdata;
             rx_axis_byte <= rx_axis_byte + 1;
             if (rx_axis_tlast) begin
                 rx_burst_inp <= rx_burst_inp_next;
                 rx_axis_stop <= 1;
+                rx_bad_frame <= rx_axis_tuser;
             end else if (rx_axis_byte == 2'h3) begin
                 rx_burst_inp <= rx_burst_inp_next;
             end
@@ -498,6 +498,14 @@ always @(posedge clock) begin
         if (!rx_start) begin
             rx_m_axi_stop0 <= 0;
             rx_m_axi_stop <= 0;
+        end else if (!rx_axis_start) begin
+            m_axi_wr_err <= 0;
+            rx_done[rx_pkt_out] <= 0;
+            rx_status[rx_pkt_out] <= 1;
+            m_axi_wstrb <= 4'b1111 << rx_addr[rx_pkt_out][1:0];
+            rx_pkt_addr <= rx_addr[rx_pkt_out];
+            rx_pkt_size <= rx_size[rx_pkt_out];
+            rx_pkt_offs <= 0;
         end else if (m_axi_wr_cyc) begin
             if (m_axi_awvalid && m_axi_awready) begin
                 m_axi_awvalid <= 0;
@@ -507,6 +515,7 @@ always @(posedge clock) begin
                 if (m_axi_bresp) m_axi_wr_err <= 1;
                 if (rx_m_axi_stop0) rx_m_axi_stop <= 1;
                 rx_done[rx_pkt_out] <= rx_pkt_offs;
+                rx_status[rx_pkt_out] <= { m_axi_wr_err, rx_bad_frame };
             end
             if (m_axi_wvalid && m_axi_wready) begin
                 rx_burst_out <= rx_burst_out_next;
