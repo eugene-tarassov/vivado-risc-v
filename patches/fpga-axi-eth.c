@@ -114,7 +114,7 @@ static void axi_eth_rx_done(struct net_device * dev, struct axi_eth_ring_item * 
     }
     else if (status & 2) {
         dev_kfree_skb_any(skb);
-        dev->stats.rx_error++;
+        dev->stats.rx_errors++;
     }
     else {
         skb->dev = dev;
