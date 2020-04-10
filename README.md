@@ -6,7 +6,8 @@ This repository contains FPGA prototype of fully functional [RISC-V](https://ris
 with networking, online Linux package repository and daily package updates.
 It includes scripts and sources to generate RISC-V SoC HDL, Xilinx Vivado project, FPGA bitstream, and bootable SD card.
 The SD card contains [Berkeley Boot Loader (aka RISC-V Proxy Kernel)](https://github.com/riscv/riscv-pk), [U-Boot](https://github.com/u-boot/u-boot), [Linux kernel](https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/) and Debian root FS.
-Linux package repositories and regular updates are provided by Debian.
+Linux package repositories and regular updates are provided by [Debian](https://wiki.debian.org/RISC-V).
+Over 90% of packages of the whole Debian collection are available for download.
 
 Also can be used to run bare-metal or RTOS software.
 
