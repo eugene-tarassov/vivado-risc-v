@@ -424,7 +424,7 @@ reg m_axi_cyc;
 reg m_axi_write;
 reg [fifo_addr_bits-1:0] m_axi_wcnt;
 wire [`BLKSIZE_W+`BLKCNT_W-1:0] xfersize;
-wire [31:0] m_bus_adr_o;
+wire [31:2] m_bus_adr_o;
 wire [31:0] m_bus_dat_o;
 wire [31:0] m_bus_dat_i;
 wire [fifo_addr_bits-1:0] tx_fifo_free_len;
@@ -436,6 +436,12 @@ assign m_bus_last_i = m_axi_write ? m_axi_wlast : m_axi_rlast;
 assign m_bus_ack_i = m_axi_write ? (m_axi_wready & m_axi_wvalid) : (m_axi_rready & m_axi_rvalid);
 assign m_bus_dat_i = {m_axi_rdata[7:0],m_axi_rdata[15:8],m_axi_rdata[23:16],m_axi_rdata[31:24]};
 assign m_axi_wdata = {m_bus_dat_o[7:0],m_bus_dat_o[15:8],m_bus_dat_o[23:16],m_bus_dat_o[31:24]};
+
+// AXI burst cannot cross a 4KB boundary
+wire [fifo_addr_bits-1:0] tx_burst_len;
+wire [fifo_addr_bits-1:0] rx_burst_len;
+assign tx_burst_len = m_bus_adr_o[11:2] + tx_fifo_free_len >= m_bus_adr_o[11:2] ? tx_fifo_free_len - 1 : ~m_bus_adr_o[fifo_addr_bits+1:2];
+assign rx_burst_len = m_bus_adr_o[11:2] + rx_fifo_data_len >= m_bus_adr_o[11:2] ? rx_fifo_data_len - 1 : ~m_bus_adr_o[fifo_addr_bits+1:2];
 
 always @(posedge clock) begin
     if (reset | ctrl_rst) begin
@@ -466,14 +472,14 @@ always @(posedge clock) begin
         m_axi_wcnt <= 0;
         m_axi_write <= m_bus_we_o;
         if (m_bus_we_o) begin
-            m_axi_awaddr <= m_bus_adr_o;
-            m_axi_awlen <= rx_fifo_data_len - 1;
-            m_axi_wlast <= rx_fifo_data_len == 1;
+            m_axi_awaddr <= { m_bus_adr_o, 2'b00 };
+            m_axi_awlen <= rx_burst_len;
+            m_axi_wlast <= rx_burst_len == 0;
             m_axi_awvalid <= 1;
             m_axi_wvalid <= 1;
         end else begin
-            m_axi_araddr <= m_bus_adr_o;
-            m_axi_arlen <= tx_fifo_free_len - 1;
+            m_axi_araddr <= { m_bus_adr_o, 2'b00 };
+            m_axi_arlen <= tx_burst_len;
             m_axi_arvalid <= 1;
         end
     end
@@ -492,7 +498,7 @@ axi_sd_fifo_filler #(.fifo_addr_bits(fifo_addr_bits)) sd_fifo_filler0(
     .bus_we_o  (m_bus_we_o),
     .en_rx_i   (start_rx_fifo),
     .en_tx_i   (start_tx_fifo),
-    .adr_i     (dma_addr_reg),
+    .adr_i     (dma_addr_reg[31:2]),
     .dat_i     (data_in_rx_fifo),
     .dat_o     (data_out_tx_fifo),
     .wr_i      (rx_fifo_we),

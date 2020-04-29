@@ -36,7 +36,7 @@ module axi_sd_fifo_filler #(parameter unsigned fifo_addr_bits = 6) (
     input reset,
 
     // Bus signals
-    output reg [31:0] bus_adr_o,
+    output reg [31:2] bus_adr_o,
     output [31:0] bus_dat_o,
     input [31:0] bus_dat_i,
     output bus_we_o,
@@ -47,7 +47,7 @@ module axi_sd_fifo_filler #(parameter unsigned fifo_addr_bits = 6) (
     // Data Master Control signals
     input en_rx_i,
     input en_tx_i,
-    input [31:0] adr_i,
+    input [31:2] adr_i,
 
     // Data Serial signals
     input [31:0] dat_i,
@@ -104,7 +104,7 @@ always @(posedge clock)
         bus_adr_o <= 0;
         bus_wait <= 0;
     end else if (bus_stb_o & bus_ack_i) begin
-        bus_adr_o <= bus_adr_o + 4;
+        bus_adr_o <= bus_adr_o + 1;
         bus_wait <= !bus_last_i;
     end else if (bus_stb_o) begin
         bus_wait <= 1;
