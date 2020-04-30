@@ -342,25 +342,31 @@ reg  [1:0] tx_axis_byte;
 wire [burst_size_bits-1:0] tx_burst_inp_next;
 wire [burst_size_bits-1:0] tx_burst_out_next;
 wire [burst_size_bits-1:0] tx_burst_free_len;
+wire [burst_size_bits-1:0] tx_burst_arlen;
+wire [burst_size_bits-1:0] tx_burst_arlen4k;
+wire [31:0] tx_burst_araddr;
 
 reg  [31:0] tx_pkt_addr;
 reg  [13:0] tx_pkt_size;
 reg  [13:0] tx_pkt_offs;
-wire [13:0] tx_byte_left;
-wire [13:0] tx_word_left;
+reg  [13:0] tx_word_left;
 
 assign m_axi_rready = m_axi_rd_cyc;
 assign tx_burst_inp_next = tx_burst_inp + 1;
 assign tx_burst_out_next = tx_burst_out + 1;
 assign tx_burst_free_len = tx_burst_out - tx_burst_inp_next;
-assign tx_byte_left = tx_pkt_size - tx_pkt_offs;
-assign tx_word_left = (tx_byte_left + 3) >> 2;
 assign tx_axis_tuser = 0;
 assign tx_axis_tdata = tx_burst_buf[tx_burst_out][tx_axis_byte*8+:8];
 assign tx_axis_tvalid = tx_burst_inp != tx_burst_out;
 assign tx_axis_tlast = tx_m_axi_stop &&
                     (tx_burst_out_next == tx_burst_inp) &&
                     (tx_axis_byte == (tx_pkt_addr[1:0] + tx_pkt_size[1:0] - 2'd1));
+
+assign tx_burst_araddr = (tx_pkt_addr + tx_pkt_offs) & ~32'h3;
+assign tx_burst_arlen = (tx_word_left >= tx_burst_free_len ? tx_burst_free_len : tx_word_left) - 1;
+
+// AXI burst cannot cross a 4KB boundary
+assign tx_burst_arlen4k = ~tx_burst_araddr[11:2] >= tx_burst_arlen ? tx_burst_arlen : ~tx_burst_araddr[burst_size_bits+1:2];
 
 always @(posedge clock) begin
     if (reset) begin
@@ -379,12 +385,8 @@ always @(posedge clock) begin
             tx_axis_start <= 0;
             tx_axis_stop <= 0;
         end else if (!tx_axis_start) begin
-            m_axi_rd_err <= 0;
-            tx_axis_byte <= tx_pkt_addr[1:0];
+            tx_axis_byte <= tx_addr[tx_pkt_out][1:0];
             tx_axis_start <= 1;
-            tx_pkt_addr <= tx_addr[tx_pkt_out];
-            tx_pkt_size <= tx_size[tx_pkt_out];
-            tx_pkt_offs <= 0;
         end else if (tx_axis_tvalid && tx_axis_tready) begin
             tx_axis_byte <= tx_axis_byte + 1;
             if (tx_axis_tlast) begin
@@ -396,6 +398,12 @@ always @(posedge clock) begin
         end
         if (!tx_start) begin
             tx_m_axi_stop <= 0;
+        end else if (!tx_axis_start) begin
+            m_axi_rd_err <= 0;
+            tx_pkt_addr <= tx_addr[tx_pkt_out];
+            tx_pkt_size <= tx_size[tx_pkt_out];
+            tx_pkt_offs <= 0;
+            tx_word_left <= (tx_size[tx_pkt_out] + tx_addr[tx_pkt_out][1:0] + 3) >> 2;
         end else if (m_axi_rd_cyc) begin
             if (m_axi_arvalid && m_axi_arready) begin
                 m_axi_arvalid <= 0;
@@ -413,17 +421,14 @@ always @(posedge clock) begin
                 end
                 if (m_axi_rlast) m_axi_rd_cyc <= 0;
                 if (m_axi_rresp) m_axi_rd_err <= 1;
+                tx_word_left <= tx_word_left - 1;
             end
         end else if (tx_word_left >= `min_burst && tx_burst_free_len < `min_burst) begin
             // wait for more free space
         end else if (tx_burst_free_len != 0 && tx_axis_start && !tx_m_axi_stop) begin
             m_axi_rd_cyc <= 1;
-            m_axi_araddr <= (tx_pkt_addr + tx_pkt_offs) & ~32'h3;
-            if (tx_word_left >= tx_burst_free_len) begin
-                m_axi_arlen <= tx_burst_free_len - 1;
-            end else begin
-                m_axi_arlen <= tx_word_left - 1;
-            end
+            m_axi_araddr <= tx_burst_araddr;
+            m_axi_arlen <= tx_burst_arlen4k;
             m_axi_arvalid <= 1;
         end
     end
@@ -443,22 +448,25 @@ reg  [1:0] rx_axis_byte;
 wire [burst_size_bits-1:0] rx_burst_inp_next;
 wire [burst_size_bits-1:0] rx_burst_out_next;
 wire [burst_size_bits-1:0] rx_burst_data_len;
+wire [burst_size_bits-1:0] rx_burst_awlen;
+wire [burst_size_bits-1:0] rx_burst_awlen4k;
+wire [31:0] rx_burst_awaddr;
 
 reg  [31:0] rx_pkt_addr;
-reg  [13:0] rx_pkt_size;
-reg  [13:0] rx_pkt_offs;
-wire [13:0] rx_byte_left;
-wire [13:0] rx_word_left;
+reg  [13:0] rx_word_left;
 
 assign m_axi_bready = m_axi_wr_cyc && !m_axi_wvalid;
 assign m_axi_wdata = rx_burst_buf[rx_burst_out];
 assign rx_burst_inp_next = rx_burst_inp + 1;
 assign rx_burst_out_next = rx_burst_out + 1;
 assign rx_burst_data_len = rx_burst_inp - rx_burst_out;
-assign rx_byte_left = rx_pkt_size - rx_pkt_offs;
-assign rx_word_left = (rx_byte_left + 3) >> 2;
 assign rx_m_axi_last = rx_axis_stop && (rx_burst_out_next == rx_burst_inp);
 assign rx_axis_tready = rx_axis_start && !rx_axis_stop && (rx_burst_inp_next != rx_burst_out || rx_m_axi_stop);
+assign rx_burst_awlen = (rx_word_left >= rx_burst_data_len ? rx_burst_data_len : rx_word_left) - 1;
+assign rx_burst_awaddr = { rx_pkt_addr[31:2], 2'b00 };
+
+// AXI burst cannot cross a 4KB boundary
+assign rx_burst_awlen4k = ~rx_burst_awaddr[11:2] >= rx_burst_awlen ? rx_burst_awlen : ~rx_burst_awaddr[burst_size_bits+1:2];
 
 always @(posedge clock) begin
     // RX DMA
@@ -503,9 +511,8 @@ always @(posedge clock) begin
             rx_done[rx_pkt_out] <= 0;
             rx_status[rx_pkt_out] <= 1;
             m_axi_wstrb <= 4'b1111 << rx_addr[rx_pkt_out][1:0];
+            rx_word_left <= (rx_size[rx_pkt_out] + rx_addr[rx_pkt_out][1:0]) >> 2;
             rx_pkt_addr <= rx_addr[rx_pkt_out];
-            rx_pkt_size <= rx_size[rx_pkt_out];
-            rx_pkt_offs <= 0;
         end else if (m_axi_wr_cyc) begin
             if (m_axi_awvalid && m_axi_awready) begin
                 m_axi_awvalid <= 0;
@@ -514,7 +521,7 @@ always @(posedge clock) begin
                 m_axi_wr_cyc <= 0;
                 if (m_axi_bresp) m_axi_wr_err <= 1;
                 if (rx_m_axi_stop0) rx_m_axi_stop <= 1;
-                rx_done[rx_pkt_out] <= rx_pkt_offs;
+                rx_done[rx_pkt_out] <= rx_pkt_addr - rx_addr[rx_pkt_out];
                 rx_status[rx_pkt_out] <= { m_axi_wr_err, rx_bad_frame };
             end
             if (m_axi_wvalid && m_axi_wready) begin
@@ -525,10 +532,10 @@ always @(posedge clock) begin
                     m_axi_wlast <= m_axi_wcnt + 1 == m_axi_awlen;
                     m_axi_wcnt <= m_axi_wcnt + 1;
                 end
-                if (rx_pkt_offs == 0) rx_pkt_offs[2:0] <= 3'd4 - rx_pkt_addr[1:0];
-                else if (!rx_m_axi_last || rx_axis_byte == 0) rx_pkt_offs <= rx_pkt_offs + 4;
-                else rx_pkt_offs <= rx_pkt_offs + rx_axis_byte;
+                if (!rx_m_axi_last || rx_axis_byte == 0) rx_pkt_addr <= rx_burst_awaddr + 4;
+                else rx_pkt_addr <= rx_pkt_addr + rx_axis_byte;
                 if (rx_m_axi_last || rx_word_left <= 1) rx_m_axi_stop0 <= 1;
+                rx_word_left <= rx_word_left - 1;
                 m_axi_wstrb <= 4'b1111;
             end
         end else if (!rx_axis_stop && rx_burst_data_len < `min_burst) begin
@@ -536,14 +543,9 @@ always @(posedge clock) begin
         end else if (rx_burst_data_len != 0 && rx_axis_start && !rx_m_axi_stop) begin
             m_axi_wcnt <= 0;
             m_axi_wr_cyc <= 1;
-            m_axi_awaddr <= (rx_pkt_addr + rx_pkt_offs) & ~32'h3;
-            if (rx_word_left >= rx_burst_data_len) begin
-                m_axi_awlen <= rx_burst_data_len - 1;
-                m_axi_wlast <= rx_burst_data_len == 1;
-            end else begin
-                m_axi_awlen <= rx_word_left - 1;
-                m_axi_wlast <= rx_word_left == 1;
-            end
+            m_axi_awaddr <= rx_burst_awaddr;
+            m_axi_awlen <= rx_burst_awlen4k;
+            m_axi_wlast <= rx_burst_awlen4k == 0;
             m_axi_awvalid <= 1;
             m_axi_wvalid <= 1;
         end
