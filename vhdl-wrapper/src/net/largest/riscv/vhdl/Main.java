@@ -18,6 +18,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 import net.largest.riscv.vhdl.Verilog2001Parser.Binary_operatorContext;
 import net.largest.riscv.vhdl.Verilog2001Parser.Lsb_constant_expressionContext;
+import net.largest.riscv.vhdl.Verilog2001Parser.Module_identifierContext;
 import net.largest.riscv.vhdl.Verilog2001Parser.Msb_constant_expressionContext;
 import net.largest.riscv.vhdl.Verilog2001Parser.TermContext;
 import net.largest.riscv.vhdl.Verilog2001Parser.Unary_operatorContext;
@@ -630,6 +631,7 @@ public class Main {
         if (args.length != 1) {
             System.err.println("Usage:");
             System.err.println("  java net.largest.riscv.vhdl.Main [options] <Verilog file name>");
+            System.exit(1);
         }
         try {
             CharStream input = CharStreams.fromFileName(args[0]);
@@ -731,13 +733,18 @@ public class Main {
                     /* Not implemented, but not needed for RISC-V */
                 }
             };
+            macros.put("SYNTHESIS", "1");
             CommonTokenStream tokens = new CommonTokenStream(lexer);
             Verilog2001Parser parser = new Verilog2001Parser(tokens);
             parser.addParseListener(new Verilog2001BaseListener() {
                 public void exitModule_declaration(Verilog2001Parser.Module_declarationContext ctx) {
-                    if (ctx.module_identifier().getText().equals("RocketSystem")) {
-                        rocket_system = ctx;
-                        getBusSignals();
+                    Module_identifierContext id = ctx.module_identifier();
+                    if (id != null) {
+                        String name = id.getText();
+                        if (name.equals("RocketSystem")) {
+                            rocket_system = ctx;
+                            getBusSignals();
+                        }
                     }
                 }
                 public void exitModule_instantiation(Verilog2001Parser.Module_instantiationContext ctx) {

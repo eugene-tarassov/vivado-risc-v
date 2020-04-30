@@ -1,6 +1,6 @@
 #!/bin/bash
 
 java \
- -cp ../../../../../antlr-4.7.2-complete.jar org.antlr.v4.Tool \
+ -cp ../../../../../antlr-4.8-complete.jar org.antlr.v4.Tool \
  -package net.largest.riscv.vhdl \
  Verilog2001.g4

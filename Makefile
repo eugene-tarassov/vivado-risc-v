@@ -154,10 +154,10 @@ workspace/$(CONFIG)/rocket.vhdl: workspace/$(CONFIG)/system.v
 	mkdir -p vhdl-wrapper/bin
 	javac -g -nowarn \
 	  -sourcepath vhdl-wrapper/src -d vhdl-wrapper/bin \
-	  -classpath vhdl-wrapper/antlr-4.7.2-complete.jar \
+	  -classpath vhdl-wrapper/antlr-4.8-complete.jar \
 	  vhdl-wrapper/src/net/largest/riscv/vhdl/Main.java
 	java -classpath \
-	  vhdl-wrapper/src:vhdl-wrapper/bin:vhdl-wrapper/antlr-4.7.2-complete.jar \
+	  vhdl-wrapper/src:vhdl-wrapper/bin:vhdl-wrapper/antlr-4.8-complete.jar \
 	  net.largest.riscv.vhdl.Main \
 	  workspace/$(CONFIG)/system.v >$@
 

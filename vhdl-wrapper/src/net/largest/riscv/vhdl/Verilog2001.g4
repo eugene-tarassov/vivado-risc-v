@@ -256,7 +256,7 @@ parameter_override
 // 2.1 Declaration types
 // 2.1.1 Module parameter declarations
 local_parameter_declaration
-   : 'localparam' ('signed')? (range_)? list_of_param_assignments ';'
+   : 'localparam' ('signed' | 'unsigned')? (range_)? list_of_param_assignments ';'
    | 'localparam' 'integer' list_of_param_assignments ';'
    | 'localparam' 'real' list_of_param_assignments ';'
    | 'localparam' 'realtime' list_of_param_assignments ';'
@@ -271,7 +271,7 @@ parameter_declaration
 // #(parameter B=8) since it wants a ';' in (...). Rule
 // module_parameter_port_list calls this one.
 parameter_declaration_
-   : 'parameter' ('signed')? (range_)? list_of_param_assignments
+   : 'parameter' ('signed' | 'unsigned')? (range_)? list_of_param_assignments
    | 'parameter' 'integer' list_of_param_assignments
    | 'parameter' 'real' list_of_param_assignments
    | 'parameter' 'realtime' list_of_param_assignments
@@ -284,17 +284,17 @@ specparam_declaration
 
 // 2.1.2 Port declarations
 inout_declaration
-   : 'inout' (net_type)? ('signed')? (range_)? list_of_port_identifiers
+   : 'inout' (net_type)? ('signed' | 'unsigned')? (range_)? list_of_port_identifiers
    ;
 
 input_declaration
-   : 'input' (net_type)? ('signed')? (range_)? list_of_port_identifiers
+   : 'input' (net_type)? ('signed' | 'unsigned')? (range_)? list_of_port_identifiers
    ;
 
 output_declaration
-   : 'output' (net_type)? ('signed')? (range_)? list_of_port_identifiers
-   | 'output' ('reg')? ('signed')? (range_)? list_of_port_identifiers
-   | 'output' 'reg' ('signed')? (range_)? list_of_variable_port_identifiers
+   : 'output' (net_type)? ('signed' | 'unsigned')? (range_)? list_of_port_identifiers
+   | 'output' ('reg')? ('signed' | 'unsigned')? (range_)? list_of_port_identifiers
+   | 'output' 'reg' ('signed' | 'unsigned')? (range_)? list_of_variable_port_identifiers
    | 'output' (output_variable_type)? list_of_port_identifiers
    | 'output' output_variable_type list_of_variable_port_identifiers
    ;
@@ -325,18 +325,18 @@ realtime_declaration
    ;
 
 reg_declaration
-   : 'reg' ('signed')? (range_)? list_of_variable_identifiers ';'
+   : 'reg' ('signed' | 'unsigned')? (range_)? list_of_variable_identifiers ';'
    ;
 
 net_declaration
-   : net_type ('signed')? (delay3)? list_of_net_identifiers ';'
-   | net_type (drive_strength)? ('signed')? (delay3)? list_of_net_decl_assignments ';'
-   | 'trireg' (drive_strength)? ('signed')? (delay3)? list_of_net_decl_assignments ';'
-   | 'trireg' (charge_strength)? ('signed')? (delay3)? list_of_net_identifiers ';'
-   | 'trireg' (charge_strength)? ('vectored' | 'scalared')? ('signed')? range_ (delay3)? list_of_net_identifiers ';'
-   | 'trireg' (drive_strength)? ('vectored' | 'scalared')? ('signed')? range_ (delay3)? list_of_net_decl_assignments ';'
-   | net_type (drive_strength)? ('vectored' | 'scalared')? ('signed')? range_ (delay3)? list_of_net_decl_assignments ';'
-   | net_type ('vectored' | 'scalared')? ('signed')? range_ (delay3)? list_of_net_identifiers ';'
+   : net_type ('signed' | 'unsigned')? (delay3)? list_of_net_identifiers ';'
+   | net_type (drive_strength)? ('signed' | 'unsigned')? (delay3)? list_of_net_decl_assignments ';'
+   | 'trireg' (drive_strength)? ('signed' | 'unsigned')? (delay3)? list_of_net_decl_assignments ';'
+   | 'trireg' (charge_strength)? ('signed' | 'unsigned')? (delay3)? list_of_net_identifiers ';'
+   | 'trireg' (charge_strength)? ('vectored' | 'scalared')? ('signed' | 'unsigned')? range_ (delay3)? list_of_net_identifiers ';'
+   | 'trireg' (drive_strength)? ('vectored' | 'scalared')? ('signed' | 'unsigned')? range_ (delay3)? list_of_net_decl_assignments ';'
+   | net_type (drive_strength)? ('vectored' | 'scalared')? ('signed' | 'unsigned')? range_ (delay3)? list_of_net_decl_assignments ';'
+   | net_type ('vectored' | 'scalared')? ('signed' | 'unsigned')? range_ (delay3)? list_of_net_identifiers ';'
    ;
 
 // 2.2 Declaration data types
@@ -502,8 +502,8 @@ range_
 // spec didn't allow optional block_item_declaration and function_item_declaration
 // spec didn't allow temp funcs.
 function_declaration
-   : 'function' ('automatic')? ('signed')? (range_or_type)? function_identifier ';' function_item_declaration* function_statement? 'endfunction'
-   | 'function' ('automatic')? ('signed')? (range_or_type)? function_identifier '(' function_port_list ')' ';' block_item_declaration* function_statement? 'endfunction'
+   : 'function' ('automatic')? ('signed' | 'unsigned')? (range_or_type)? function_identifier ';' function_item_declaration* function_statement? 'endfunction'
+   | 'function' ('automatic')? ('signed' | 'unsigned')? (range_or_type)? function_identifier '(' function_port_list ')' ';' block_item_declaration* function_statement? 'endfunction'
    ;
 
 function_item_declaration
@@ -549,7 +549,7 @@ task_port_item
 // TJP added net_type? to these input/output/inout decls. wasn't in spec.
 // factored out header
 tf_decl_header
-   : ('input' | 'output' | 'inout') net_type? ('reg')? ('signed')? (range_)?
+   : ('input' | 'output' | 'inout') net_type? ('reg')? ('signed' | 'unsigned')? (range_)?
    | ('input' | 'output' | 'inout') net_type? (task_port_type)?
    ;
 
@@ -577,7 +577,7 @@ block_item_declaration
    ;
 
 block_reg_declaration
-   : 'reg' ('signed')? (range_)? list_of_block_variable_identifiers ';'
+   : 'reg' ('signed' | 'unsigned')? (range_)? list_of_block_variable_identifiers ';'
    ;
 
 list_of_block_variable_identifiers
@@ -1027,11 +1027,6 @@ wait_statement
 // 6.6 Conditional statements
 conditional_statement
    : 'if' '(' expression ')' statement_or_null ('else' statement_or_null)?
-   | if_else_if_statement
-   ;
-
-if_else_if_statement
-   : 'if' '(' expression ')' statement_or_null ('else' 'if' '(' expression ')' statement_or_null)* ('else' statement_or_null)?
    ;
 
 function_conditional_statement
