@@ -1,5 +1,5 @@
 diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 85e15ebffa..6a85c08fce 100644
+index cc87da7e04..6ac22686e2 100644
 --- a/arch/riscv/Kconfig
 +++ b/arch/riscv/Kconfig
 @@ -20,6 +20,9 @@ config TARGET_QEMU_VIRT

@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (C) 2013 Authors
+ * Copyright (C) 2013-2020 Authors
  *
  * This source file may be used and distributed without
  * restriction provided that this copyright statement is not
@@ -21,7 +21,7 @@
  *
  * You should have received a copy of the GNU Lesser General
  * Public License along with this source; if not, download it
- * from http://www.opencores.org/lgpl.shtml
+ * from https://www.gnu.org/licenses/licenses.html
  */
 
 #include <common.h>
@@ -32,6 +32,7 @@
 #include <string.h>
 #include <command.h>
 #include <dm/device.h>
+#include <dm/device_compat.h>
 #include <mmc.h>
 
 /*
