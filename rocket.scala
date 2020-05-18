@@ -43,7 +43,7 @@ class RocketBaseConfig extends Config(
   new WithNExtTopInterrupts(8) ++
   new WithDTS("freechips,rocketchip-vivado", Nil) ++
   new WithDebugSBA ++
-  /* new WithEdgeDataBits(128) ++ VHDL wrapper does not work */
+  new WithEdgeDataBits(64) ++
   new BaseConfig)
 
 class Rocket32s1 extends Config(
