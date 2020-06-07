@@ -99,6 +99,68 @@ or, after Linux boot, over SSH:
 ssh debian@debian
 ```
 
+## Modding the design: adding a peripheral device
+
+### Use Vivado Block Design to add an IP
+
+Open Vivado:
+```
+source /opt/Xilinx/Vivado/2019.1/settings64.sh
+make CONFIG=rocket64b2 BOARD=nexys-video vivado-gui
+```
+The IO block in the design is the best place to add device controllers, like GPIO.
+See AXI Uartlite as an example, connect your IP to AXI interconnect and interrupts.
+Validate and synthesize the design, but don't build bitstream yet - device tree and RISC-V HDL need to be updated first.
+
+Close Vivado.
+
+### Check the device driver is enabled in patches/linux.config
+
+For example, for Xilinx GPIO, the config should contain line:
+```
+CONFIG_GPIO_XILINX=y
+```
+
+If necessary, change config, then rebuild Linux kernel and bootloader:
+```
+make linux bbl
+./mk-sd-image -r debian-riscv64-boot
+```
+Copy debian-riscv64-boot/extlinux directory to the SD card.
+
+Note: don't change files in the project submodules: linux-stable, u-boot, riscv-pk or rocket-chip.
+Such changes are lost when the project is rebuilt.
+
+For details on Xilinx drivers, see [Linux Drivers](https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18841873/Linux%2BDrivers).
+
+### Edit bootrom/bootrom.dts
+
+Add device description in the "soc {...}" section.
+For example, GPIO description can look like this:
+```
+        gpio: gpio@60030000 {
+            #gpio-cells = <2>;
+            compatible = "xlnx,xps-gpio-1.00.a";
+            gpio-controller ;
+            interrupt-parent = <&L2>;
+            interrupts = <4>;
+            reg = < 0x60030000 0x10000 >;
+            xlnx,all-inputs = <0x0>;
+            xlnx,dout-default = <0x0>;
+            xlnx,gpio-width = <0x8>;
+            xlnx,interrupt-present = <0x1>;
+            xlnx,is-dual = <0>;
+            xlnx,tri-default = <0xffffffff>;
+        };
+```
+Make sure the description matches your design. In particular, check addresses and interrupt numbers.
+
+### Rebuild FPGA bitstream
+```
+make CONFIG=rocket64b2 BOARD=nexys-video bitstream
+```
+Program the FPGA or the board flash memory.
+
 # Prebuilt images
 
 Prebuild FPGA bitstream for Nexys Video board, and SD card image are available in releases area.

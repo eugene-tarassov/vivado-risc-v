@@ -136,7 +136,7 @@ workspace/$(CONFIG)/system.v: rocket.scala
 	cp rocket-chip/vsim/generated-src/freechips.rocketchip.system.$(CONFIG_SCALA).behav_srams.v workspace/$(CONFIG)/srams.v
 	cp rocket-chip/vsim/generated-src/freechips.rocketchip.system.$(CONFIG_SCALA).v $@
 
-workspace/$(CONFIG)/system-$(BOARD).v: workspace/gcc/riscv rocket.scala workspace/$(CONFIG)/system.v
+workspace/$(CONFIG)/system-$(BOARD).v: workspace/gcc/riscv rocket.scala workspace/$(CONFIG)/system.v bootrom/bootrom.dts
 	cat workspace/$(CONFIG)/system.dts bootrom/bootrom.dts >bootrom/system.dts
 	sed -i "s#reg = <0x80000000 0x40000000>#reg = <0x80000000 $(MEMORY_SIZE)>#g" bootrom/system.dts
 	sed -i "s#clock-frequency = <100000000>#clock-frequency = <$(ROCKET_FREQ)000000>#g" bootrom/system.dts
@@ -196,7 +196,7 @@ $(proj_path)/make-bitstream.tcl: $(proj_file)
 	echo "wait_on_run impl_1">>$@
 	echo "write_cfgmem -format mcs -interface $(CFG_DEVICE) -loadbit \"up 0x0 $(bitstream)\" -file $(mcs_file) -force">>$@
 
-$(bitstream): $(proj_path)/make-bitstream.tcl
+$(bitstream): $(proj_path)/make-bitstream.tcl workspace/$(CONFIG)/rocket.vhdl
 	$(vivado) -source $(proj_path)/make-bitstream.tcl
 	if find $(proj_path) -name "*.log" -exec cat {} \; | grep 'ERROR: ' ; then exit 1 ; fi
 
