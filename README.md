@@ -163,7 +163,7 @@ Program the FPGA or the board flash memory.
 
 # Prebuilt images
 
-Prebuild FPGA bitstream for Nexys Video board, and SD card image are available in releases area.
+Prebuilt FPGA bitstream and SD card image are available in the releases area.
 
 # Notes
 
