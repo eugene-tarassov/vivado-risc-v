@@ -3,8 +3,6 @@
 set -e
 cd `dirname $0`
 
-make linux
-make bbl
 ./mk-sd-image
 
 # --- copy SD card image to physical media ---

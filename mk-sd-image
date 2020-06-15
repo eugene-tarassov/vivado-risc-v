@@ -18,9 +18,18 @@ KERNEL_VER=$(cd linux-stable && git describe --exact-match --abbrev=0)
 
 make debian-riscv64/initrd debian-riscv64/rootfs.tar.gz
 
+# --- Build BBL and Linux ---
+
+if [ ! -f riscv-pk/build/bbl ] ; then
+  make bbl
+fi
+if [ ! -f linux-stable/arch/riscv/boot/Image ] ; then
+  make linux
+fi
+
 # --- build SD card image ---
 
-SD_SIZE=2000
+SD_SIZE=1500
 SD_IMG=debian-riscv64/debian-riscv64.sd.img
 
 losetup -a | grep `pwd` | while IFS=':' read -ra LINE ; do
@@ -41,7 +50,7 @@ done
 
 echo "SD image device: ${SD_LOOP}"
 
-sudo sfdisk ${SD_LOOP} <<-__EOF__
+sudo sfdisk --no-tell-kernel ${SD_LOOP} <<-__EOF__
 1M,400M,0xE,*
 ,,,-
 __EOF__
@@ -84,6 +93,12 @@ popd
 sudo chown root:root debian-riscv64/rootfs
 sudo chmod 755 debian-riscv64/rootfs
 
+echo
+echo "Boot partition:"
+df debian-riscv64/boot
+echo
+echo "Root partition:"
+df debian-riscv64/rootfs
 ls -l debian-riscv64/rootfs
 
 if [ ! -z "$RSYNC_BOOT" ] ; then

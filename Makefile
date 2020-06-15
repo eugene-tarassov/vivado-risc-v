@@ -10,6 +10,10 @@ update-submodules:
 clean-submodules:
 	git submodule foreach --recursive git clean -xfdq
 
+clean:
+	git submodule foreach --recursive git clean -xfdq
+	sudo rm -rf debian-riscv64
+
 # --- download tools, initrd and rootfs ---
 
 workspace/gcc/riscv:
