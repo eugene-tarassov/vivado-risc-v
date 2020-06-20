@@ -65,6 +65,8 @@ set_property -name "file_type" -value "VHDL" -objects $file_obj
 
 set file_obj [get_files -of_objects $constraint_fileset [list "*/*.xdc"]]
 set_property -name "file_type" -value "XDC" -objects $file_obj
+set_property -name "used_in" -value "implementation" -objects $file_obj
+set_property -name "used_in_synthesis" -value "0" -objects $file_obj
 
 # Create block design
 set current_vivado_version [version -short]
