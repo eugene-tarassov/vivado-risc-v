@@ -5,3 +5,6 @@
 /vhdl-wrapper/bin/
 /debian-riscv64/
 /workspace
+/target/
+/project/target/
+/project/project/target/

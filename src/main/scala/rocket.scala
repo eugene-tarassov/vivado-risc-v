@@ -1,4 +1,4 @@
-package freechips.rocketchip.system
+package Vivado
 
 import Chisel._
 import freechips.rocketchip.config.Config
@@ -7,6 +7,7 @@ import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.subsystem._
 import freechips.rocketchip.devices.tilelink._
 import freechips.rocketchip.util.DontTouch
+import freechips.rocketchip.system._
 
 class RocketSystem(implicit p: Parameters) extends RocketSubsystem
     with HasHierarchicalBusTopology
@@ -38,7 +39,7 @@ class WithCoreFreq(freq: BigInt) extends Config ((site, here, up) => {
 })
 
 class RocketBaseConfig extends Config(
-  new WithBootROM("../bootrom/bootrom.img") ++
+  new WithBootROM("workspace/bootrom.img") ++
   new WithExtMemSize(0x40000000) ++ // 1GB
   new WithNExtTopInterrupts(8) ++
   new WithDTS("freechips,rocketchip-vivado", Nil) ++
@@ -107,3 +108,9 @@ class Rocket64b8 extends Config(
   new WithNBigCores(8)    ++
   new RocketBaseConfig)
 
+class Rocket64x2 extends Config(
+  new WithCoreFreq(100000000) ++
+  new WithNBreakpoints(8) ++
+  new boom.common.WithMediumBooms ++
+  new boom.common.WithNBoomCores(2) ++
+  new RocketBaseConfig)

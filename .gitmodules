@@ -13,3 +13,9 @@
 [submodule "ethernet/verilog-ethernet"]
 	path = ethernet/verilog-ethernet
 	url = https://github.com/alexforencich/verilog-ethernet.git
+[submodule "riscv-boom"]
+	path = riscv-boom
+	url = https://github.com/riscv-boom/riscv-boom.git
+[submodule "testchipip"]
+	path = testchipip
+	url = https://github.com/ucb-bar/testchipip.git

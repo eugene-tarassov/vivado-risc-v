@@ -101,16 +101,9 @@ riscv-pk/build/bbl: riscv-pk-patch u-boot/u-boot
 
 # --- generate HDL ---
 
-CONFIG_SCALA = $(subst rocket,Rocket,$(CONFIG))
-
-ifeq ($(BOARD),vc707)
-  ROCKET_FREQ ?= 100
-  BOARD_PART  ?= xilinx.com:vc707:part0:1.4
-  XILINX_PART ?= xc7vx485tffg1761-2
-  CFG_DEVICE  ?= bpix16 -size 128
-  MEMORY_SIZE ?= 0x40000000
-  ETHER_MAC   ?= 00 0a 35 00 00 00
-endif
+BOARD ?= nexys-video
+CONFIG ?= rocket64b2
+CONFIG_SCALA := $(subst rocket,Rocket,$(CONFIG))
 
 ifeq ($(BOARD),nexys-video)
   ROCKET_FREQ ?= 50
@@ -121,6 +114,15 @@ ifeq ($(BOARD),nexys-video)
   ETHER_MAC   ?= 00 0a 35 00 00 01
 endif
 
+ifeq ($(BOARD),vc707)
+  ROCKET_FREQ ?= 100
+  BOARD_PART  ?= xilinx.com:vc707:part0:1.4
+  XILINX_PART ?= xc7vx485tffg1761-2
+  CFG_DEVICE  ?= bpix16 -size 128
+  MEMORY_SIZE ?= 0x40000000
+  ETHER_MAC   ?= 00 0a 35 00 00 00
+endif
+
 ifeq ($(findstring rocket64,$(CONFIG)),)
   CROSS_COMPILE_NO_OS_TOOLS = $(realpath workspace/gcc/riscv/bin)/riscv32-unknown-elf-
   CROSS_COMPILE_NO_OS_FLAGS = -march=rv32im -mabi=ilp32
@@ -129,18 +131,31 @@ else
   CROSS_COMPILE_NO_OS_FLAGS = -march=rv64im -mabi=lp64
 endif
 
-workspace/$(CONFIG)/system.v: rocket.scala
-	cd rocket-chip && git reset --hard && patch -p1 <../patches/rocket-chip.patch
-	cp rocket-chip/bootrom/bootrom.img bootrom
-	cp rocket.scala rocket-chip/src/main/scala
-	env ROCKETCHIP=`pwd`/rocket-chip \
-	  make -C rocket-chip/vsim RISCV=/tmp JVM_MEMORY=4G MODEL=RocketSystem CONFIG=$(CONFIG_SCALA) clean verilog
-	mkdir -p workspace/$(CONFIG)
-	cp rocket-chip/vsim/generated-src/freechips.rocketchip.system.$(CONFIG_SCALA).dts workspace/$(CONFIG)/system.dts
-	cp rocket-chip/vsim/generated-src/freechips.rocketchip.system.$(CONFIG_SCALA).behav_srams.v workspace/$(CONFIG)/srams.v
-	cp rocket-chip/vsim/generated-src/freechips.rocketchip.system.$(CONFIG_SCALA).v $@
+SBT := java -Xmx2G -Xss8M -jar $(realpath rocket-chip/sbt-launch.jar)
+CHISEL_SRC := $(foreach path, src rocket-chip/src riscv-boom/src, $(shell find $(path) -name "*.scala"))
+ROCKET_CLASSES = "target/scala-2.12/classes:rocket-chip/target/scala-2.12/classes:rocket-chip/chisel3/target/scala-2.12/*"
 
-workspace/$(CONFIG)/system-$(BOARD).v: workspace/gcc/riscv rocket.scala workspace/$(CONFIG)/system.v bootrom/bootrom.dts
+FIRRTL_SRC := $(shell find rocket-chip/firrtl/src/main/scala -iname "*.scala")
+FIRRTL_JAR = rocket-chip/firrtl/utils/bin/firrtl.jar
+FIRRTL = java -Xmx2G -Xss8M -cp "$(FIRRTL_JAR)":"$(ROCKET_CLASSES)" firrtl.stage.FirrtlMain
+
+$(FIRRTL_JAR): $(FIRRTL_SRC)
+	make -C rocket-chip/firrtl SBT="$(SBT)" root_dir=$(realpath rocket-chip/firrtl) build-scala
+	touch $(FIRRTL_JAR)
+
+# Generate default device tree - not including peripheral devices or board specific data 
+workspace/$(CONFIG)/system.dts: $(FIRRTL_JAR) $(CHISEL_SRC) rocket-chip/bootrom/bootrom.img
+	cd rocket-chip && git reset --hard && patch -p1 <../patches/rocket-chip.patch
+	mkdir -p workspace/$(CONFIG)/tmp
+	cp rocket-chip/bootrom/bootrom.img workspace/bootrom.img
+	$(SBT) "runMain freechips.rocketchip.system.Generator workspace/$(CONFIG)/tmp Vivado RocketSystem Vivado $(CONFIG_SCALA)"
+	mv workspace/$(CONFIG)/tmp/Vivado.$(CONFIG_SCALA).anno.json workspace/$(CONFIG)/system.anno.json
+	mv workspace/$(CONFIG)/tmp/Vivado.$(CONFIG_SCALA).dts workspace/$(CONFIG)/system.dts
+	rm -rf workspace/$(CONFIG)/tmp
+
+# Generate board specific device tree and FIR
+workspace/$(CONFIG)/system-$(BOARD).fir: workspace/$(CONFIG)/system.dts $(wildcard bootrom/*) workspace/gcc/riscv
+	mkdir -p workspace/$(CONFIG)/tmp
 	cat workspace/$(CONFIG)/system.dts bootrom/bootrom.dts >bootrom/system.dts
 	sed -i "s#reg = <0x80000000 0x40000000>#reg = <0x80000000 $(MEMORY_SIZE)>#g" bootrom/system.dts
 	sed -i "s#clock-frequency = <100000000>#clock-frequency = <$(ROCKET_FREQ)000000>#g" bootrom/system.dts
@@ -148,13 +163,22 @@ workspace/$(CONFIG)/system-$(BOARD).v: workspace/gcc/riscv rocket.scala workspac
 	sed -i "s#local-mac-address = \[.*\]#local-mac-address = [$(ETHER_MAC)]#g" bootrom/system.dts
 	make -C bootrom CROSS_COMPILE="$(CROSS_COMPILE_NO_OS_TOOLS)" CFLAGS="$(CROSS_COMPILE_NO_OS_FLAGS)" clean bootrom.img
 	cp bootrom/system.dts workspace/$(CONFIG)/system-$(BOARD).dts
-	cd rocket-chip && git reset --hard && patch -p1 <../patches/rocket-chip.patch
-	cp rocket.scala rocket-chip/src/main/scala
-	env ROCKETCHIP=`pwd`/rocket-chip \
-	  make -C rocket-chip/vsim RISCV=/tmp JVM_MEMORY=4G MODEL=RocketSystem CONFIG=$(CONFIG_SCALA) clean verilog
-	cp rocket-chip/vsim/generated-src/freechips.rocketchip.system.$(CONFIG_SCALA).v $@
+	cp bootrom/bootrom.img workspace/bootrom.img
+	$(SBT) "runMain freechips.rocketchip.system.Generator workspace/$(CONFIG)/tmp Vivado RocketSystem Vivado $(CONFIG_SCALA)"
+	mv workspace/$(CONFIG)/tmp/Vivado.$(CONFIG_SCALA).fir workspace/$(CONFIG)/system-$(BOARD).fir
+	rm -rf workspace/$(CONFIG)/tmp
 
-workspace/$(CONFIG)/rocket.vhdl: workspace/$(CONFIG)/system.v
+# Generate Rocket SoC HDL
+workspace/$(CONFIG)/system-$(BOARD).v: workspace/$(CONFIG)/system-$(BOARD).fir
+	$(FIRRTL) -i $< -o system-$(BOARD).v -X verilog --infer-rw RocketSystem --repl-seq-mem \
+         -c:RocketSystem:-o:workspace/$(CONFIG)/system.conf \
+         -faf workspace/$(CONFIG)/system.anno.json \
+         -td workspace/$(CONFIG)/ \
+         -fct firrtl.passes.InlineInstances
+	rocket-chip/scripts/vlsi_mem_gen workspace/$(CONFIG)/system.conf >workspace/$(CONFIG)/srams.v
+
+# Generate Rocket SoC wrapper for Vivado
+workspace/$(CONFIG)/rocket.vhdl: workspace/$(CONFIG)/system-$(BOARD).v
 	mkdir -p vhdl-wrapper/bin
 	javac -g -nowarn \
 	  -sourcepath vhdl-wrapper/src -d vhdl-wrapper/bin \
@@ -163,8 +187,17 @@ workspace/$(CONFIG)/rocket.vhdl: workspace/$(CONFIG)/system.v
 	java -classpath \
 	  vhdl-wrapper/src:vhdl-wrapper/bin:vhdl-wrapper/antlr-4.8-complete.jar \
 	  net.largest.riscv.vhdl.Main \
-	  workspace/$(CONFIG)/system.v >$@
+	  workspace/$(CONFIG)/system-$(BOARD).v >$@
 
+# --- utility make targets to run SDB command line ---
+
+.PHONY: sbt rocket-sbt
+
+sbt:
+	$(SBT)
+
+rocket-sbt:
+	cd rocket-chip && $(SBT)
 
 # --- generate Vivado Project ---
 
