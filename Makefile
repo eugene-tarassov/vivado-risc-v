@@ -132,10 +132,10 @@ else
 endif
 
 SBT := java -Xmx2G -Xss8M -jar $(realpath rocket-chip/sbt-launch.jar)
-CHISEL_SRC := $(foreach path, src rocket-chip/src riscv-boom/src, $(shell find $(path) -name "*.scala"))
+CHISEL_SRC := $(foreach path, src/main rocket-chip/src/main riscv-boom/src/main, $(shell test -d $(path) && find $(path) -iname "*.scala"))
 ROCKET_CLASSES = "target/scala-2.12/classes:rocket-chip/target/scala-2.12/classes:rocket-chip/chisel3/target/scala-2.12/*"
 
-FIRRTL_SRC := $(shell find rocket-chip/firrtl/src/main/scala -iname "*.scala")
+FIRRTL_SRC := $(shell test -d rocket-chip/firrtl/src/main && find rocket-chip/firrtl/src/main -iname "*.scala")
 FIRRTL_JAR = rocket-chip/firrtl/utils/bin/firrtl.jar
 FIRRTL = java -Xmx2G -Xss8M -cp "$(FIRRTL_JAR)":"$(ROCKET_CLASSES)" firrtl.stage.FirrtlMain
 
