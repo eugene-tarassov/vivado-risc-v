@@ -208,13 +208,13 @@ begin
         clock_state <= 0;
         clock_posedge <= 0;
         clock_data_in <= 0;
-    end else if (clock_cnt == clock_divider_reg) begin
+    end else if (clock_cnt >= clock_divider_reg) begin
         clock_state <= !clock_state;
         clock_posedge <= !clock_state;
         if (clock_divider_reg == 0)
-            clock_data_in <= clock_state;
-        else
             clock_data_in <= !clock_state;
+        else
+            clock_data_in <= clock_state;
         clock_cnt <= 0;
     end else begin
         clock_posedge <= 0;
