@@ -104,7 +104,7 @@ assign sd_data_busy = !DAT_dat_reg[0];
 
 always @(state or start or start_bit or  transf_cnt or data_cycles or crc_status or crc_ok or busy_int or next_block)
 begin: FSM_COMBO
-    case(state)
+    case (state)
         IDLE: begin
             if (start == 2'b01)
                 next_state <= WRITE_DAT;
@@ -179,10 +179,9 @@ begin: FSM_OUT
         byte_alignment_reg <= 0;
         data_cycles <= 0;
         bus_4bit_reg <= 0;
-    end
-    else if (clock_posedge) begin
+    end else if (clock_posedge) begin
         state <= next_state;
-        case(state)
+        case (state)
             IDLE: begin
                 DAT_oe_o <= 0;
                 DAT_dat_o <= 4'b1111;
@@ -216,16 +215,14 @@ begin: FSM_OUT
                             data_in[30-(byte_alignment_reg << 3)],
                             data_in[29-(byte_alignment_reg << 3)],
                             data_in[28-(byte_alignment_reg << 3)]
-                            };
-                    end
-                    else begin
+                        };
+                    end else begin
                         last_din <= {3'h7, data_in[31-(byte_alignment_reg << 3)]};
                     end
                     DAT_oe_o <= 1;
                     DAT_dat_o <= bus_4bit_reg ? 4'h0 : 4'he;
                     data_index <= bus_4bit_reg ? {2'b00, byte_alignment_reg, 1'b1} : {byte_alignment_reg, 3'b001};
-                end
-                else if ((transf_cnt >= 2) && (transf_cnt <= data_cycles+1)) begin
+                end else if ((transf_cnt >= 2) && (transf_cnt <= data_cycles+1)) begin
                     if (bus_4bit_reg) begin
                         last_din <= {
                             data_in[31-(data_index[2:0]<<2)],
@@ -234,26 +231,22 @@ begin: FSM_OUT
                             data_in[28-(data_index[2:0]<<2)]
                             };
                         if (data_index[2:0] == 3'h6 && transf_cnt <= data_cycles-1) rd <= 1;
-                    end
-                    else begin
+                    end else begin
                         last_din <= {3'h7, data_in[31-data_index]};
                         if (data_index == 30) rd <= 1;
                     end
                     data_index <= data_index + 5'h1;
                     DAT_dat_o <= last_din;
                     if (transf_cnt == data_cycles+1) crc_en <= 0;
-                end
-                else if (transf_cnt > data_cycles+1 & crc_c != 0) begin
+                end else if (transf_cnt > data_cycles+1 & crc_c != 0) begin
                     crc_en <= 0;
                     crc_c <= crc_c - 5'h1;
                     DAT_dat_o[0] <= crc_out[0][crc_c-1];
                     if (bus_4bit_reg)
                         DAT_dat_o[3:1] <= {crc_out[3][crc_c-1], crc_out[2][crc_c-1], crc_out[1][crc_c-1]};
-                end
-                else if (transf_cnt == data_cycles+18) begin
+                end else if (transf_cnt == data_cycles+18) begin
                     DAT_dat_o <= 4'hf;
-                end
-                else if (transf_cnt >= data_cycles+19) begin
+                end else if (transf_cnt >= data_cycles+19) begin
                     DAT_oe_o <= 0;
                 end
             end
@@ -294,8 +287,7 @@ begin: FSM_OUT
                         data_out[30-(data_index[2:0]<<2)] <= DAT_dat_reg[2];
                         data_out[29-(data_index[2:0]<<2)] <= DAT_dat_reg[1];
                         data_out[28-(data_index[2:0]<<2)] <= DAT_dat_reg[0];
-                    end
-                    else begin
+                    end else begin
                         we <= (data_index == 31 || (transf_cnt == data_cycles-1  && !blkcnt_reg));
                         data_out[31-data_index] <= DAT_dat_reg[0];
                     end
@@ -303,8 +295,7 @@ begin: FSM_OUT
                     last_din <= DAT_dat_reg;
                     crc_ok <= 1;
                     transf_cnt <= transf_cnt + 16'h1;
-                end
-                else if (transf_cnt <= data_cycles+16) begin
+                end else if (transf_cnt <= data_cycles+16) begin
                     transf_cnt <= transf_cnt + 16'h1;
                     crc_en <= 0;
                     last_din <= DAT_dat_reg;

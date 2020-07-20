@@ -42,6 +42,20 @@
 * It is mainly used in FPGA designs.
 */
 
+// Capability bits
+#define SDC_CAPABILITY_SD_4BIT  0x0001
+#define SDC_CAPABILITY_SD_RESET 0x0002
+
+// Control bits
+#define SDC_CONTROL_SD_4BIT     0x0001
+#define SDC_CONTROL_SD_RESET    0x0002
+
+// Card detect bits
+#define SDC_CARD_INSERT_INT_EN  0x0001
+#define SDC_CARD_INSERT_INT_REQ 0x0002
+#define SDC_CARD_REMOVE_INT_EN  0x0004
+#define SDC_CARD_REMOVE_INT_REQ 0x0008
+
 // Command status bits
 #define SDC_CMD_INT_STATUS_CC   0x0001  // Command complete
 #define SDC_CMD_INT_STATUS_EI   0x0002  // Any error
@@ -52,7 +66,7 @@
 // Data status bits
 #define SDC_DAT_INT_STATUS_TRS  0x0001  // Transfer complete
 #define SDC_DAT_INT_STATUS_ERR  0x0002  // Any error
-#define SDC_DAT_INT_STATUS_CTE  0x0004  // Timeout 
+#define SDC_DAT_INT_STATUS_CTE  0x0004  // Timeout
 #define SDC_DAT_INT_STATUS_CRC  0x0008  // CRC error
 #define SDC_DAT_INT_STATUS_CFE  0x0010  // Data FIFO underrun or overrun
 
@@ -78,7 +92,7 @@ struct sdc_regs {
     volatile uint32_t dat_int_enable;
     volatile uint32_t block_size;
     volatile uint32_t block_count;
-    volatile uint32_t res_4c;
+    volatile uint32_t card_detect;
     volatile uint32_t res_50;
     volatile uint32_t res_54;
     volatile uint32_t res_58;
@@ -149,6 +163,8 @@ static int sdc_data_finish(struct sdc_priv * dev) {
     dev->regs->cmd_timeout = CMD_TIMEOUT;
     dev->regs->argument = 0;
     while ((status = dev->regs->cmd_int_status) == 0) {}
+    dev->regs->cmd_int_status = 0;
+    while (dev->regs->software_reset != 0) {}
 
     return -1;
 }
@@ -163,14 +179,15 @@ static int sdc_setup_data_xfer(struct sdc_priv * dev, struct mmc * mmc, struct m
     if (data->blocks > 0x10000) return -1;
     if (addr + data->blocksize * data->blocks > 0x100000000) return -1;
 
-    unsigned timeout = data->blocks * data->blocksize * 8 / mmc->bus_width;
-    timeout += mmc->clock / 100; // 10ms
+    uint64_t timeout = (uint64_t)data->blocks * data->blocksize * 8 / mmc->bus_width;
+    timeout += (uint64_t)mmc->clock / 1000 * data->blocks;
+    timeout += (uint64_t)mmc->clock / 100; // 10ms
     if (timeout > 0xffffff) timeout = 0;
 
     dev->regs->dma_addres = (uint32_t)addr;
     dev->regs->block_size = data->blocksize - 1;
     dev->regs->block_count = data->blocks - 1;
-    dev->regs->data_timeout = timeout;
+    dev->regs->data_timeout = (uint32_t)timeout;
 
     return 0;
 }
@@ -251,7 +268,7 @@ static int sdc_send_cmd(struct udevice * udev, struct mmc_cmd * cmd, struct mmc_
     dev->regs->argument = cmd->cmdarg;
 
     if (sdc_finish(dev, cmd) < 0) return -1;
-    if (xfer) return sdc_data_finish(dev);
+    if (xfer && sdc_data_finish(dev) < 0) return -1;
 
     return 0;
 }
@@ -262,7 +279,7 @@ static int sdc_set_ios(struct udevice * udev) {
     struct mmc * mmc = &plat->mmc;
 
     sdc_set_clock(dev, mmc->clock);
-    dev->regs->control = mmc->bus_width >= 4;
+    dev->regs->control = mmc->bus_width >= 4 ? SDC_CONTROL_SD_4BIT : 0;
 
     // disable all interrupts
     dev->regs->cmd_int_enable = 0;

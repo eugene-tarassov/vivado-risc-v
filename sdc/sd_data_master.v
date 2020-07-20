@@ -76,7 +76,7 @@ begin
         watchdog <= 0;
         state <= IDLE;
     end else if (clock_posedge) begin
-        case(state)
+        case (state)
             IDLE: begin
                 start_tx_fifo_o <= 0;
                 start_rx_fifo_o <= 0;

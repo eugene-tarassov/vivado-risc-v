@@ -31,6 +31,20 @@
 #pragma GCC optimize("O0")
 #endif
 
+// Capability bits
+#define SDC_CAPABILITY_SD_4BIT  0x0001
+#define SDC_CAPABILITY_SD_RESET 0x0002
+
+// Control bits
+#define SDC_CONTROL_SD_4BIT     0x0001
+#define SDC_CONTROL_SD_RESET    0x0002
+
+// Card detect bits
+#define SDC_CARD_INSERT_INT_EN  0x0001
+#define SDC_CARD_INSERT_INT_REQ 0x0002
+#define SDC_CARD_REMOVE_INT_EN  0x0004
+#define SDC_CARD_REMOVE_INT_REQ 0x0008
+
 // Command status bits
 #define SDC_CMD_INT_STATUS_CC   0x0001  // Command complete
 #define SDC_CMD_INT_STATUS_EI   0x0002  // Any error
@@ -67,7 +81,7 @@ struct sdc_regs {
     volatile uint32_t dat_int_enable;
     volatile uint32_t block_size;
     volatile uint32_t block_count;
-    volatile uint32_t res_4c;
+    volatile uint32_t card_detect;
     volatile uint32_t res_50;
     volatile uint32_t res_54;
     volatile uint32_t res_58;
@@ -240,13 +254,13 @@ static void sdc_request(struct mmc_host * mmc, struct mmc_request * mrq) {
     mutex_unlock(&host->mutex);
 }
 
-static void sdc_set_ios(struct mmc_host * mmc, struct mmc_ios *ios) {
+static void sdc_set_ios(struct mmc_host * mmc, struct mmc_ios * ios) {
     struct sdc_host * host = mmc_priv(mmc);
 
     mutex_lock(&host->mutex);
 
     sdc_set_clock(host, ios->clock);
-    host->regs->control = ios->bus_width == MMC_BUS_WIDTH_4;
+    host->regs->control = ios->bus_width == MMC_BUS_WIDTH_4 ? SDC_CONTROL_SD_4BIT : 0;
 
     mutex_unlock(&host->mutex);
 }

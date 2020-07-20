@@ -65,8 +65,6 @@ reg busy_check;
 reg expect_response;
 reg long_response;
 reg [`INT_CMD_SIZE-1:0] int_status_reg;
-//reg card_present;
-//reg [3:0]debounce;
 reg [`CMD_TIMEOUT_W-1:0] watchdog;
 parameter SIZE = 2;
 reg [SIZE-1:0] state;
@@ -80,30 +78,9 @@ assign int_status_o = state == IDLE ? int_status_reg : 5'h0;
 
 //---------------Input ports---------------
 
-// always @ (posedge clock)
-// begin
-//     if (rst) begin
-//         debounce<=0;
-//         card_present<=0;
-//     end
-//     else begin
-//         if (!card_detect) begin//Card present
-//             if (debounce!=4'b1111)
-//                 debounce<=debounce+1'b1;
-//         end
-//         else
-//             debounce<=0;
-//
-//         if (debounce==4'b1111)
-//             card_present<=1'b1;
-//         else
-//             card_present<=1'b0;
-//     end
-// end
-
 always @(state or start_i or finish_i or go_idle_o or busy_check or busy_i)
 begin: FSM_COMBO
-    case(state)
+    case (state)
         IDLE: begin
             if (start_i)
                 next_state <= EXECUTE;
@@ -132,8 +109,7 @@ always @(posedge clock)
 begin: FSM_SEQ
     if (rst) begin
         state <= IDLE;
-    end
-    else if (clock_posedge) begin
+    end else if (clock_posedge) begin
         state <= next_state;
     end
 end
@@ -156,8 +132,7 @@ begin
         watchdog <= 0;
         timeout_reg <= 0;
         go_idle_o <= 0;
-    end
-    else if (clock_posedge) begin
+    end else if (clock_posedge) begin
         case(state)
             IDLE: begin
                 go_idle_o <= 0;
@@ -167,12 +142,10 @@ begin
                 if (command_i[`CMD_RESPONSE_CHECK]  == 2'b10 || command_i[`CMD_RESPONSE_CHECK] == 2'b11) begin
                     expect_response <=  1;
                     long_response <= 1;
-                end
-                else if (command_i[`CMD_RESPONSE_CHECK] == 2'b01) begin
+                end else if (command_i[`CMD_RESPONSE_CHECK] == 2'b01) begin
                     expect_response <= 1;
                     long_response <= 0;
-                end
-                else begin
+                end else begin
                     expect_response <= 0;
                     long_response <= 0;
                 end
@@ -193,9 +166,8 @@ begin
                     int_status_reg[`INT_CMD_CTE] <= 1;
                     int_status_reg[`INT_CMD_EI] <= 1;
                     go_idle_o <= 1;
-                end
-                //Incoming New Status
-                else begin //if ( req_in_int == 1) begin
+                end else begin
+                    // Incoming New Status
                     if (finish_i) begin //Data avaible
                         if (crc_check & !crc_ok_i) begin
                             int_status_reg[`INT_CMD_CCRCE] <= 1;
@@ -212,10 +184,9 @@ begin
                             response_2_o <= response_i[55:24];
                             response_3_o <= {response_i[23:0], 8'h00};
                         end
-                        // end
-                    end ////Data avaible
-                end //Status change
-            end //EXECUTE state
+                    end // Data avaible
+                end // Status change
+            end // EXECUTE state
             BUSY_CHECK: begin
                 start_xfr_o <= 0;
                 go_idle_o <= 0;

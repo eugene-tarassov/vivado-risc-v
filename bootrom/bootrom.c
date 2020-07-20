@@ -46,6 +46,7 @@
 #define CMD42   (42)
 #define CMD55   (55)            /* APP_CMD */
 #define CMD56   (56)
+#define ACMD6   (0x80+6)        /* define the data bus width */
 #define ACMD41  (0x80+41)       /* SEND_OP_COND (ACMD) */
 
 // Capability bits
@@ -57,10 +58,10 @@
 #define SDC_CONTROL_SD_RESET    0x0002
 
 // Card detect bits
-#define SDC_CARD_INSERT_INT_EN      0x0001
-#define SDC_CARD_INSERT_INT_REQ     0x0002
-#define SDC_CARD_REMOVE_INT_EN      0x0004
-#define SDC_CARD_REMOVE_INT_REQ     0x0008
+#define SDC_CARD_INSERT_INT_EN  0x0001
+#define SDC_CARD_INSERT_INT_REQ 0x0002
+#define SDC_CARD_REMOVE_INT_EN  0x0004
+#define SDC_CARD_REMOVE_INT_REQ 0x0008
 
 // Command status bits
 #define SDC_CMD_INT_STATUS_CC   0x0001  // Command complete
@@ -109,7 +110,7 @@ struct sdc_regs {
     volatile uint32_t dma_addres;
 };
 
-#define BUF_BLOCK_CNT 8
+#define MAX_BLOCK_CNT 0x1000
 
 /* Note: .data section not supported in BootROM */
 
@@ -120,7 +121,6 @@ static DSTATUS drv_status __attribute__((section(".bss")));
 static BYTE card_type __attribute__((section(".bss")));
 static uint32_t response[4] __attribute__((section(".bss")));
 static FATFS fatfs __attribute__((section(".bss")));
-static uint8_t sd_dma_buffer[512 * BUF_BLOCK_CNT] __attribute__((section(".bss")));
 static int alt_mem __attribute__((section(".bss")));
 
 extern unsigned char _ram[];
@@ -180,16 +180,7 @@ static int sdc_data_finish(void) {
     return -1;
 }
 
-static int sdc_setup_data_xfer(unsigned blocks) {
-    regs->dma_addres = (uint32_t)(intptr_t)sd_dma_buffer;
-    regs->block_size = 511;
-    regs->block_count = blocks - 1;
-    regs->data_timeout = 0xFFFFF;
-    return 0;
-}
-
-static int send_cmd(unsigned cmd, unsigned arg, unsigned blocks) {
-    int xfer = 0;
+static int send_data_cmd(unsigned cmd, unsigned arg, void * buf, unsigned blocks) {
     unsigned command = (cmd & 0x3f) << 8;
     switch (cmd) {
     case CMD0:
@@ -213,6 +204,7 @@ static int send_cmd(unsigned cmd, unsigned arg, unsigned blocks) {
     case CMD42:
     case CMD55:
     case CMD56:
+    case ACMD6:
         // R1
         command |= 1; // 48 bits
         command |= 1 << 3; // resp CRC
@@ -257,8 +249,11 @@ static int send_cmd(unsigned cmd, unsigned arg, unsigned blocks) {
 
     if (blocks) {
         command |= 1 << 5;
-        if (sdc_setup_data_xfer(blocks) < 0) return -1;
-        xfer = 1;
+        if ((intptr_t)buf & 3) return -1;
+        regs->dma_addres = (uint32_t)(intptr_t)buf;
+        regs->block_size = 511;
+        regs->block_count = blocks - 1;
+        regs->data_timeout = 0xFFFFF;
     }
 
     regs->command = command;
@@ -266,9 +261,13 @@ static int send_cmd(unsigned cmd, unsigned arg, unsigned blocks) {
     regs->argument = arg;
 
     if (sdc_finish(cmd) < 0) return -1;
-    if (xfer) return sdc_data_finish();
+    if (blocks) return sdc_data_finish();
 
     return 0;
+}
+
+static int send_cmd(unsigned cmd, unsigned arg) {
+    return send_data_cmd(cmd, arg, NULL, 0);
 }
 
 WCHAR ff_convert(WCHAR ch, UINT unicode) {
@@ -294,15 +293,10 @@ DRESULT disk_read(BYTE drv, BYTE * buf, DWORD sector, BYTE count) {
     /* Convert LBA to byte address if needed */
     if (!(card_type & CT_BLOCK)) sector *= 512;
     while (count > 0) {
-        BYTE bcnt = count > BUF_BLOCK_CNT ? BUF_BLOCK_CNT : count;
+        BYTE bcnt = count > MAX_BLOCK_CNT ? MAX_BLOCK_CNT : count;
         unsigned bytes = bcnt * 512;
-        if (send_cmd(bcnt == 1 ? CMD17 : CMD18, sector, bcnt) == 0 &&
-                (bcnt == 1 || send_cmd(CMD12, 0, 0) == 0)) {
-            unsigned i;
-            unsigned n = bytes >> 3;
-            for (i = 0; i < n; i++) {
-                ((uint64_t *)buf)[i] = ((uint64_t *)sd_dma_buffer)[i];
-            }
+        if (send_data_cmd(bcnt == 1 ? CMD17 : CMD18, sector, buf, bcnt) == 0 &&
+                (bcnt == 1 || send_cmd(CMD12, 0) == 0)) {
             if (card_type & CT_BLOCK) {
                 sector += bcnt;
             }
@@ -326,8 +320,8 @@ DSTATUS disk_initialize(BYTE drv) {
 
     /* Reset controller */
     regs->software_reset = 1;
+    while ((regs->software_reset & 1) == 0) {}
     regs->clock_divider = 0x7c;
-    usleep(5000);
     regs->software_reset = 0;
     while (regs->software_reset) {}
     usleep(5000);
@@ -351,9 +345,9 @@ DSTATUS disk_initialize(BYTE drv) {
     }
 
     /* Enter Idle state */
-    send_cmd(CMD0, 0, 0);
+    send_cmd(CMD0, 0);
 
-    if (send_cmd(CMD8, 0x1AA, 0) == 0) {
+    if (send_cmd(CMD8, 0x1AA) == 0) {
         card_type = CT_SD1;
         if ((response[0] & 0xfff) == 0x1AA) card_type = CT_SD2;
     }
@@ -365,9 +359,9 @@ DSTATUS disk_initialize(BYTE drv) {
     /* Wait for leaving idle state (ACMD41 with HCS bit) */
     while (1) {
         /* ACMD41, Set Operating Conditions */
-        send_cmd(CMD55, 0, 0);
+        send_cmd(CMD55, 0);
         /* Host High Capacity & 3.3V */
-        if (send_cmd(ACMD41, 0x40300000, 0) == 0) {
+        if (send_cmd(ACMD41, 0x40300000) == 0) {
             if (response[0] & (1 << 31)) {
                 if (response[0] & (1 << 30)) card_type |= CT_BLOCK;
                 break;
@@ -380,25 +374,31 @@ DSTATUS disk_initialize(BYTE drv) {
     }
 
     /* Get CID */
-    if (send_cmd(CMD2, 0, 0) != 0) {
+    if (send_cmd(CMD2, 0) != 0) {
         kprintf("Cannot get CID\n");
         return STA_NOINIT;
     }
 
     /* Get RCA */
     rca = 0x1234;
-    send_cmd(CMD3, rca << 16, 0);
+    send_cmd(CMD3, rca << 16);
     rca = response[0] >> 16;
 
     /* Select card */
-    if (send_cmd(CMD7, rca << 16, 0) != 0) {
+    if (send_cmd(CMD7, rca << 16) != 0) {
         kprintf("Cannot select the card\n");
         return STA_NOINIT;
     }
 
     /* Set R/W block length to 512 */
-    if (send_cmd(CMD16, 512, 0) != 0) {
+    if (send_cmd(CMD16, 512) != 0) {
         kprintf("Cannot set block length\n");
+        return STA_NOINIT;
+    }
+
+    regs->control = 0;
+    if (send_cmd(CMD55, rca << 16) || send_cmd(ACMD6, 0)) {
+        kprintf("Cannot set bus bits\n");
         return STA_NOINIT;
     }
 
@@ -617,7 +617,8 @@ int main(void) {
         const TCHAR * p = fnm;
         fnm[0] = 0;
         kputs("");
-        kputs("RISC-V Boot ROM V1.0");
+        kputs("RISC-V Boot ROM V1.1");
+        drv_status = STA_NOINIT;
         errno = f_mount(0, &fatfs) != FR_OK || chk_mounted(&p, &fs, 0);
         if (errno) {
             kprintf("Cannot mount SD: %s\n", errno_to_str());
