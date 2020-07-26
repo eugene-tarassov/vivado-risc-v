@@ -31,7 +31,7 @@
             bus-width = <4>;
             fifo-depth = <256>;
             interrupt-parent = <&L2>;
-            interrupts = <2>, <3>;
+            interrupts = <2>;
             max-frequency = <50000000>;
             cap-sd-highspeed;
         };
