@@ -154,8 +154,8 @@ workspace/$(CONFIG)/system.dts: $(FIRRTL_JAR) $(CHISEL_SRC) rocket-chip/bootrom/
 	rm -rf workspace/$(CONFIG)/tmp
 
 # Generate board specific device tree and FIR
-workspace/$(CONFIG)/system-$(BOARD).fir: workspace/$(CONFIG)/system.dts $(wildcard bootrom/*) workspace/gcc/riscv
-	mkdir -p workspace/$(CONFIG)/tmp
+workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir: workspace/$(CONFIG)/system.dts $(wildcard bootrom/*) workspace/gcc/riscv
+	mkdir -p workspace/$(CONFIG)/system-$(BOARD)
 	cat workspace/$(CONFIG)/system.dts bootrom/bootrom.dts >bootrom/system.dts
 	sed -i "s#reg = <0x80000000 0x40000000>#reg = <0x80000000 $(MEMORY_SIZE)>#g" bootrom/system.dts
 	sed -i "s#clock-frequency = <100000000>#clock-frequency = <$(ROCKET_FREQ)000000>#g" bootrom/system.dts
@@ -164,12 +164,10 @@ workspace/$(CONFIG)/system-$(BOARD).fir: workspace/$(CONFIG)/system.dts $(wildca
 	make -C bootrom CROSS_COMPILE="$(CROSS_COMPILE_NO_OS_TOOLS)" CFLAGS="$(CROSS_COMPILE_NO_OS_FLAGS)" clean bootrom.img
 	cp bootrom/system.dts workspace/$(CONFIG)/system-$(BOARD).dts
 	cp bootrom/bootrom.img workspace/bootrom.img
-	$(SBT) "runMain freechips.rocketchip.system.Generator workspace/$(CONFIG)/tmp Vivado RocketSystem Vivado $(CONFIG_SCALA)"
-	mv workspace/$(CONFIG)/tmp/Vivado.$(CONFIG_SCALA).fir workspace/$(CONFIG)/system-$(BOARD).fir
-	rm -rf workspace/$(CONFIG)/tmp
+	$(SBT) "runMain freechips.rocketchip.system.Generator workspace/$(CONFIG)/system-$(BOARD) Vivado RocketSystem Vivado $(CONFIG_SCALA)"
 
 # Generate Rocket SoC HDL
-workspace/$(CONFIG)/system-$(BOARD).v: workspace/$(CONFIG)/system-$(BOARD).fir
+workspace/$(CONFIG)/system-$(BOARD).v: workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir
 	$(FIRRTL) -i $< -o system-$(BOARD).v -X verilog --infer-rw RocketSystem --repl-seq-mem \
          -c:RocketSystem:-o:workspace/$(CONFIG)/system.conf \
          -faf workspace/$(CONFIG)/system.anno.json \
