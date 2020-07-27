@@ -6,8 +6,8 @@ CFLAGS = -march=rv64im -mabi=lp64
 
 CCFLAGS = $(CFLAGS)
 CCFLAGS += -mcmodel=medany -Os -Wall -nostartfiles
-CCFLAGS += -fno-pic -fno-common -g
-CCFLAGS += -Iinclude -I.
+CCFLAGS += -fno-pic -fno-common -g -I.
+
 LFLAGS = -static -nostdlib -T bootrom.lds
 
 dts := system.dts

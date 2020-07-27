@@ -4,8 +4,11 @@ apt-install:
 	sudo apt install default-jdk device-tree-compiler python curl \
 	 libmpc-dev gcc gcc-riscv64-linux-gnu gcc-8-riscv64-linux-gnu flex bison
 
+# skip submodules which are not needed and take long time to update
+SKIP_SUBMODULES = torture software/gemmini-rocc-tests software/onnxruntime-riscv
+
 update-submodules:
-	git submodule update --init --force --recursive
+	git $(foreach m,$(SKIP_SUBMODULES),-c submodule.$(m).update=none) submodule update --init --force --recursive
 
 clean-submodules:
 	git submodule foreach --recursive git clean -xfdq
@@ -106,7 +109,14 @@ CONFIG ?= rocket64b2
 CONFIG_SCALA := $(subst rocket,Rocket,$(CONFIG))
 
 ifeq ($(BOARD),nexys-video)
-  ROCKET_FREQ ?= 50
+  # min ROCKET_FREQ is 30 MHz - required by UART
+  ifneq ($(filter Rocket%l2,$(CONFIG_SCALA)),)
+    ROCKET_FREQ ?= 40
+  else ifneq ($(filter Rocket%gem,$(CONFIG_SCALA)),)
+    ROCKET_FREQ ?= 30
+  else
+    ROCKET_FREQ ?= 50
+  endif
   BOARD_PART  ?= digilentinc.com:nexys_video:part0:1.1
   XILINX_PART ?= xc7a200tsbg484-1
   CFG_DEVICE  ?= SPIx4 -size 256
@@ -115,7 +125,15 @@ ifeq ($(BOARD),nexys-video)
 endif
 
 ifeq ($(BOARD),vc707)
-  ROCKET_FREQ ?= 100
+  ifeq ($(CONFIG_SCALA),Rocket64b8)
+    ROCKET_FREQ ?= 80
+  else ifneq ($(filter Rocket%l2,$(CONFIG_SCALA)),)
+    ROCKET_FREQ ?= 75
+  else ifneq ($(filter Rocket%gem,$(CONFIG_SCALA)),)
+    ROCKET_FREQ ?= 75
+  else
+    ROCKET_FREQ ?= 100
+  endif
   BOARD_PART  ?= xilinx.com:vc707:part0:1.4
   XILINX_PART ?= xc7vx485tffg1761-2
   CFG_DEVICE  ?= bpix16 -size 128
@@ -137,7 +155,7 @@ ROCKET_CLASSES = "target/scala-2.12/classes:rocket-chip/target/scala-2.12/classe
 
 FIRRTL_SRC := $(shell test -d rocket-chip/firrtl/src/main && find rocket-chip/firrtl/src/main -iname "*.scala")
 FIRRTL_JAR = rocket-chip/firrtl/utils/bin/firrtl.jar
-FIRRTL = java -Xmx2G -Xss8M -cp "$(FIRRTL_JAR)":"$(ROCKET_CLASSES)" firrtl.stage.FirrtlMain
+FIRRTL = java -Xmx4G -Xss8M -cp "$(FIRRTL_JAR)":"$(ROCKET_CLASSES)" firrtl.stage.FirrtlMain
 
 $(FIRRTL_JAR): $(FIRRTL_SRC)
 	make -C rocket-chip/firrtl SBT="$(SBT)" root_dir=$(realpath rocket-chip/firrtl) build-scala
@@ -157,9 +175,9 @@ workspace/$(CONFIG)/system.dts: $(FIRRTL_JAR) $(CHISEL_SRC) rocket-chip/bootrom/
 workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir: workspace/$(CONFIG)/system.dts $(wildcard bootrom/*) workspace/gcc/riscv
 	mkdir -p workspace/$(CONFIG)/system-$(BOARD)
 	cat workspace/$(CONFIG)/system.dts bootrom/bootrom.dts >bootrom/system.dts
-	sed -i "s#reg = <0x80000000 0x40000000>#reg = <0x80000000 $(MEMORY_SIZE)>#g" bootrom/system.dts
-	sed -i "s#clock-frequency = <100000000>#clock-frequency = <$(ROCKET_FREQ)000000>#g" bootrom/system.dts
-	sed -i "s#timebase-frequency = <1000000>#timebase-frequency = <$(ROCKET_FREQ)0000>#g" bootrom/system.dts
+	sed -i "s#reg = <0x80000000 0x.*>#reg = <0x80000000 $(MEMORY_SIZE)>#g" bootrom/system.dts
+	sed -i "s#clock-frequency = <[0-9]*>#clock-frequency = <$(ROCKET_FREQ)000000>#g" bootrom/system.dts
+	sed -i "s#timebase-frequency = <[0-9]*>#timebase-frequency = <$(ROCKET_FREQ)0000>#g" bootrom/system.dts
 	sed -i "s#local-mac-address = \[.*\]#local-mac-address = [$(ETHER_MAC)]#g" bootrom/system.dts
 	make -C bootrom CROSS_COMPILE="$(CROSS_COMPILE_NO_OS_TOOLS)" CFLAGS="$(CROSS_COMPILE_NO_OS_FLAGS)" clean bootrom.img
 	cp bootrom/system.dts workspace/$(CONFIG)/system-$(BOARD).dts

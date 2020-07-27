@@ -71,6 +71,10 @@ set_property -name "used_in_synthesis" -value "0" -objects $file_obj
 # Create block design
 set current_vivado_version [version -short]
 source ../../board/${vivado_board_name}/riscv-${current_vivado_version}.tcl
+
+set_property CONFIG.CLKOUT1_REQUESTED_OUT_FREQ $riscv_clock_frequency [get_bd_cells clk_wiz_0]
+validate_bd_design
+
 regenerate_bd_layout
 save_bd_design
 

@@ -13,9 +13,15 @@
 [submodule "ethernet/verilog-ethernet"]
 	path = ethernet/verilog-ethernet
 	url = https://github.com/alexforencich/verilog-ethernet.git
-[submodule "riscv-boom"]
-	path = riscv-boom
-	url = https://github.com/riscv-boom/riscv-boom.git
-[submodule "testchipip"]
-	path = testchipip
+[submodule "generators/sifive-cache"]
+	path = generators/sifive-cache
+	url = https://github.com/sifive/block-inclusivecache-sifive.git
+[submodule "generators/testchipip"]
+	path = generators/testchipip
 	url = https://github.com/ucb-bar/testchipip.git
+[submodule "generators/riscv-boom"]
+	path = generators/riscv-boom
+	url = https://github.com/riscv-boom/riscv-boom.git
+[submodule "generators/gemmini"]
+	path = generators/gemmini
+	url = https://github.com/ucb-bar/gemmini

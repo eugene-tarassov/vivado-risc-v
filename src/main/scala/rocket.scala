@@ -6,6 +6,7 @@ import freechips.rocketchip.config.Parameters
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.subsystem._
 import freechips.rocketchip.devices.tilelink._
+import freechips.rocketchip.tile.{BuildRoCC, OpcodeSet}
 import freechips.rocketchip.util.DontTouch
 import freechips.rocketchip.system._
 
@@ -38,6 +39,17 @@ class WithCoreFreq(freq: BigInt) extends Config ((site, here, up) => {
   }
 })
 
+class WithGemmini(mesh_size: Int, bus_bits: Int) extends Config((site, here, up) => {
+  case BuildRoCC => up(BuildRoCC) ++ Seq(
+      (p: Parameters) => {
+        implicit val q = p
+        implicit val v = implicitly[ValName]
+        LazyModule(new gemmini.Gemmini(OpcodeSet.custom3,
+          gemmini.GemminiConfigs.defaultConfig.copy(meshRows = mesh_size, meshColumns = mesh_size, dma_buswidth = bus_bits)))
+    }
+  )
+})
+
 class RocketBaseConfig extends Config(
   new WithBootROM("workspace/bootrom.img") ++
   new WithExtMemSize(0x40000000) ++ // 1GB
@@ -47,6 +59,7 @@ class RocketBaseConfig extends Config(
   new WithEdgeDataBits(64) ++
   new BaseConfig)
 
+/* Note: Linux not supported yet on 32-bit cores */
 class Rocket32s1 extends Config(
   new WithCoreFreq(100000000) ++
   new WithNBreakpoints(8) ++
@@ -96,6 +109,39 @@ class Rocket64b2 extends Config(
   new WithNBigCores(2)    ++
   new RocketBaseConfig)
 
+class Rocket64b2l2 extends Config(
+  new WithInclusiveCache  ++
+  new WithNBreakpoints(8) ++
+  new WithCoreFreq(75000000) ++
+  new WithNBigCores(2)    ++
+  new RocketBaseConfig)
+
+/* Note: small core has no MMU and cannot boot mainstream Linux */
+class Rocket64s2gem extends Config(
+  new WithGemmini(4, 64)  ++
+  new WithInclusiveCache  ++
+  new WithNBreakpoints(8) ++
+  new WithCoreFreq(75000000) ++
+  new WithNSmallCores(2)    ++
+  new RocketBaseConfig)
+
+/* Note: cannot get medium core to boot Linux: Oops - illegal instruction */
+class Rocket64m2gem extends Config(
+  new WithGemmini(4, 64)  ++
+  new WithInclusiveCache  ++
+  new WithNBreakpoints(8) ++
+  new WithCoreFreq(75000000) ++
+  new WithNMedCores(2)    ++
+  new RocketBaseConfig)
+
+class Rocket64b2gem extends Config(
+  new WithGemmini(2, 64)  ++
+  new WithInclusiveCache  ++
+  new WithNBreakpoints(8) ++
+  new WithCoreFreq(75000000) ++
+  new WithNBigCores(2)    ++
+  new RocketBaseConfig)
+
 class Rocket64b4 extends Config(
   new WithCoreFreq(100000000) ++
   new WithNBreakpoints(8) ++
@@ -103,14 +149,16 @@ class Rocket64b4 extends Config(
   new RocketBaseConfig)
 
 class Rocket64b8 extends Config(
-  new WithCoreFreq(90000000) ++
+  new WithCoreFreq(80000000) ++
   new WithNBreakpoints(8) ++
   new WithNBigCores(8)    ++
   new RocketBaseConfig)
 
+/* Cannot get BOOM to work
 class Rocket64x2 extends Config(
   new WithCoreFreq(100000000) ++
   new WithNBreakpoints(8) ++
   new boom.common.WithMediumBooms ++
   new boom.common.WithNBoomCores(2) ++
   new RocketBaseConfig)
+*/
