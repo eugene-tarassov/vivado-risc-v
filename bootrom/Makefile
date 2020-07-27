@@ -13,8 +13,14 @@ LFLAGS = -static -nostdlib -T bootrom.lds
 dts := system.dts
 dtb := system.dtb
 
-$(dtb): $(dts)
-	dtc -I dts -O dtb -o $@ $<
+$(dtb): fixdts $(dts)
+	dtc -I dts -O dtb -o $@ $(dts)
+
+fixdts: $(dts)
+	 echo -n "            " > temp && \
+	 sed -n 's/.*L\(\S*\): interrupt-controller@.*/interrupt-parent = <\&L\1>;/p' $(dts) >> temp && \
+	 sed -i 's/interrupt-parent = <&L.*>;/cat temp/e' $(dts) && \
+	 rm temp
 
 all: bootrom.img bootrom.elf
 
