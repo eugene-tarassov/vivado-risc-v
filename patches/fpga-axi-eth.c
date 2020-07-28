@@ -37,6 +37,7 @@ struct eth_regs {
     volatile uint32_t mac_control;
     volatile uint32_t mdio_tx;
     volatile uint32_t mdio_rx;
+    volatile uint32_t capability;
 };
 
 struct eth_pkt_regs {
@@ -79,6 +80,10 @@ struct eth_pkt_regs {
 
 #define MDIO_RESET_DELAY        10
 #define MDIO_POLL_DELAY         4
+
+#define MAC_CAPABILITY_BURST    0x000f
+#define MAC_CAPABILITY_RING     0x00f0
+#define MAC_CAPABILITY_MDIO     0x0100
 
 struct axi_eth_ring_item {
     struct sk_buff * skb;
@@ -518,8 +523,11 @@ static int axi_eth_dev_close(struct net_device * net_dev) {
     priv->regs->mac_control = 0;
     /* Wait active RX, TX to finish */
     while (priv->regs->mac_status & 3) {}
-    /* Activate MDIO reset */
-    priv->regs->mac_control = MAC_CONTROL_MDIO_RESET;
+
+    if (priv->regs->capability & MAC_CAPABILITY_MDIO) {
+        /* Activate MDIO reset */
+        priv->regs->mac_control = MAC_CONTROL_MDIO_RESET;
+    }
 
     while (priv->rx_inp != priv->rx_out) {
         struct axi_eth_ring_item * i = priv->rx_ring + priv->rx_out;
@@ -638,8 +646,8 @@ static int axi_eth_probe(struct platform_device * pdev) {
         goto out;
     }
 
-    priv->regs->mac_control = MAC_CONTROL_MDIO_RESET;
-    if (priv->regs->mac_control & MAC_CONTROL_MDIO_RESET) {
+    if (priv->regs->capability & MAC_CAPABILITY_MDIO) {
+        priv->regs->mac_control = MAC_CONTROL_MDIO_RESET;
         err = axi_eth_mdio_register(priv);
         if (err) {
             printk(KERN_ERR "AXI-ETH: Can't register MDIO bus\n");

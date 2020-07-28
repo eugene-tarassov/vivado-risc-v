@@ -298,6 +298,7 @@ always @(posedge clock) begin
                 10'h020: s_axi_rdata <= { mdio_reset_reg, tx_enable, rx_enable };
                 10'h024: s_axi_rdata <= mdio_tx;
                 10'h028: s_axi_rdata <= mdio_rx;
+                10'h02c: begin s_axi_rdata[8] <= 1; s_axi_rdata[7:4] <= `pkt_ptr_bits; s_axi_rdata[3:0] <= burst_size_bits; end
                 endcase
             end else if (read_addr[11:10] == 2) begin
                 case (read_addr[3:0])
