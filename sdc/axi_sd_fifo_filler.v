@@ -30,7 +30,7 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-module axi_sd_fifo_filler #(parameter unsigned fifo_addr_bits = 6) (
+module axi_sd_fifo_filler #(parameter fifo_addr_bits = 6) (
     input clock,
     input clock_posedge,
     input reset,
@@ -54,18 +54,18 @@ module axi_sd_fifo_filler #(parameter unsigned fifo_addr_bits = 6) (
     output [31:0] dat_o,
     input wr_i,
     input rd_i,
-    output unsigned [fifo_addr_bits-1:0] tx_free,
-    output unsigned [fifo_addr_bits-1:0] rx_data,
+    output [fifo_addr_bits-1:0] tx_free,
+    output [fifo_addr_bits-1:0] rx_data,
     output rx_full_o,
     output tx_empty_o,
     output tx_ready_o,
     output rx_empty_o
 );
 
-localparam unsigned fifo_threshold = 1 << (fifo_addr_bits - 1);
+localparam fifo_threshold = 1 << (fifo_addr_bits - 1);
 
 reg bus_wait;
-wire unsigned [fifo_addr_bits-1:0] tx_data;
+wire [fifo_addr_bits-1:0] tx_data;
 wire tx_stb;
 wire rx_stb;
 

@@ -295,9 +295,6 @@ assign s_axi_wready = !wr_req[1] && !s_axi_bvalid;
 parameter voltage_controll_reg = `SUPPLY_VOLTAGE_mV;
 parameter capabilies_reg = 16'b0000_0000_0000_0011;
 
-assign data_int_status_reg = { data_int_status[`INT_DATA_SIZE-1:1],
-    !m_bus_stb_o & !m_axi_cyc & rx_fifo_empty & data_int_status[0] };
-
 always @(posedge clock) begin
     if (reset) begin
         s_axi_rdata <= 0;
@@ -442,6 +439,9 @@ wire [fifo_addr_bits-1:0] tx_burst_len;
 wire [fifo_addr_bits-1:0] rx_burst_len;
 assign tx_burst_len = m_bus_adr_o[11:2] + tx_fifo_free_len >= m_bus_adr_o[11:2] ? tx_fifo_free_len - 1 : ~m_bus_adr_o[fifo_addr_bits+1:2];
 assign rx_burst_len = m_bus_adr_o[11:2] + rx_fifo_data_len >= m_bus_adr_o[11:2] ? rx_fifo_data_len - 1 : ~m_bus_adr_o[fifo_addr_bits+1:2];
+
+assign data_int_status_reg = { data_int_status[`INT_DATA_SIZE-1:1],
+    !m_bus_stb_o & !m_axi_cyc & rx_fifo_empty & data_int_status[0] };
 
 always @(posedge clock) begin
     if (reset | ctrl_rst) begin

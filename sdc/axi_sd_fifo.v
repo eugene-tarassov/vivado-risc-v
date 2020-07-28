@@ -25,7 +25,7 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-module axi_sd_fifo #(parameter unsigned addr_bits = 4) (
+module axi_sd_fifo #(parameter addr_bits = 4) (
     input clk,
     input rst,
     input re,
@@ -38,10 +38,10 @@ module axi_sd_fifo #(parameter unsigned addr_bits = 4) (
     output empty);
 
 reg  [31:0] mem [(1<<addr_bits)-1:0];
-reg  unsigned [addr_bits-1:0] inp_pos;
-reg  unsigned [addr_bits-1:0] out_pos;
-wire unsigned [addr_bits-1:0] inp_nxt;
-wire unsigned [addr_bits-1:0] out_nxt;
+reg  [addr_bits-1:0] inp_pos;
+reg  [addr_bits-1:0] out_pos;
+wire [addr_bits-1:0] inp_nxt;
+wire [addr_bits-1:0] out_nxt;
 
 assign full = inp_nxt == out_pos;
 assign empty = inp_pos == out_pos;
