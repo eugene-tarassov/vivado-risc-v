@@ -22,7 +22,7 @@ THE SOFTWARE.
 
 */
 
-module ethernet #(parameter burst_size_bits = 5) (
+module ethernet #(parameter burst_size_bits = 4) (
     input wire async_resetn,
 
     (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 resetn RST" *)
@@ -31,7 +31,7 @@ module ethernet #(parameter burst_size_bits = 5) (
 
     (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 reset RST" *)
     (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_HIGH" *)
-    output reset,
+    output wire reset,
 
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clock CLK" *)
     (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF M_AXI:S_AXI_LITE:TX_AXIS:RX_AXIS, ASSOCIATED_RESET resetn:reset, FREQ_HZ 125000000" *)
@@ -143,8 +143,14 @@ module ethernet #(parameter burst_size_bits = 5) (
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TLAST" *)
     input wire rx_axis_tlast,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TUSER" *)
-    input wire rx_axis_tuser
+    input wire rx_axis_tuser,
 
+    (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 mdio_clock CLK" *)
+    (* X_INTERFACE_PARAMETER = "FREQ_HZ 2500000" *)
+    output reg mdio_clock,  // PHY MII Management clock
+    inout wire mdio_data,   // PHY MII Management data
+    output wire mdio_reset, // PHY reset
+    input wire mdio_int     // PHY interrupt
 
 );
 
@@ -168,6 +174,20 @@ wire [1:0] pcspma_status_speed              = status_vector[11:10];
 wire pcspma_status_duplex                   = status_vector[12];
 wire pcspma_status_remote_fault             = status_vector[13];
 wire [1:0] pcspma_status_pause              = status_vector[15:14];
+
+wire mdio_i;
+reg mdio_o;
+reg mdio_t;
+IOBUF mdio(.O(mdio_i), .IO(mdio_data), .I(mdio_o), .T(mdio_t));
+
+reg  [2:0] mdio_int_sync;
+wire mdio_phy_int = mdio_int_sync[2];
+
+always @(posedge clock)
+    mdio_int_sync <= {mdio_int_sync[1:0], mdio_int};
+
+reg mdio_reset_reg;
+assign mdio_reset = !mdio_reset_reg;
 
 // ------ AXI LITE Slave Interface
 
@@ -214,12 +234,22 @@ reg tx_int;
 reg [31:0] int_enable;
 wire [31:0] int_status;
 
+reg [31:0] mdio_tx;
+reg [31:0] mdio_rx;
+reg mdio_start;
+reg mdio_stop;
+reg mdio_done;
+reg [5:0] mdio_cnt;
+reg [5:0] mdio_cnt_rx;
+reg [4:0] mdio_div;
+wire mdio_txrx_int = !(mdio_start || mdio_done);
+
 reg m_axi_rd_cyc;
 reg m_axi_rd_err;
 reg m_axi_wr_cyc;
 reg m_axi_wr_err;
 
-assign int_status = { tx_int, rx_int, status_vector };
+assign int_status = { mdio_phy_int, mdio_txrx_int, tx_int, rx_int, status_vector };
 assign interrupt = (int_enable & int_status) != 0;
 
 always @(posedge clock) begin
@@ -243,6 +273,9 @@ always @(posedge clock) begin
         rx_start <= 0;
         tx_start <= 0;
         int_enable <= 0;
+        mdio_tx <= 0;
+        mdio_start <= 0;
+        mdio_reset_reg <= 0;
     end else begin
         if (s_axi_arready && s_axi_arvalid) begin
             read_addr <= s_axi_araddr;
@@ -262,7 +295,9 @@ always @(posedge clock) begin
                 10'h014: s_axi_rdata <= rx_pkt_out;
                 10'h018: s_axi_rdata <= tx_pkt_inp;
                 10'h01c: s_axi_rdata <= tx_pkt_out;
-                10'h020: s_axi_rdata <= { tx_enable, rx_enable };
+                10'h020: s_axi_rdata <= { mdio_reset_reg, tx_enable, rx_enable };
+                10'h024: s_axi_rdata <= mdio_tx;
+                10'h028: s_axi_rdata <= mdio_rx;
                 endcase
             end else if (read_addr[11:10] == 2) begin
                 case (read_addr[3:0])
@@ -298,7 +333,8 @@ always @(posedge clock) begin
                 10'h00c: begin rx_int <= write_data[16]; tx_int <= write_data[17]; end
                 10'h010: rx_pkt_inp <= write_data;
                 10'h018: tx_pkt_inp <= write_data;
-                10'h020: begin rx_enable <= write_data[0]; tx_enable <= write_data[1]; end
+                10'h020: begin rx_enable <= write_data[0]; tx_enable <= write_data[1]; mdio_reset_reg <= write_data[2]; end
+                10'h024: begin mdio_tx <= write_data; mdio_start <= 1; end
                 endcase
             end else if (write_addr[11:10] == 2) begin
                 case (write_addr[3:0])
@@ -328,6 +364,9 @@ always @(posedge clock) begin
             tx_start <= 0;
             tx_pkt_out <= tx_pkt_out + 1;
             tx_int <= 1;
+        end
+        if (mdio_start && mdio_done) begin
+            mdio_start <= 0;
         end
     end
 end
@@ -549,6 +588,69 @@ always @(posedge clock) begin
             m_axi_awvalid <= 1;
             m_axi_wvalid <= 1;
         end
+    end
+end
+
+// ------ PHY MDIO Interface
+
+always @(posedge clock) begin
+    if (reset) begin
+        mdio_rx <= 0;
+        mdio_stop <= 0;
+        mdio_done <= 0;
+        mdio_cnt <= 0;
+        mdio_cnt_rx <= 0;
+        mdio_div <= 0;
+        mdio_t <= 1;
+        mdio_o <= 1;
+        mdio_clock <= 0;
+    end else if (!mdio_start) begin
+        mdio_stop <= 0;
+        mdio_done <= 0;
+        mdio_cnt <= 0;
+        mdio_cnt_rx <= 0;
+        mdio_div <= 0;
+        mdio_t <= 1;
+        mdio_o <= 1;
+        mdio_clock <= 0;
+    end else if (mdio_done) begin
+        // Waiting for handshake
+    end else if (mdio_div == 0) begin
+        mdio_div <= 24;
+        mdio_cnt_rx <= mdio_cnt;
+        if (!mdio_clock) begin
+            if (mdio_cnt_rx[5]) mdio_rx[~mdio_cnt_rx[4:0]] <= mdio_i;
+            mdio_clock <= 1;
+        end else if (mdio_stop) begin
+            mdio_done <= 1;
+            mdio_t <= 0;
+            mdio_o <= 1;
+            mdio_clock <= 0;
+        end else begin
+            if (!mdio_cnt[5]) begin
+                // PHY devices require a preamble of 32 ones
+                mdio_t <= 0;
+                mdio_o <= 1;
+            end else begin
+                if (mdio_tx[29] && mdio_cnt >= 46) begin
+                    // Read from PHY
+                    mdio_t <= 1;
+                end else begin
+                    // Write to PHY
+                    mdio_t <= 0;
+                end
+                mdio_o <= mdio_tx[~mdio_cnt[4:0]];
+            end
+            if (mdio_cnt == 63) begin
+                mdio_stop <= 1;
+                mdio_cnt <= 0;
+            end else begin
+                mdio_cnt <= mdio_cnt + 1;
+            end
+            mdio_clock <= 0;
+        end
+    end else begin
+        mdio_div <= mdio_div - 1;
     end
 end
 

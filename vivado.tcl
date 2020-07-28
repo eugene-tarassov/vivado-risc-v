@@ -31,18 +31,13 @@ set files [list \
  [file normalize "../../ethernet/verilog-ethernet/rtl/axis_gmii_rx.v"] \
  [file normalize "../../ethernet/verilog-ethernet/rtl/axis_gmii_tx.v"] \
  [file normalize "../../ethernet/verilog-ethernet/rtl/eth_mac_1g.v"] \
- [file normalize "../../ethernet/verilog-ethernet/rtl/eth_mac_1g_fifo.v"] \
- [file normalize "../../ethernet/verilog-ethernet/rtl/eth_mac_1g_rgmii_fifo.v"] \
- [file normalize "../../ethernet/verilog-ethernet/rtl/eth_mac_1g_rgmii.v"] \
- [file normalize "../../ethernet/verilog-ethernet/rtl/ssio_ddr_in.v"] \
  [file normalize "../../ethernet/verilog-ethernet/rtl/lfsr.v"] \
- [file normalize "../../ethernet/rgmii_phy_if.v"] \
- [file normalize "../../ethernet/iddr.v"] \
- [file normalize "../../ethernet/oddr.v"] \
  [file normalize "../../ethernet/ethernet.v"] \
  [file normalize "../../board/${vivado_board_name}/ethernet-${vivado_board_name}.v"] \
 ]
 add_files -norecurse -fileset $source_fileset $files
+
+source ../../board/${vivado_board_name}/ethernet-${vivado_board_name}.tcl
 
 # Create 'constrs_1' fileset (if not found)
 if {[string equal [get_filesets -quiet constrs_1] ""]} {

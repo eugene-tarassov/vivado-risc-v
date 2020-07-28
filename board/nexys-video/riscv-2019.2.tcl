@@ -397,6 +397,10 @@ proc create_hier_cell_IO { parentCell nameHier } {
   create_bd_pin -dir I -type rst ARESETN
   create_bd_pin -dir I clock_200MHz
   create_bd_pin -dir O -from 7 -to 0 interrupts
+  create_bd_pin -dir O eth_mdio_clock
+  create_bd_pin -dir IO eth_mdio_data
+  create_bd_pin -dir O eth_mdio_reset
+  create_bd_pin -dir I eth_mdio_int
   create_bd_pin -dir O mmcm_locked
   create_bd_pin -dir I sdio_cd
   create_bd_pin -dir O -type clk sdio_clk
@@ -451,25 +455,12 @@ proc create_hier_cell_IO { parentCell nameHier } {
   # Create instance: clk_wiz_1, and set properties
   set clk_wiz_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz_1 ]
   set_property -dict [ list \
-   CONFIG.CLKIN1_JITTER_PS {50.0} \
-   CONFIG.CLKOUT1_JITTER {112.316} \
-   CONFIG.CLKOUT1_PHASE_ERROR {89.971} \
-   CONFIG.CLKOUT2_JITTER {107.523} \
-   CONFIG.CLKOUT2_PHASE_ERROR {89.971} \
+   CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {100.000} \
    CONFIG.CLKOUT2_REQUESTED_OUT_FREQ {125.000} \
    CONFIG.CLKOUT2_USED {true} \
-   CONFIG.CLKOUT3_JITTER {107.523} \
-   CONFIG.CLKOUT3_PHASE_ERROR {89.971} \
    CONFIG.CLKOUT3_REQUESTED_OUT_FREQ {125.000} \
    CONFIG.CLKOUT3_REQUESTED_PHASE {90.000} \
    CONFIG.CLKOUT3_USED {true} \
-   CONFIG.MMCM_CLKFBOUT_MULT_F {5.000} \
-   CONFIG.MMCM_CLKIN1_PERIOD {5.000} \
-   CONFIG.MMCM_CLKIN2_PERIOD {10.0} \
-   CONFIG.MMCM_CLKOUT0_DIVIDE_F {10.000} \
-   CONFIG.MMCM_CLKOUT1_DIVIDE {8} \
-   CONFIG.MMCM_CLKOUT2_DIVIDE {8} \
-   CONFIG.MMCM_CLKOUT2_PHASE {90.000} \
    CONFIG.NUM_OUT_CLKS {3} \
    CONFIG.RESET_PORT {reset} \
    CONFIG.RESET_TYPE {ACTIVE_HIGH} \
@@ -528,7 +519,7 @@ proc create_hier_cell_IO { parentCell nameHier } {
  ] $xlconcat_0
 
   # Create interface connections
-  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins RGMII] [get_bd_intf_pins ethernet_nexys_video_0/RGMII]
+  connect_bd_intf_net -intf_net Ethernet_RGMII [get_bd_intf_pins RGMII] [get_bd_intf_pins ethernet_nexys_video_0/RGMII]
   connect_bd_intf_net -intf_net Ethernet_TX_AXIS [get_bd_intf_pins Ethernet/TX_AXIS] [get_bd_intf_pins ethernet_nexys_video_0/TX_AXIS]
   connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins smartconnect_0/S00_AXI]
   connect_bd_intf_net -intf_net S01_AXI_1 [get_bd_intf_pins Ethernet/M_AXI] [get_bd_intf_pins io_axi_m/S01_AXI]
@@ -544,6 +535,10 @@ proc create_hier_cell_IO { parentCell nameHier } {
   # Create port connections
   connect_bd_net -net Ethernet_interrupt [get_bd_pins Ethernet/interrupt] [get_bd_pins synchronizer_0/dinp]
   connect_bd_net -net Ethernet_reset [get_bd_pins Ethernet/reset] [get_bd_pins ethernet_nexys_video_0/reset]
+  connect_bd_net -net Ethernet_mdio_clock [get_bd_pins eth_mdio_clock] [get_bd_pins Ethernet/mdio_clock]
+  connect_bd_net -net Ethernet_mdio_data [get_bd_pins eth_mdio_data] [get_bd_pins Ethernet/mdio_data]
+  connect_bd_net -net Ethernet_mdio_reset [get_bd_pins eth_mdio_reset] [get_bd_pins Ethernet/mdio_reset]
+  connect_bd_net -net Ethernet_mdio_int [get_bd_pins eth_mdio_int] [get_bd_pins Ethernet/mdio_int]
   connect_bd_net -net SD_interrupt [get_bd_pins SD/interrupt] [get_bd_pins synchronizer_1/dinp]
   connect_bd_net -net SD_sdio_cmd [get_bd_pins sdio_cmd] [get_bd_pins SD/sdio_cmd]
   connect_bd_net -net SD_sdio_dat [get_bd_pins sdio_dat] [get_bd_pins SD/sdio_dat]
@@ -557,7 +552,7 @@ proc create_hier_cell_IO { parentCell nameHier } {
   connect_bd_net -net ethernet_0_resetn [get_bd_pins Ethernet/resetn] [get_bd_pins io_axi_s/M02_ARESETN] [get_bd_pins io_axi_m/S01_ARESETN]
   connect_bd_net -net ethernet_nexys_video_0_status_vector [get_bd_pins Ethernet/status_vector] [get_bd_pins ethernet_nexys_video_0/status_vector]
   connect_bd_net -net reset_1 [get_bd_pins sys_reset] [get_bd_pins clk_wiz_1/reset]
-  connect_bd_net -net rst_clk_wiz_100M_peripheral_aresetn [get_bd_pins ARESETN] [get_bd_pins Ethernet/async_resetn] [get_bd_pins SD/async_resetn] [get_bd_pins io_axi_s/ARESETN] [get_bd_pins io_axi_s/M01_ARESETN] [get_bd_pins io_axi_s/S00_ARESETN] [get_bd_pins axi_uartlite_0/s_axi_aresetn] [get_bd_pins io_axi_m/ARESETN] [get_bd_pins io_axi_m/M00_ARESETN] [get_bd_pins smartconnect_0/aresetn]
+  connect_bd_net -net RocketChip_aresetn [get_bd_pins ARESETN] [get_bd_pins Ethernet/async_resetn] [get_bd_pins SD/async_resetn] [get_bd_pins io_axi_s/ARESETN] [get_bd_pins io_axi_s/M01_ARESETN] [get_bd_pins io_axi_s/S00_ARESETN] [get_bd_pins axi_uartlite_0/s_axi_aresetn] [get_bd_pins io_axi_m/ARESETN] [get_bd_pins io_axi_m/M00_ARESETN] [get_bd_pins smartconnect_0/aresetn]
   connect_bd_net -net sd_ref_clk [get_bd_pins SD/clock] [get_bd_pins io_axi_s/M00_ACLK] [get_bd_pins clk_wiz_1/clk_out1] [get_bd_pins io_axi_m/S00_ACLK]
   connect_bd_net -net sdc_reset [get_bd_pins SD/resetn] [get_bd_pins io_axi_s/M00_ARESETN] [get_bd_pins io_axi_m/S00_ARESETN]
   connect_bd_net -net sdio_clk [get_bd_pins sdio_clk] [get_bd_pins SD/sdio_clk]
@@ -656,7 +651,7 @@ proc create_hier_cell_DDR { parentCell nameHier } {
   connect_bd_net -net mig_7series_0_ui_clk [get_bd_pins axi_smc_1/aclk1] [get_bd_pins mig_7series_0/ui_clk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk]
   connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_pins mig_7series_0/aresetn] [get_bd_pins proc_sys_reset_0/peripheral_aresetn]
   connect_bd_net -net reset_1 [get_bd_pins sys_reset] [get_bd_pins mig_7series_0/sys_rst] [get_bd_pins proc_sys_reset_0/mb_debug_sys_rst]
-  connect_bd_net -net rst_clk_wiz_100M_peripheral_aresetn [get_bd_pins aresetn] [get_bd_pins axi_smc_1/aresetn] [get_bd_pins proc_sys_reset_0/aux_reset_in] [get_bd_pins proc_sys_reset_0/ext_reset_in]
+  connect_bd_net -net RocketChip_aresetn [get_bd_pins aresetn] [get_bd_pins axi_smc_1/aresetn] [get_bd_pins proc_sys_reset_0/aux_reset_in] [get_bd_pins proc_sys_reset_0/ext_reset_in]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -704,11 +699,14 @@ proc create_root_design { parentCell } {
 
 
   # Create ports
-  set eth_rst_b [ create_bd_port -dir O eth_rst_b ]
   set reset [ create_bd_port -dir I -type rst reset ]
   set_property -dict [ list \
    CONFIG.POLARITY {ACTIVE_HIGH} \
  ] $reset
+  set eth_mdio_clock [ create_bd_port -dir O eth_mdio_clock ]
+  set eth_mdio_data [ create_bd_port -dir IO eth_mdio_data ]
+  set eth_mdio_reset [ create_bd_port -dir O eth_mdio_reset ]
+  set eth_mdio_int [ create_bd_port -dir I eth_mdio_int ]
   set sdio_cd [ create_bd_port -dir I sdio_cd ]
   set sdio_clk [ create_bd_port -dir O sdio_clk ]
   set sdio_cmd [ create_bd_port -dir IO sdio_cmd ]
@@ -736,25 +734,13 @@ proc create_root_design { parentCell } {
   # Create instance: clk_wiz_0, and set properties
   set clk_wiz_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz_0 ]
   set_property -dict [ list \
-   CONFIG.CLKOUT1_JITTER {151.636} \
-   CONFIG.CLKOUT1_PHASE_ERROR {98.575} \
    CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {50.0} \
-   CONFIG.CLKOUT2_JITTER {114.829} \
-   CONFIG.CLKOUT2_PHASE_ERROR {98.575} \
    CONFIG.CLKOUT2_REQUESTED_OUT_FREQ {200.000} \
    CONFIG.CLKOUT2_USED {true} \
-   CONFIG.CLKOUT3_JITTER {125.247} \
-   CONFIG.CLKOUT3_PHASE_ERROR {98.575} \
-   CONFIG.CLKOUT3_REQUESTED_OUT_FREQ {100.000} \
-   CONFIG.CLKOUT3_USED {false} \
    CONFIG.CLK_IN1_BOARD_INTERFACE {Custom} \
    CONFIG.CLK_IN2_BOARD_INTERFACE {Custom} \
-   CONFIG.MMCM_CLKFBOUT_MULT_F {10.000} \
    CONFIG.MMCM_CLKIN1_PERIOD {10.000} \
    CONFIG.MMCM_CLKIN2_PERIOD {10.000} \
-   CONFIG.MMCM_CLKOUT0_DIVIDE_F {20.000} \
-   CONFIG.MMCM_CLKOUT1_DIVIDE {5} \
-   CONFIG.MMCM_CLKOUT2_DIVIDE {1} \
    CONFIG.NUM_OUT_CLKS {2} \
    CONFIG.PRIM_SOURCE {No_buffer} \
    CONFIG.RESET_BOARD_INTERFACE {Custom} \
@@ -785,12 +771,16 @@ proc create_root_design { parentCell } {
   connect_bd_net -net IO_sdio_cmd [get_bd_ports sdio_cmd] [get_bd_pins IO/sdio_cmd]
   connect_bd_net -net IO_sdio_dat [get_bd_ports sdio_dat] [get_bd_pins IO/sdio_dat]
   connect_bd_net -net IO_sdio_reset [get_bd_ports sdio_reset] [get_bd_pins IO/sdio_reset]
+  connect_bd_net -net IO_eth_mdio_clock [get_bd_ports eth_mdio_clock] [get_bd_pins IO/eth_mdio_clock]
+  connect_bd_net -net IO_eth_mdio_data [get_bd_ports eth_mdio_data] [get_bd_pins IO/eth_mdio_data]
+  connect_bd_net -net IO_eth_mdio_reset [get_bd_ports eth_mdio_reset] [get_bd_pins IO/eth_mdio_reset]
+  connect_bd_net -net IO_eth_mdio_int [get_bd_ports eth_mdio_int] [get_bd_pins IO/eth_mdio_int]
   connect_bd_net -net clk_wiz_0_locked [get_bd_pins RocketChip/clock_ok] [get_bd_pins clk_wiz_0/locked]
   connect_bd_net -net clk_wiz_clk_out1 [get_bd_pins DDR/aclk] [get_bd_pins IO/ACLK] [get_bd_pins RocketChip/clock] [get_bd_pins clk_wiz_0/clk_out1]
   connect_bd_net -net clock_200MHz [get_bd_pins DDR/clock_200MHz] [get_bd_pins IO/clock_200MHz] [get_bd_pins clk_wiz_0/clk_out2]
-  connect_bd_net -net reset_1 [get_bd_pins DDR/sys_reset] [get_bd_pins IO/sys_reset] [get_bd_pins RocketChip/sys_reset] [get_bd_pins clk_wiz_0/reset] [get_bd_pins util_vector_logic_0/Res]
-  connect_bd_net -net reset_2 [get_bd_ports reset] [get_bd_pins util_vector_logic_0/Op1]
-  connect_bd_net -net rst_clk_wiz_100M_peripheral_aresetn [get_bd_ports eth_rst_b] [get_bd_pins DDR/aresetn] [get_bd_pins IO/ARESETN] [get_bd_pins RocketChip/aresetn]
+  connect_bd_net -net reset_h [get_bd_pins DDR/sys_reset] [get_bd_pins IO/sys_reset] [get_bd_pins RocketChip/sys_reset] [get_bd_pins clk_wiz_0/reset] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net reset_l [get_bd_ports reset] [get_bd_pins util_vector_logic_0/Op1]
+  connect_bd_net -net RocketChip_aresetn [get_bd_pins DDR/aresetn] [get_bd_pins IO/ARESETN] [get_bd_pins RocketChip/aresetn]
   connect_bd_net -net sdio_cd [get_bd_ports sdio_cd] [get_bd_pins IO/sdio_cd]
   connect_bd_net -net sys_clock [get_bd_ports sys_clock] [get_bd_pins clk_wiz_0/clk_in1]
 

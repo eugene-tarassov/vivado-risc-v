@@ -8,6 +8,7 @@ module ethernet_vc707 (
     output wire clock,
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 TX_AXIS TDATA" *)
+    (* X_INTERFACE_PARAMETER = "CLK_DOMAIN clock" *)
     input wire [7:0] tx_axis_tdata,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 TX_AXIS TVALID" *)
     input wire tx_axis_tvalid,
