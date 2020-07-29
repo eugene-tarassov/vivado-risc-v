@@ -25,16 +25,12 @@ THE SOFTWARE.
 module ethernet #(parameter burst_size_bits = 4) (
     input wire async_resetn,
 
-    (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 resetn RST" *)
-    (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_LOW" *)
-    output wire resetn,
-
     (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 reset RST" *)
     (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_HIGH" *)
     output wire reset,
 
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clock CLK" *)
-    (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF M_AXI:S_AXI_LITE:TX_AXIS:RX_AXIS, ASSOCIATED_RESET resetn:reset, FREQ_HZ 125000000" *)
+    (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF M_AXI:S_AXI_LITE:TX_AXIS:RX_AXIS, FREQ_HZ 125000000" *)
     input wire clock,
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 S_AXI_LITE AWADDR" *)
@@ -156,7 +152,6 @@ module ethernet #(parameter burst_size_bits = 4) (
 
 reg  [2:0] reset_sync;
 assign reset = reset_sync[2];
-assign resetn = !reset;
 
 always @(posedge clock)
     reset_sync <= {reset_sync[1:0], !async_resetn};
