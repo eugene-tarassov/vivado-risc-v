@@ -6,6 +6,7 @@
 #include <linux/etherdevice.h>
 #include <linux/of_device.h>
 #include <linux/of_mdio.h>
+#include <linux/of_net.h>
 #include <linux/phy.h>
 
 /*
@@ -501,12 +502,6 @@ static int axi_eth_dev_init(struct net_device * net_dev) {
     u64_stats_init(&priv->rx_stats.syncp);
     u64_stats_init(&priv->tx_stats.syncp);
 
-    axi_eth_add_rx_buffers(net_dev);
-    priv->regs->int_enable = priv->int_enable = INT_STATUS_RX | INT_STATUS_TX;
-
-    /* Enable RX, TX, clear MDIO reset */
-    priv->regs->mac_control = MAC_CONTROL_EN_RX | MAC_CONTROL_EN_TX;
-
     spin_unlock_irq(&priv->lock);
 
     return 0;
@@ -523,11 +518,6 @@ static int axi_eth_dev_close(struct net_device * net_dev) {
     priv->regs->mac_control = 0;
     /* Wait active RX, TX to finish */
     while (priv->regs->mac_status & 3) {}
-
-    if (priv->regs->capability & MAC_CAPABILITY_MDIO) {
-        /* Activate MDIO reset */
-        priv->regs->mac_control = MAC_CONTROL_MDIO_RESET;
-    }
 
     while (priv->rx_inp != priv->rx_out) {
         struct axi_eth_ring_item * i = priv->rx_ring + priv->rx_out;
@@ -564,10 +554,15 @@ static int axi_eth_dev_open(struct net_device * net_dev) {
     int err = 0;
 
     if (priv->mdio_bus != NULL) {
+        phy_interface_t phy_intf = PHY_INTERFACE_MODE_RGMII;
+
         priv->phy_dev = phy_find_first(priv->mdio_bus);
         if (priv->phy_dev == NULL) return -ENODEV;
 
-        err = phy_connect_direct(net_dev, priv->phy_dev, axi_eth_mdio_poll, PHY_INTERFACE_MODE_RGMII);
+        err = of_get_phy_mode(priv->pdev->dev.of_node, &phy_intf);
+        if (err && err != -ENODEV) return err;
+
+        err = phy_connect_direct(net_dev, priv->phy_dev, axi_eth_mdio_poll, phy_intf);
         if (err) {
             printk(KERN_ERR "AXI-ETH: Can't attach PHY\n");
             return err;
@@ -575,6 +570,16 @@ static int axi_eth_dev_open(struct net_device * net_dev) {
 
         phy_start(priv->phy_dev);
     }
+
+    spin_lock_irq(&priv->lock);
+
+    axi_eth_add_rx_buffers(net_dev);
+    priv->regs->int_enable = priv->int_enable = INT_STATUS_RX | INT_STATUS_TX;
+
+    /* Enable RX, TX, clear MDIO reset */
+    priv->regs->mac_control = MAC_CONTROL_EN_RX | MAC_CONTROL_EN_TX;
+
+    spin_unlock_irq(&priv->lock);
 
     return 0;
 }
@@ -647,7 +652,6 @@ static int axi_eth_probe(struct platform_device * pdev) {
     }
 
     if (priv->regs->capability & MAC_CAPABILITY_MDIO) {
-        priv->regs->mac_control = MAC_CONTROL_MDIO_RESET;
         err = axi_eth_mdio_register(priv);
         if (err) {
             printk(KERN_ERR "AXI-ETH: Can't register MDIO bus\n");

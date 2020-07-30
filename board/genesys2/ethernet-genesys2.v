@@ -1,4 +1,4 @@
-module ethernet_nexys_video (
+module ethernet_genesys2 (
     (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 reset RST" *)
     (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_HIGH" *)
     input reset,
@@ -54,9 +54,15 @@ module ethernet_nexys_video (
     input rgmii_rx_clk // Ethernet receive clock (required)
 );
 
-wire rgmii_rx_clk_delay;
+ // 0.078 ns increment
+`define rgmii_clock_idelay 0
+`define rgmii_data_idelay 16
 
 assign status_vector = 0;
+
+wire rgmii_rx_clk_delay;
+wire [3:0] rgmii_rxd_delay;
+wire rgmii_rx_ctl_delay;
 
 eth_mac_1g_rgmii_fifo #(
     .TARGET("XILINX"),
@@ -93,11 +99,12 @@ eth_mac_inst (
     .rx_axis_tuser(rx_axis_tuser),
 
     .rgmii_rx_clk(rgmii_rx_clk_delay),
-    .rgmii_rxd(rgmii_rxd),
-    .rgmii_rx_ctl(rgmii_rx_ctl),
+    .rgmii_rx_ctl(rgmii_rx_ctl_delay),
+    .rgmii_rxd(rgmii_rxd_delay),
+
     .rgmii_tx_clk(rgmii_tx_clk),
-    .rgmii_txd(rgmii_txd),
     .rgmii_tx_ctl(rgmii_tx_ctl),
+    .rgmii_txd(rgmii_txd),
 
     .tx_fifo_overflow(),
     .tx_fifo_bad_frame(),
@@ -112,7 +119,7 @@ eth_mac_inst (
 );
 
 (* IODELAY_GROUP = "rgmii_idelay_group" *)
-IDELAYCTRL rx_clock_idelay_ctrl (
+IDELAYCTRL rgmii_idelay_control_block (
     .REFCLK(clock200),
     .RST(reset),
     .RDY()
@@ -121,12 +128,57 @@ IDELAYCTRL rx_clock_idelay_ctrl (
 (* IODELAY_GROUP = "rgmii_idelay_group" *)
 IDELAYE2 #(
     .IDELAY_TYPE("FIXED"),
-    .IDELAY_VALUE(0), // 0.078 ns increment
+    .IDELAY_VALUE(`rgmii_clock_idelay),
     .SIGNAL_PATTERN("CLOCK")
 )
-rx_clock_idelay (
+rgmii_idelay_clk (
     .IDATAIN(rgmii_rx_clk),
     .DATAOUT(rgmii_rx_clk_delay),
+    .DATAIN(1'b0),
+    .C(1'b0),
+    .CE(1'b0),
+    .INC(1'b0),
+    .CINVCTRL(1'b0),
+    .CNTVALUEIN(5'd0),
+    .CNTVALUEOUT(),
+    .LD(1'b0),
+    .LDPIPEEN(1'b0),
+    .REGRST(1'b0)
+);
+
+genvar n;
+generate for (n = 0; n < 4; n = n + 1) begin
+    (* IODELAY_GROUP = "rgmii_idelay_group" *)
+    IDELAYE2 #(
+        .IDELAY_TYPE("FIXED"),
+        .IDELAY_VALUE(`rgmii_data_idelay),
+        .SIGNAL_PATTERN("DATA")
+    )
+    rgmii_idelay_rxd (
+        .IDATAIN(rgmii_rxd[n]),
+        .DATAOUT(rgmii_rxd_delay[n]),
+        .DATAIN(1'b0),
+        .C(1'b0),
+        .CE(1'b0),
+        .INC(1'b0),
+        .CINVCTRL(1'b0),
+        .CNTVALUEIN(5'd0),
+        .CNTVALUEOUT(),
+        .LD(1'b0),
+        .LDPIPEEN(1'b0),
+        .REGRST(1'b0)
+    );
+end endgenerate
+
+(* IODELAY_GROUP = "rgmii_idelay_group" *)
+IDELAYE2 #(
+    .IDELAY_TYPE("FIXED"),
+    .IDELAY_VALUE(`rgmii_data_idelay),
+    .SIGNAL_PATTERN("DATA")
+)
+rgmii_idelay_ctl (
+    .IDATAIN(rgmii_rx_ctl),
+    .DATAOUT(rgmii_rx_ctl_delay),
     .DATAIN(1'b0),
     .C(1'b0),
     .CE(1'b0),

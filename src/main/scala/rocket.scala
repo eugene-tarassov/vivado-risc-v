@@ -28,16 +28,10 @@ class RocketSystemModuleImp[+L <: RocketSystem](_outer: L) extends RocketSubsyst
     with DontTouch
 
 class WithBootROM(FileName: String) extends Config (
-    (site, here, up) => {
-      case BootROMParams => BootROMParams(contentFileName = FileName)
-    }
-)
-
-class WithCoreFreq(freq: BigInt) extends Config ((site, here, up) => {
-  case RocketTilesKey => up(RocketTilesKey, site) map { r =>
-    r.copy(core = r.core.copy(bootFreqHz = freq))
+  (site, here, up) => {
+    case BootROMParams => BootROMParams(contentFileName = FileName)
   }
-})
+)
 
 class WithGemmini(mesh_size: Int, bus_bits: Int) extends Config((site, here, up) => {
   case BuildRoCC => up(BuildRoCC) ++ Seq(
@@ -50,25 +44,38 @@ class WithGemmini(mesh_size: Int, bus_bits: Int) extends Config((site, here, up)
   )
 })
 
+/*
+ * WithExtMemSize(0x40000000) = 1GB is max supported by the base config.
+ * Actual memory size depends on the target board.
+ * The Makefile changes the size to correct value during build.
+ * It also sets right core clock frequency.
+ */
 class RocketBaseConfig extends Config(
   new WithBootROM("workspace/bootrom.img") ++
-  new WithExtMemSize(0x40000000) ++ // 1GB
+  new WithExtMemSize(0x40000000) ++
   new WithNExtTopInterrupts(8) ++
   new WithDTS("freechips,rocketchip-vivado", Nil) ++
   new WithDebugSBA ++
   new WithEdgeDataBits(64) ++
   new BaseConfig)
 
+class RocketWideBusConfig extends Config(
+  new WithBootROM("workspace/bootrom.img") ++
+  new WithExtMemSize(0x40000000) ++
+  new WithNExtTopInterrupts(8) ++
+  new WithDTS("freechips,rocketchip-vivado", Nil) ++
+  new WithDebugSBA ++
+  new WithEdgeDataBits(256) ++
+  new BaseConfig)
+
 /* Note: Linux not supported yet on 32-bit cores */
 class Rocket32s1 extends Config(
-  new WithCoreFreq(100000000) ++
   new WithNBreakpoints(8) ++
   new WithNSmallCores(1)  ++
   new WithRV32            ++
   new RocketBaseConfig)
 
 class Rocket32s2j extends Config(
-  new WithCoreFreq(100000000) ++
   new WithNBreakpoints(8) ++
   new WithJtagDTM         ++
   new WithNSmallCores(2)  ++
@@ -76,28 +83,24 @@ class Rocket32s2j extends Config(
   new RocketBaseConfig)
 
 class Rocket32s2 extends Config(
-  new WithCoreFreq(100000000) ++
   new WithNBreakpoints(8) ++
   new WithNSmallCores(2)  ++
   new WithRV32            ++
   new RocketBaseConfig)
 
 class Rocket32s4 extends Config(
-  new WithCoreFreq(100000000) ++
   new WithNBreakpoints(8) ++
   new WithNSmallCores(4)  ++
   new WithRV32            ++
   new RocketBaseConfig)
 
 class Rocket32s8 extends Config(
-  new WithCoreFreq(100000000) ++
   new WithNBreakpoints(8) ++
   new WithNSmallCores(8)  ++
   new WithRV32            ++
   new RocketBaseConfig)
 
 class Rocket32s16 extends Config(
-  new WithCoreFreq(100000000) ++
   new WithNBreakpoints(8) ++
   new WithNSmallCores(16) ++
   new WithRV32            ++
@@ -105,14 +108,14 @@ class Rocket32s16 extends Config(
 
 class Rocket64b2 extends Config(
   new WithNBreakpoints(8) ++
-  new WithCoreFreq(100000000) ++
   new WithNBigCores(2)    ++
   new RocketBaseConfig)
 
+/* With 512KB level 2 cache */
+/* Note: adding L2 cache reduces max CPU clock frequency */
 class Rocket64b2l2 extends Config(
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
-  new WithCoreFreq(75000000) ++
   new WithNBigCores(2)    ++
   new RocketBaseConfig)
 
@@ -121,8 +124,7 @@ class Rocket64s2gem extends Config(
   new WithGemmini(4, 64)  ++
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
-  new WithCoreFreq(75000000) ++
-  new WithNSmallCores(2)    ++
+  new WithNSmallCores(2)  ++
   new RocketBaseConfig)
 
 /* Note: cannot get medium core to boot Linux: Oops - illegal instruction */
@@ -130,7 +132,6 @@ class Rocket64m2gem extends Config(
   new WithGemmini(4, 64)  ++
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
-  new WithCoreFreq(75000000) ++
   new WithNMedCores(2)    ++
   new RocketBaseConfig)
 
@@ -138,25 +139,28 @@ class Rocket64b2gem extends Config(
   new WithGemmini(2, 64)  ++
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
-  new WithCoreFreq(75000000) ++
   new WithNBigCores(2)    ++
   new RocketBaseConfig)
 
 class Rocket64b4 extends Config(
-  new WithCoreFreq(100000000) ++
   new WithNBreakpoints(8) ++
   new WithNBigCores(4)    ++
   new RocketBaseConfig)
 
+/* With level 2 cache and wide memory bus */
+class Rocket64b4l2w extends Config(
+  new WithInclusiveCache ++
+  new WithNBreakpoints(8) ++
+  new WithNBigCores(4)    ++
+  new RocketWideBusConfig)
+
 class Rocket64b8 extends Config(
-  new WithCoreFreq(80000000) ++
   new WithNBreakpoints(8) ++
   new WithNBigCores(8)    ++
   new RocketBaseConfig)
 
 /* Cannot get BOOM to work
 class Rocket64x2 extends Config(
-  new WithCoreFreq(100000000) ++
   new WithNBreakpoints(8) ++
   new boom.common.WithMediumBooms ++
   new boom.common.WithNBoomCores(2) ++

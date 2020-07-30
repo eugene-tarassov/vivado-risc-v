@@ -419,9 +419,6 @@ proc create_hier_cell_IO { parentCell nameHier } {
      catch {common::send_msg_id "BD_TCL-106" "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    }
-    set_property -dict [ list \
-   CONFIG.burst_size_bits {4} \
- ] $Ethernet
 
   # Create instance: SD, and set properties
   set block_name sdc_controller
@@ -455,17 +452,18 @@ proc create_hier_cell_IO { parentCell nameHier } {
    CONFIG.CLKOUT3_REQUESTED_PHASE {90.000} \
    CONFIG.CLKOUT3_USED {true} \
    CONFIG.NUM_OUT_CLKS {3} \
+   CONFIG.PRIM_SOURCE {No_buffer} \
    CONFIG.RESET_PORT {reset} \
    CONFIG.RESET_TYPE {ACTIVE_HIGH} \
  ] $clk_wiz_1
 
-  # Create instance: ethernet_nexys_video_0, and set properties
+  # Create instance: ethernet_stream_0, and set properties
   set block_name ethernet_nexys_video
-  set block_cell_name ethernet_nexys_video_0
-  if { [catch {set ethernet_nexys_video_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+  set block_cell_name ethernet_stream_0
+  if { [catch {set ethernet_stream_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
      catch {common::send_msg_id "BD_TCL-105" "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
-   } elseif { $ethernet_nexys_video_0 eq "" } {
+   } elseif { $ethernet_stream_0 eq "" } {
      catch {common::send_msg_id "BD_TCL-106" "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    }
@@ -515,21 +513,21 @@ proc create_hier_cell_IO { parentCell nameHier } {
  ] $xlconcat_0
 
   # Create interface connections
-  connect_bd_intf_net -intf_net Ethernet_RGMII [get_bd_intf_pins RGMII] [get_bd_intf_pins ethernet_nexys_video_0/RGMII]
-  connect_bd_intf_net -intf_net Ethernet_TX_AXIS [get_bd_intf_pins Ethernet/TX_AXIS] [get_bd_intf_pins ethernet_nexys_video_0/TX_AXIS]
-  connect_bd_intf_net -intf_net io_axi_s [get_bd_intf_pins S00_AXI] [get_bd_intf_pins io_axi_s/S00_AXI]
+  connect_bd_intf_net -intf_net Ethernet_RGMII [get_bd_intf_pins RGMII] [get_bd_intf_pins ethernet_stream_0/RGMII]
+  connect_bd_intf_net -intf_net Ethernet_TX_AXIS [get_bd_intf_pins Ethernet/TX_AXIS] [get_bd_intf_pins ethernet_stream_0/TX_AXIS]
   connect_bd_intf_net -intf_net S01_AXI_1 [get_bd_intf_pins Ethernet/M_AXI] [get_bd_intf_pins io_axi_m/S01_AXI]
   connect_bd_intf_net -intf_net axi_uartlite_0_UART [get_bd_intf_pins uart] [get_bd_intf_pins axi_uartlite_0/UART]
-  connect_bd_intf_net -intf_net ethernet_nexys_video_0_RX_AXIS [get_bd_intf_pins Ethernet/RX_AXIS] [get_bd_intf_pins ethernet_nexys_video_0/RX_AXIS]
-  connect_bd_intf_net -intf_net io_axi_m [get_bd_intf_pins M00_AXI] [get_bd_intf_pins io_axi_m/M00_AXI]
+  connect_bd_intf_net -intf_net ethernet_stream_0_RX_AXIS [get_bd_intf_pins Ethernet/RX_AXIS] [get_bd_intf_pins ethernet_stream_0/RX_AXIS]
   connect_bd_intf_net -intf_net sd_axi_m [get_bd_intf_pins SD/M_AXI] [get_bd_intf_pins io_axi_m/S00_AXI]
-  connect_bd_intf_net -intf_net smartconnect_0_M00_AXI [get_bd_intf_pins axi_uartlite_0/S_AXI] [get_bd_intf_pins io_axi_s/M00_AXI]
-  connect_bd_intf_net -intf_net smartconnect_0_M01_AXI [get_bd_intf_pins SD/S_AXI_LITE] [get_bd_intf_pins io_axi_s/M01_AXI]
-  connect_bd_intf_net -intf_net smartconnect_0_M02_AXI [get_bd_intf_pins Ethernet/S_AXI_LITE] [get_bd_intf_pins io_axi_s/M02_AXI]
+  connect_bd_intf_net -intf_net io_axi_m [get_bd_intf_pins M00_AXI] [get_bd_intf_pins io_axi_m/M00_AXI]
+  connect_bd_intf_net -intf_net io_axi_s [get_bd_intf_pins S00_AXI] [get_bd_intf_pins io_axi_s/S00_AXI]
+  connect_bd_intf_net -intf_net io_axi_s_M00_AXI [get_bd_intf_pins axi_uartlite_0/S_AXI] [get_bd_intf_pins io_axi_s/M00_AXI]
+  connect_bd_intf_net -intf_net io_axi_s_M01_AXI [get_bd_intf_pins SD/S_AXI_LITE] [get_bd_intf_pins io_axi_s/M01_AXI]
+  connect_bd_intf_net -intf_net io_axi_s_M02_AXI [get_bd_intf_pins Ethernet/S_AXI_LITE] [get_bd_intf_pins io_axi_s/M02_AXI]
 
   # Create port connections
   connect_bd_net -net Ethernet_interrupt [get_bd_pins Ethernet/interrupt] [get_bd_pins synchronizer_0/dinp]
-  connect_bd_net -net Ethernet_reset [get_bd_pins Ethernet/reset] [get_bd_pins ethernet_nexys_video_0/reset]
+  connect_bd_net -net Ethernet_reset [get_bd_pins Ethernet/reset] [get_bd_pins ethernet_stream_0/reset]
   connect_bd_net -net Ethernet_mdio_clock [get_bd_pins eth_mdio_clock] [get_bd_pins Ethernet/mdio_clock]
   connect_bd_net -net Ethernet_mdio_data [get_bd_pins eth_mdio_data] [get_bd_pins Ethernet/mdio_data]
   connect_bd_net -net Ethernet_mdio_reset [get_bd_pins eth_mdio_reset] [get_bd_pins Ethernet/mdio_reset]
@@ -539,20 +537,20 @@ proc create_hier_cell_IO { parentCell nameHier } {
   connect_bd_net -net SD_sdio_dat [get_bd_pins sdio_dat] [get_bd_pins SD/sdio_dat]
   connect_bd_net -net SD_sdio_reset [get_bd_pins sdio_reset] [get_bd_pins SD/sdio_reset]
   connect_bd_net -net axi_uartlite_0_interrupt [get_bd_pins axi_uartlite_0/interrupt] [get_bd_pins xlconcat_0/In0]
-  connect_bd_net -net clk_wiz_1_clk_out3 [get_bd_pins clk_wiz_1/clk_out3] [get_bd_pins ethernet_nexys_video_0/clock125_90]
+  connect_bd_net -net clk_wiz_1_clk_out3 [get_bd_pins clk_wiz_1/clk_out3] [get_bd_pins ethernet_stream_0/clock125_90]
   connect_bd_net -net clk_wiz_1_locked [get_bd_pins mmcm_locked] [get_bd_pins clk_wiz_1/locked]
   connect_bd_net -net clk_wiz_clk_out1 [get_bd_pins ACLK] [get_bd_pins axi_uartlite_0/s_axi_aclk] [get_bd_pins io_axi_m/aclk] [get_bd_pins io_axi_s/aclk] [get_bd_pins synchronizer_0/clock] [get_bd_pins synchronizer_1/clock]
-  connect_bd_net -net clock_200MHz [get_bd_pins clock_200MHz] [get_bd_pins clk_wiz_1/clk_in1] [get_bd_pins ethernet_nexys_video_0/clock200]
-  connect_bd_net -net eth_ref_clk [get_bd_pins Ethernet/clock] [get_bd_pins io_axi_s/aclk2] [get_bd_pins clk_wiz_1/clk_out2] [get_bd_pins ethernet_nexys_video_0/clock125] [get_bd_pins io_axi_m/aclk2]
-  connect_bd_net -net ethernet_nexys_video_0_status_vector [get_bd_pins Ethernet/status_vector] [get_bd_pins ethernet_nexys_video_0/status_vector]
+  connect_bd_net -net clock_200MHz [get_bd_pins clock_200MHz] [get_bd_pins clk_wiz_1/clk_in1] [get_bd_pins ethernet_stream_0/clock200]
+  connect_bd_net -net clock_125MHz [get_bd_pins Ethernet/clock] [get_bd_pins io_axi_s/aclk2] [get_bd_pins clk_wiz_1/clk_out2] [get_bd_pins ethernet_stream_0/clock125] [get_bd_pins io_axi_m/aclk2]
+  connect_bd_net -net ethernet_stream_0_status_vector [get_bd_pins Ethernet/status_vector] [get_bd_pins ethernet_stream_0/status_vector]
   connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins clk_wiz_1/reset]
   connect_bd_net -net RocketChip_aresetn [get_bd_pins ARESETN] [get_bd_pins Ethernet/async_resetn] [get_bd_pins SD/async_resetn] [get_bd_pins axi_uartlite_0/s_axi_aresetn] [get_bd_pins io_axi_m/aresetn] [get_bd_pins io_axi_m/M00_ARESETN] [get_bd_pins io_axi_s/aresetn]
-  connect_bd_net -net sd_ref_clk [get_bd_pins SD/clock] [get_bd_pins io_axi_s/aclk1] [get_bd_pins clk_wiz_1/clk_out1] [get_bd_pins io_axi_m/aclk1]
+  connect_bd_net -net clock_100MHz [get_bd_pins SD/clock] [get_bd_pins io_axi_s/aclk1] [get_bd_pins clk_wiz_1/clk_out1] [get_bd_pins io_axi_m/aclk1]
   connect_bd_net -net sdio_cd [get_bd_pins sdio_cd] [get_bd_pins SD/sdio_cd]
   connect_bd_net -net sdio_clk [get_bd_pins sdio_clk] [get_bd_pins SD/sdio_clk]
   connect_bd_net -net synchronizer_0_dout [get_bd_pins synchronizer_0/dout] [get_bd_pins xlconcat_0/In3]
   connect_bd_net -net synchronizer_1_dout [get_bd_pins synchronizer_1/dout] [get_bd_pins xlconcat_0/In1]
-  connect_bd_net -net xlconcat_0_dout [get_bd_pins interrupts] [get_bd_pins xlconcat_0/dout]
+  connect_bd_net -net interrupts [get_bd_pins interrupts] [get_bd_pins xlconcat_0/dout]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -633,7 +631,7 @@ proc create_hier_cell_DDR { parentCell nameHier } {
   set proc_sys_reset_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_0 ]
 
   # Create interface connections
-  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins ddr3_sdram] [get_bd_intf_pins mig_7series_0/DDR3]
+  connect_bd_intf_net -intf_net mig_7series_0_DDR3 [get_bd_intf_pins ddr3_sdram] [get_bd_intf_pins mig_7series_0/DDR3]
   connect_bd_intf_net -intf_net axi_smc_1_M00_AXI [get_bd_intf_pins axi_smc_1/M00_AXI] [get_bd_intf_pins mig_7series_0/S_AXI]
   connect_bd_intf_net -intf_net cpu_0_MEM_AXI4 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins axi_smc_1/S00_AXI]
 
@@ -641,9 +639,11 @@ proc create_hier_cell_DDR { parentCell nameHier } {
   connect_bd_net -net clk_wiz_clk_out1 [get_bd_pins aclk] [get_bd_pins axi_smc_1/aclk]
   connect_bd_net -net clock_200MHz [get_bd_pins clock_200MHz] [get_bd_pins mig_7series_0/sys_clk_i]
   connect_bd_net -net mig_7series_0_init_calib_complete [get_bd_pins init_calib_complete] [get_bd_pins mig_7series_0/init_calib_complete]
+  connect_bd_net -net mig_7series_0_mmcm_locked [get_bd_pins mig_7series_0/mmcm_locked] [get_bd_pins proc_sys_reset_0/dcm_locked]
   connect_bd_net -net mig_7series_0_ui_clk [get_bd_pins axi_smc_1/aclk1] [get_bd_pins mig_7series_0/ui_clk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk]
+  connect_bd_net -net mig_7series_0_ui_clk_sync_rst [get_bd_pins mig_7series_0/ui_clk_sync_rst] [get_bd_pins proc_sys_reset_0/mb_debug_sys_rst]
   connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_pins mig_7series_0/aresetn] [get_bd_pins proc_sys_reset_0/peripheral_aresetn]
-  connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins mig_7series_0/sys_rst] [get_bd_pins proc_sys_reset_0/mb_debug_sys_rst]
+  connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins mig_7series_0/sys_rst]
   connect_bd_net -net RocketChip_aresetn [get_bd_pins aresetn] [get_bd_pins axi_smc_1/aresetn] [get_bd_pins proc_sys_reset_0/aux_reset_in] [get_bd_pins proc_sys_reset_0/ext_reset_in]
 
   # Restore current instance

@@ -122,6 +122,25 @@ ifeq ($(BOARD),nexys-video)
   CFG_DEVICE  ?= SPIx4 -size 256
   MEMORY_SIZE ?= 0x20000000
   ETHER_MAC   ?= 00 0a 35 00 00 01
+  ETHER_PHY   ?= rgmii
+endif
+
+ifeq ($(BOARD),genesys2)
+  ifeq ($(CONFIG_SCALA),Rocket64b8)
+    ROCKET_FREQ ?= 80
+  else ifneq ($(filter Rocket%l2,$(CONFIG_SCALA)),)
+    ROCKET_FREQ ?= 75
+  else ifneq ($(filter Rocket%gem,$(CONFIG_SCALA)),)
+    ROCKET_FREQ ?= 75
+  else
+    ROCKET_FREQ ?= 100
+  endif
+  BOARD_PART  ?= digilentinc.com:genesys2:part0:1.1
+  XILINX_PART ?= xc7k325tffg900-2
+  CFG_DEVICE  ?= SPIx4 -size 256
+  MEMORY_SIZE ?= 0x40000000
+  ETHER_MAC   ?= 00 0a 35 00 00 02
+  ETHER_PHY   ?= rgmii-rxid
 endif
 
 ifeq ($(BOARD),vc707)
@@ -139,6 +158,7 @@ ifeq ($(BOARD),vc707)
   CFG_DEVICE  ?= bpix16 -size 128
   MEMORY_SIZE ?= 0x40000000
   ETHER_MAC   ?= 00 0a 35 00 00 00
+  ETHER_PHY   ?= sgmii
 endif
 
 ifeq ($(findstring rocket64,$(CONFIG)),)
@@ -179,6 +199,7 @@ workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir: workspace/$(CONF
 	sed -i "s#clock-frequency = <[0-9]*>#clock-frequency = <$(ROCKET_FREQ)000000>#g" bootrom/system.dts
 	sed -i "s#timebase-frequency = <[0-9]*>#timebase-frequency = <$(ROCKET_FREQ)0000>#g" bootrom/system.dts
 	sed -i "s#local-mac-address = \[.*\]#local-mac-address = [$(ETHER_MAC)]#g" bootrom/system.dts
+	sed -i "s#phy-mode = \".*\"#phy-mode = \"$(ETHER_PHY)\"#g" bootrom/system.dts
 	make -C bootrom CROSS_COMPILE="$(CROSS_COMPILE_NO_OS_TOOLS)" CFLAGS="$(CROSS_COMPILE_NO_OS_FLAGS)" clean bootrom.img
 	cp bootrom/system.dts workspace/$(CONFIG)/system-$(BOARD).dts
 	cp bootrom/bootrom.img workspace/bootrom.img

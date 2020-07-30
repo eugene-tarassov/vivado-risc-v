@@ -46,10 +46,11 @@ if {[string equal [get_filesets -quiet constrs_1] ""]} {
 
 # Set 'constrs_1' fileset object
 set constraint_fileset [get_filesets constrs_1]
+# Note: top.xdc must be first - other files depend on clocks defined in top.xdc
 set files [list \
+ [file normalize ../../board/${vivado_board_name}/top.xdc] \
  [file normalize ../../board/${vivado_board_name}/sdc.xdc] \
  [file normalize ../../board/${vivado_board_name}/ethernet.xdc] \
- [file normalize ../../board/${vivado_board_name}/top.xdc] \
 ]
 add_files -norecurse -fileset $constraint_fileset $files
 
