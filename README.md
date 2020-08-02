@@ -13,16 +13,21 @@ Also can be used to run bare-metal or RTOS software.
 
 The project is used as a reference design to validate RISC-V support in [Eclipse TCF](https://wiki.eclipse.org/TCF/RISC-V).
 
+Latest Xilinx tools (Ver. 2020.1+) support debugging of RISC-V software over JTAG.
+
 # Prerequisites
 
 ## Hardware
 [Xilinx VC707](https://www.xilinx.com/products/boards-and-kits/ek-v7-vc707-g.html) or
+[Digilent Genesys 2](https://store.digilentinc.com/genesys-2-kintex-7-fpga-development-board/) or
 [Digilent Nexys Video](https://store.digilentinc.com/nexys-video-artix-7-fpga-trainer-board-for-multimedia-applications/) board.
 
 VC707 allows to prototype more powerful system: 2X cores (4 vs 2),
 2X memory (1GB vs 512MB), 2X CPU clock frequency (100MHz vs 50MHz).
 
 Nexys Video is several times less expensive, academic discount is avaialble.
+
+Genesys 2 is as fast as VC707, but has slightly smaller FPGA.
 
 ## Workstation
 [Ubuntu 18 LTS](https://ubuntu.com/download/desktop) machine is recommended.
@@ -33,9 +38,9 @@ sudo access required.
 [Vitis 2019.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2019-2.html) or
 [Vitis 2020.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2020-1.html).
 
-Nexys Video is supported by free version of Vivado. VC707 requires Vivado license.
+Nexys Video is supported by free version of Vivado. VC707 and Genesys 2 requires Vivado license.
 
-If using Nexys Video, install [Vivado Board Files for Digilent FPGA Boards](https://github.com/Digilent/vivado-boards).
+If using Nexys Video or Genesys 2, install [Vivado Board Files for Digilent FPGA Boards](https://github.com/Digilent/vivado-boards).
 
 # Usage
 
@@ -53,7 +58,24 @@ make update-submodules
 source /opt/Xilinx/Vivado/2020.1/settings64.sh
 make CONFIG=rocket64b2 BOARD=nexys-video bitstream
 ```
-For VC707, use BOARD=vc707
+For VC707, use `BOARD=vc707`
+
+For Genesys 2 use `BOARD=genesys2`
+
+Available CONFIG values:
+* 64-bit big RISC-V cores, Linux capable
+  * `rocket64b2` - 2 cores
+  * `rocket64b2l2` - 2 cores with 512KB level 2 cache
+  * `rocket64b2gem` - 2 cores with 512KB level 2 cache and Gemmini accelerator
+  * `rocket64b4l2w` - 2 cores with 512KB level 2 cache and wide 256-bit memory bus
+  * `rocket64b4` - 4 cores
+  * `rocket64b8` - 8 cores
+* 32-bit small RISC-V cores, Linux not supported
+  * `rocket32s1` - 1 core
+  * `rocket32s2` - 2 cores
+  * `rocket32s4` - 4 cores
+  * `rocket32s8` - 8 cores
+  * `rocket32s16` - 16 cores
 
 ## Prepare the SD card
 Use USB SD card reader to connect SD card to the workstation, and run:
@@ -73,9 +95,11 @@ make CONFIG=rocket64b2 BOARD=nexys-video vivado-gui
 - Select Tools - Add Configuration Memory Device
 - Select the following device:
   - Nexys Video: Spansion s25fl256xxxxxx0
+  - Genesys 2: Spansion s25fl256xxxxxx0
   - VC707: Micron mt28gu01gaaxle
 - Add configuration file:
   - Nexys Video: workspace/rocket64b2/nexys-video-riscv.mcs
+  - Genesys 2: workspace/rocket64b2/genesys2-riscv.mcs
   - VC707: workspace/rocket64b2/vc707-riscv.mcs
 - Press Ok. Flashing will take a couple of minutes.
 - Right click on the FPGA device - Boot from Configuration Memory Device (or press the program button on the board)
