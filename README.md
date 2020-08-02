@@ -67,7 +67,7 @@ Available CONFIG values:
   * `rocket64b2` - 2 cores
   * `rocket64b2l2` - 2 cores with 512KB level 2 cache
   * `rocket64b2gem` - 2 cores with 512KB level 2 cache and Gemmini accelerator
-  * `rocket64b4l2w` - 2 cores with 512KB level 2 cache and wide 256-bit memory bus
+  * `rocket64b4l2w` - 4 cores with 512KB level 2 cache and wide 256-bit memory bus
   * `rocket64b4` - 4 cores
   * `rocket64b8` - 8 cores
 * 32-bit small RISC-V cores, Linux not supported
