@@ -19,8 +19,8 @@ Latest Xilinx tools (Ver. 2020.1+) support debugging of RISC-V software over JTA
 
 ## Hardware
 [Xilinx VC707](https://www.xilinx.com/products/boards-and-kits/ek-v7-vc707-g.html) or
-[Digilent Genesys 2](https://store.digilentinc.com/genesys-2-kintex-7-fpga-development-board/) or
-[Digilent Nexys Video](https://store.digilentinc.com/nexys-video-artix-7-fpga-trainer-board-for-multimedia-applications/) board.
+[Digilent Genesys 2](https://reference.digilentinc.com/reference/programmable-logic/genesys-2/start) or
+[Digilent Nexys Video](https://reference.digilentinc.com/reference/programmable-logic/nexys-video/start) board.
 
 VC707 allows to prototype more powerful system: 2X cores (4 vs 2),
 2X memory (1GB vs 512MB), 2X CPU clock frequency (100MHz vs 50MHz).
