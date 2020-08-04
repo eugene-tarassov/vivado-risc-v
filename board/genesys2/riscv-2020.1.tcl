@@ -226,12 +226,12 @@ proc write_mig_file_riscv_mig_7series_0_4 { str_mig_prj_filepath } {
    puts $mig_prj_file {  <dci_cascade>0</dci_cascade>}
    puts $mig_prj_file {  <Controller number="0">}
    puts $mig_prj_file {    <MemoryDevice>DDR3_SDRAM/Components/MT41J256m16XX-107</MemoryDevice>}
-   puts $mig_prj_file {    <TimePeriod>1250</TimePeriod>}
-   puts $mig_prj_file {    <VccAuxIO>1.8V</VccAuxIO>}
+   puts $mig_prj_file {    <TimePeriod>1111</TimePeriod>}
+   puts $mig_prj_file {    <VccAuxIO>2.0V</VccAuxIO>}
    puts $mig_prj_file {    <PHYRatio>4:1</PHYRatio>}
-   puts $mig_prj_file {    <InputClkFreq>200</InputClkFreq>}
+   puts $mig_prj_file {    <InputClkFreq>200.02</InputClkFreq>}
    puts $mig_prj_file {    <UIExtraClocks>0</UIExtraClocks>}
-   puts $mig_prj_file {    <MMCM_VCO>800</MMCM_VCO>}
+   puts $mig_prj_file {    <MMCM_VCO>900</MMCM_VCO>}
    puts $mig_prj_file {    <MMCMClkOut0> 1.000</MMCMClkOut0>}
    puts $mig_prj_file {    <MMCMClkOut1>1</MMCMClkOut1>}
    puts $mig_prj_file {    <MMCMClkOut2>1</MMCMClkOut2>}
@@ -334,7 +334,7 @@ proc write_mig_file_riscv_mig_7series_0_4 { str_mig_prj_filepath } {
    puts $mig_prj_file {    </TimingParameters>}
    puts $mig_prj_file {    <mrBurstLength name="Burst Length">8 - Fixed</mrBurstLength>}
    puts $mig_prj_file {    <mrBurstType name="Read Burst Type and Length">Sequential</mrBurstType>}
-   puts $mig_prj_file {    <mrCasLatency name="CAS Latency">11</mrCasLatency>}
+   puts $mig_prj_file {    <mrCasLatency name="CAS Latency">13</mrCasLatency>}
    puts $mig_prj_file {    <mrMode name="Mode">Normal</mrMode>}
    puts $mig_prj_file {    <mrDllReset name="DLL Reset">No</mrDllReset>}
    puts $mig_prj_file {    <mrPdMode name="DLL control for precharge PD">Slow Exit</mrPdMode>}
@@ -348,7 +348,7 @@ proc write_mig_file_riscv_mig_7series_0_4 { str_mig_prj_filepath } {
    puts $mig_prj_file {    <emrDQS name="TDQS enable">Enabled</emrDQS>}
    puts $mig_prj_file {    <emrRDQS name="Qoff">Output Buffer Enabled</emrRDQS>}
    puts $mig_prj_file {    <mr2PartialArraySelfRefresh name="Partial-Array Self Refresh">Full Array</mr2PartialArraySelfRefresh>}
-   puts $mig_prj_file {    <mr2CasWriteLatency name="CAS write latency">8</mr2CasWriteLatency>}
+   puts $mig_prj_file {    <mr2CasWriteLatency name="CAS write latency">9</mr2CasWriteLatency>}
    puts $mig_prj_file {    <mr2AutoSelfRefresh name="Auto Self Refresh">Enabled</mr2AutoSelfRefresh>}
    puts $mig_prj_file {    <mr2SelfRefreshTempRange name="High Temparature Self Refresh Rate">Normal</mr2SelfRefreshTempRange>}
    puts $mig_prj_file {    <mr2RTTWR name="RTT_WR - Dynamic On Die Termination (ODT)">Dynamic ODT off</mr2RTTWR>}
@@ -484,7 +484,6 @@ proc create_hier_cell_IO { parentCell nameHier } {
     CONFIG.XADC_STARUP_SELECTION {channel_sequencer} \
     CONFIG.VCCINT_ALARM {false} \
     CONFIG.VCCAUX_ALARM {false} \
-    CONFIG.VCCBRAM_ALARM {false} \
  ] $xadc_wiz_0
 
   # Create instance: clk_wiz_1, and set properties
