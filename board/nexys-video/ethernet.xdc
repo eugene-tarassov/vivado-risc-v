@@ -22,7 +22,7 @@ set_property -dict { PACKAGE_PIN Y11   IOSTANDARD LVCMOS25 SLEW FAST DRIVE 16 } 
 
 create_clock -period 8.000 -name rgmii_rx_clk [get_ports rgmii_rxc]
 # Note: max (setup) is measured from prev clock edge, min (hold) - from current clock edge
-# Data valid period, relative to current edge, is max-4.0ns .. min  
+# Data valid period, relative to current edge, is max-4.0ns .. min
 set_input_delay -add_delay -clock rgmii_rx_clk -max  4.60 [get_ports { rgmii_rd* rgmii_rx_ctl }]
 set_input_delay -add_delay -clock rgmii_rx_clk -min  3.40 [get_ports { rgmii_rd* rgmii_rx_ctl }]
 set_input_delay -add_delay -clock rgmii_rx_clk -max  4.60 -clock_fall [get_ports { rgmii_rd* rgmii_rx_ctl }]
@@ -31,26 +31,11 @@ set_input_delay -add_delay -clock rgmii_rx_clk -min  3.40 -clock_fall [get_ports
 #report_timing -rise_from [get_ports {rgmii_rd* rgmii_rx_ctl}] -delay_type min_max -max_paths 100 -name rgmii_rx_rise  -file rgmii_rx_rise.txt
 #report_timing -fall_from [get_ports {rgmii_rd* rgmii_rx_ctl}] -delay_type min_max -max_paths 100 -name rgmii_rx_fall  -file rgmii_rx_fall.txt
 
-set_clock_groups -asynchronous \
-  -group [get_clocks -of_objects [get_ports rgmii_rxc]] \
-  -group [get_clocks -of_objects [get_pins -hier clk_wiz_1/clk_out2]] \
-  -group [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out1]]
+set main_clock [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out1]]
+set eth_main_clock [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out4]]
 
-set_max_delay \
-  -from [get_clocks -of_objects [get_ports rgmii_rxc]] \
-  -to   [get_clocks -of_objects [get_pins -hier clk_wiz_1/clk_out2]] \
-  -datapath_only 10.0
+set_max_delay -from $eth_main_clock -to rgmii_rx_clk -datapath_only 7.0
+set_max_delay -from rgmii_rx_clk -to $eth_main_clock -datapath_only 7.0
 
-set_max_delay \
-  -from [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out1]] \
-  -to   [get_clocks -of_objects [get_pins -hier clk_wiz_1/clk_out2]] \
-  -datapath_only 10.0
-
-set_max_delay \
-  -from [get_clocks -of_objects [get_pins -hier clk_wiz_1/clk_out2]] \
-  -to   [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out1]] \
-  -datapath_only 10.0
-
-set_false_path -through [get_pins -hier Ethernet/async_resetn]
-set_false_path -through [get_pins -hier Ethernet/interrupt]
-
+set_max_delay -from $main_clock -through [get_pins -hier Ethernet/async_resetn] -datapath_only 10.0
+set_max_delay -from $eth_main_clock -through [get_pins -hier Ethernet/interrupt] -datapath_only 10.0

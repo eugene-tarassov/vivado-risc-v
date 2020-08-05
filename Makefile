@@ -1,7 +1,7 @@
 apt-install:
 	sudo apt update
 	sudo apt upgrade
-	sudo apt install default-jdk device-tree-compiler python curl \
+	sudo apt install default-jdk device-tree-compiler python curl gawk \
 	 libmpc-dev gcc gcc-riscv64-linux-gnu gcc-8-riscv64-linux-gnu flex bison
 
 # skip submodules which are not needed and take long time to update
@@ -108,14 +108,17 @@ BOARD ?= nexys-video
 CONFIG ?= rocket64b2
 CONFIG_SCALA := $(subst rocket,Rocket,$(CONFIG))
 
+# valid ROCKET_FREQ values: 125 100 80 62.5 50 40 31.25
+# less then 30 MHz - too low for UART 
 ifeq ($(BOARD),nexys-video)
-  # min ROCKET_FREQ is 30 MHz - required by UART
   ifneq ($(filter Rocket%l2,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 40
+    ROCKET_FREQ ?= 40.0
+  else ifneq ($(filter Rocket%l2w,$(CONFIG_SCALA)),)
+    ROCKET_FREQ ?= 40.0
   else ifneq ($(filter Rocket%gem,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 30
+    ROCKET_FREQ ?= 31.25
   else
-    ROCKET_FREQ ?= 50
+    ROCKET_FREQ ?= 50.0
   endif
   BOARD_PART  ?= digilentinc.com:nexys_video:part0:1.1
   XILINX_PART ?= xc7a200tsbg484-1
@@ -127,13 +130,15 @@ endif
 
 ifeq ($(BOARD),genesys2)
   ifeq ($(CONFIG_SCALA),Rocket64b8)
-    ROCKET_FREQ ?= 80
+    ROCKET_FREQ ?= 80.0
   else ifneq ($(filter Rocket%l2,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 75
+    ROCKET_FREQ ?= 80.0
+  else ifneq ($(filter Rocket%l2w,$(CONFIG_SCALA)),)
+    ROCKET_FREQ ?= 80.0
   else ifneq ($(filter Rocket%gem,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 75
+    ROCKET_FREQ ?= 62.5
   else
-    ROCKET_FREQ ?= 100
+    ROCKET_FREQ ?= 100.0
   endif
   BOARD_PART  ?= digilentinc.com:genesys2:part0:1.1
   XILINX_PART ?= xc7k325tffg900-2
@@ -145,13 +150,15 @@ endif
 
 ifeq ($(BOARD),vc707)
   ifeq ($(CONFIG_SCALA),Rocket64b8)
-    ROCKET_FREQ ?= 80
+    ROCKET_FREQ ?= 80.0
   else ifneq ($(filter Rocket%l2,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 75
+    ROCKET_FREQ ?= 80.0
+  else ifneq ($(filter Rocket%l2w,$(CONFIG_SCALA)),)
+    ROCKET_FREQ ?= 80.0
   else ifneq ($(filter Rocket%gem,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 75
+    ROCKET_FREQ ?= 62.5
   else
-    ROCKET_FREQ ?= 100
+    ROCKET_FREQ ?= 100.0
   endif
   BOARD_PART  ?= xilinx.com:vc707:part0:1.4
   XILINX_PART ?= xc7vx485tffg1761-2
@@ -160,6 +167,8 @@ ifeq ($(BOARD),vc707)
   ETHER_MAC   ?= 00 0a 35 00 00 00
   ETHER_PHY   ?= sgmii
 endif
+
+ROCKET_FREQ_KHZ := $(shell echo - | awk '{print '$(ROCKET_FREQ)' * 1000}')
 
 ifeq ($(findstring rocket64,$(CONFIG)),)
   CROSS_COMPILE_NO_OS_TOOLS = $(realpath workspace/gcc/riscv/bin)/riscv32-unknown-elf-
@@ -196,8 +205,8 @@ workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir: workspace/$(CONF
 	mkdir -p workspace/$(CONFIG)/system-$(BOARD)
 	cat workspace/$(CONFIG)/system.dts bootrom/bootrom.dts >bootrom/system.dts
 	sed -i "s#reg = <0x80000000 0x.*>#reg = <0x80000000 $(MEMORY_SIZE)>#g" bootrom/system.dts
-	sed -i "s#clock-frequency = <[0-9]*>#clock-frequency = <$(ROCKET_FREQ)000000>#g" bootrom/system.dts
-	sed -i "s#timebase-frequency = <[0-9]*>#timebase-frequency = <$(ROCKET_FREQ)0000>#g" bootrom/system.dts
+	sed -i "s#clock-frequency = <[0-9]*>#clock-frequency = <$(ROCKET_FREQ_KHZ)000>#g" bootrom/system.dts
+	sed -i "s#timebase-frequency = <[0-9]*>#timebase-frequency = <$(ROCKET_FREQ_KHZ)0>#g" bootrom/system.dts
 	sed -i "s#local-mac-address = \[.*\]#local-mac-address = [$(ETHER_MAC)]#g" bootrom/system.dts
 	sed -i "s#phy-mode = \".*\"#phy-mode = \"$(ETHER_PHY)\"#g" bootrom/system.dts
 	make -C bootrom CROSS_COMPILE="$(CROSS_COMPILE_NO_OS_TOOLS)" CFLAGS="$(CROSS_COMPILE_NO_OS_FLAGS)" clean bootrom.img
@@ -251,7 +260,7 @@ workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl workspa
 	echo "set vivado_board_name $(BOARD)" >$@
 	echo "set vivado_board_part $(BOARD_PART)" >>$@
 	echo "set xilinx_part $(XILINX_PART)" >>$@
-	echo "set riscv_clock_frequency $(ROCKET_FREQ).0" >>$@
+	echo "set riscv_clock_frequency $(ROCKET_FREQ)" >>$@
 	echo 'set script_folder [file dirname [file normalize [info script]]]' >>$@
 	echo 'cd $$script_folder' >>$@
 	echo 'source ../../vivado.tcl' >>$@

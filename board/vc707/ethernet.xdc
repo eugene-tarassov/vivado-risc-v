@@ -15,17 +15,9 @@ set_property -dict { PACKAGE_PIN AL31 IOSTANDARD LVCMOS18 } [get_ports eth_mdio_
 set eth_tx_clock [get_clocks -of_objects [get_pins -hier gtxe2_i/TXOUTCLK]]
 set eth_rx_clock [get_clocks -of_objects [get_pins -hier gtxe2_i/RXOUTCLK]]
 set eth_userclk2 [get_clocks -of_objects [get_pins -hier bufg_userclk2/O]]
+
 set main_clock [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out1]]
+set eth_main_clock [get_clocks -of_objects [get_pins -hier Ethernet/clock]]
 
-set_clock_groups -asynchronous -group ${eth_tx_clock} -group ${eth_rx_clock} -group ${eth_userclk2} -group ${main_clock}
-
-set_max_delay -from ${main_clock} -to ${eth_tx_clock} -datapath_only 6.0
-set_max_delay -from ${main_clock} -to ${eth_rx_clock} -datapath_only 6.0
-set_max_delay -from ${main_clock} -to ${eth_userclk2} -datapath_only 6.0
-set_max_delay -from ${eth_tx_clock} -to ${main_clock} -datapath_only 6.0
-set_max_delay -from ${eth_rx_clock} -to ${main_clock} -datapath_only 6.0
-set_max_delay -from ${eth_userclk2} -to ${main_clock} -datapath_only 6.0
-set_max_delay -from ${eth_rx_clock} -to ${eth_tx_clock} -datapath_only 6.0
-
-set_false_path -through [get_pins -hier Ethernet/async_resetn]
-set_false_path -through [get_pins -hier Ethernet/interrupt]
+set_max_delay -from $main_clock -through [get_pins -hier Ethernet/async_resetn] -datapath_only 10.0
+set_max_delay -from $eth_main_clock -through [get_pins -hier Ethernet/interrupt] -datapath_only 10.0
