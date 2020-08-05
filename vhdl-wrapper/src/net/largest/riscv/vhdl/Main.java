@@ -417,7 +417,7 @@ public class Main {
             }
         }
         ln("");
-        ln("    signal reset_cnt : unsigned(3 downto 0) := \"0000\";");
+        ln("    signal reset_cnt : unsigned(4 downto 0) := \"00000\";");
         ln("    signal reset_inp : std_logic;");
         ln("    signal reset_sync: std_logic;");
     }
@@ -437,17 +437,23 @@ public class Main {
         ln("        if clock'event and clock = '1' then");
         ln("            if reset_sync = '1' then");
         ln("                reset_cnt <= (others => '0');");
+        ln("                aresetn <= '0';");
         ln("                reset <= '1';");
-        ln("            elsif reset_cnt < \"1111\" then");
+        ln("            elsif reset_cnt < \"01111\" then");
         ln("                reset_cnt <= reset_cnt + 1;");
+        ln("                aresetn <= '0';");
+        ln("                reset <= '1';");
+        ln("            elsif reset_cnt < \"11111\" then");
+        ln("                reset_cnt <= reset_cnt + 1;");
+        ln("                aresetn <= '1';");
         ln("                reset <= '1';");
         ln("            else");
+        ln("                aresetn <= '1';");
         ln("                reset <= '0';");
         ln("            end if;");
         ln("        end if;");
         ln("    end process;");
         ln("");
-        ln("    aresetn <= not reset;");
         ln("    riscv_reset <= reset or debug_reset;");
     }
 
