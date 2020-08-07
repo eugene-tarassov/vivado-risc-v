@@ -682,8 +682,8 @@ proc create_hier_cell_DDR { parentCell nameHier } {
   connect_bd_net -net mig_7series_0_init_calib_complete [get_bd_pins init_calib_complete] [get_bd_pins mig_7series_0/init_calib_complete]
   connect_bd_net -net mig_7series_0_ui_clk [get_bd_pins axi_smc_1/aclk1] [get_bd_pins mig_7series_0/ui_clk] [get_bd_pins synchronizer_2/clock]
   connect_bd_net -net mig_7series_0_aresetn [get_bd_pins mig_7series_0/aresetn] [get_bd_pins synchronizer_2/dout]
-  connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins mig_7series_0/sys_rst]
   connect_bd_net -net device_temp [get_bd_pins mig_7series_0/device_temp_i] [get_bd_pins device_temp]
+  connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins mig_7series_0/sys_rst]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -828,7 +828,7 @@ proc create_root_design { parentCell } {
   connect_bd_net -net clock_125MHz [get_bd_pins IO/clock_125MHz] [get_bd_pins clk_wiz_0/clk_out4]
   connect_bd_net -net clock_125MHz90 [get_bd_pins IO/clock_125MHz90] [get_bd_pins clk_wiz_0/clk_out5]
   connect_bd_net -net clock_200MHz [get_bd_pins DDR/clock_200MHz] [get_bd_pins IO/clock_200MHz] [get_bd_pins clk_wiz_0/clk_out2]
-  connect_bd_net -net reset_h [get_bd_pins DDR/sys_reset] [get_bd_pins IO/sys_reset] [get_bd_pins RocketChip/sys_reset] [get_bd_pins clk_wiz_0/reset] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net reset_h [get_bd_pins DDR/sys_reset] [get_bd_pins RocketChip/sys_reset] [get_bd_pins clk_wiz_0/reset] [get_bd_pins util_vector_logic_0/Res]
   connect_bd_net -net reset_l [get_bd_ports reset] [get_bd_pins util_vector_logic_0/Op1]
   connect_bd_net -net sys_clock [get_bd_pins clk_wiz_0/clk_in1] [get_bd_pins util_ds_buf_0/IBUF_OUT]
   connect_bd_net -net device_temp [get_bd_pins DDR/device_temp] [get_bd_pins IO/device_temp]

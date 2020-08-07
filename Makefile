@@ -109,7 +109,7 @@ CONFIG ?= rocket64b2
 CONFIG_SCALA := $(subst rocket,Rocket,$(CONFIG))
 
 # valid ROCKET_FREQ values: 125 100 80 62.5 50 40 31.25
-# less then 30 MHz - too low for UART 
+# less than 30 MHz - too low for UART 
 ifeq ($(BOARD),nexys-video)
   ifneq ($(filter Rocket%l2,$(CONFIG_SCALA)),)
     ROCKET_FREQ ?= 40.0
@@ -134,7 +134,7 @@ ifeq ($(BOARD),genesys2)
   else ifneq ($(filter Rocket%l2,$(CONFIG_SCALA)),)
     ROCKET_FREQ ?= 80.0
   else ifneq ($(filter Rocket%l2w,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 80.0
+    ROCKET_FREQ ?= 62.5
   else ifneq ($(filter Rocket%gem,$(CONFIG_SCALA)),)
     ROCKET_FREQ ?= 62.5
   else

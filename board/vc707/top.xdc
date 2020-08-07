@@ -13,6 +13,10 @@ set_property -dict { PACKAGE_PIN E18 IOSTANDARD LVDS } [get_ports sys_diff_clock
 set_property CLOCK_DEDICATED_ROUTE BACKBONE [get_nets -of_objects [get_pins -hier clk_wiz_0/clk_in1]]
 create_clock -period 5.000 -name sys_clock_bufds [get_pins -hier clk_wiz_0/clk_in1]
 
+# Cooling fan
+set_property -dict { PACKAGE_PIN BA37 IOSTANDARD LVCMOS18 } [get_ports fan_en]
+#set_property -dict { PACKAGE_PIN BB37 IOSTANDARD LVCMOS18 } [get_ports fan_tach]
+
 create_clock -period 10.000 [get_pins -hier jtag/TCK]
 
 set jtag_clock [get_clocks -of_objects [get_pins -hier jtag/TCK]]
