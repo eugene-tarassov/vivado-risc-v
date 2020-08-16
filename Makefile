@@ -108,18 +108,7 @@ BOARD ?= nexys-video
 CONFIG ?= rocket64b2
 CONFIG_SCALA := $(subst rocket,Rocket,$(CONFIG))
 
-# valid ROCKET_FREQ values: 125 100 80 62.5 50 40 31.25
-# less than 30 MHz - too low for UART 
 ifeq ($(BOARD),nexys-video)
-  ifneq ($(filter Rocket%l2,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 40.0
-  else ifneq ($(filter Rocket%l2w,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 40.0
-  else ifneq ($(filter Rocket%gem,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 31.25
-  else
-    ROCKET_FREQ ?= 50.0
-  endif
   BOARD_PART  ?= digilentinc.com:nexys_video:part0:1.1
   XILINX_PART ?= xc7a200tsbg484-1
   CFG_DEVICE  ?= SPIx4 -size 256
@@ -129,17 +118,6 @@ ifeq ($(BOARD),nexys-video)
 endif
 
 ifeq ($(BOARD),genesys2)
-  ifeq ($(CONFIG_SCALA),Rocket64b8)
-    ROCKET_FREQ ?= 80.0
-  else ifneq ($(filter Rocket%l2,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 80.0
-  else ifneq ($(filter Rocket%l2w,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 62.5
-  else ifneq ($(filter Rocket%gem,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 62.5
-  else
-    ROCKET_FREQ ?= 100.0
-  endif
   BOARD_PART  ?= digilentinc.com:genesys2:part0:1.1
   XILINX_PART ?= xc7k325tffg900-2
   CFG_DEVICE  ?= SPIx4 -size 256
@@ -149,17 +127,6 @@ ifeq ($(BOARD),genesys2)
 endif
 
 ifeq ($(BOARD),vc707)
-  ifeq ($(CONFIG_SCALA),Rocket64b8)
-    ROCKET_FREQ ?= 80.0
-  else ifneq ($(filter Rocket%l2,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 80.0
-  else ifneq ($(filter Rocket%l2w,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 80.0
-  else ifneq ($(filter Rocket%gem,$(CONFIG_SCALA)),)
-    ROCKET_FREQ ?= 62.5
-  else
-    ROCKET_FREQ ?= 100.0
-  endif
   BOARD_PART  ?= xilinx.com:vc707:part0:1.4
   XILINX_PART ?= xc7vx485tffg1761-2
   CFG_DEVICE  ?= bpix16 -size 128
@@ -168,6 +135,9 @@ ifeq ($(BOARD),vc707)
   ETHER_PHY   ?= sgmii
 endif
 
+# valid ROCKET_FREQ values (MHz): 125 100 80 62.5 50 40 31.25
+# less than 30 MHz - too low for UART 
+ROCKET_FREQ ?= $(shell awk '$$3 != "" && "'$(BOARD)'" ~ $$1 && "'$(CONFIG_SCALA)'" ~ $$2 { print $$3; exit }' board/rocket-freq)
 ROCKET_FREQ_KHZ := $(shell echo - | awk '{print '$(ROCKET_FREQ)' * 1000}')
 
 ifeq ($(findstring rocket64,$(CONFIG)),)
@@ -178,13 +148,21 @@ else
   CROSS_COMPILE_NO_OS_FLAGS = -march=rv64im -mabi=lp64
 endif
 
-SBT := java -Xmx2G -Xss8M -jar $(realpath rocket-chip/sbt-launch.jar)
+SBT := java -Xmx4G -Xss8M -jar $(realpath rocket-chip/sbt-launch.jar)
 CHISEL_SRC := $(foreach path, src/main rocket-chip/src/main riscv-boom/src/main, $(shell test -d $(path) && find $(path) -iname "*.scala"))
-ROCKET_CLASSES = "target/scala-2.12/classes:rocket-chip/target/scala-2.12/classes:rocket-chip/chisel3/target/scala-2.12/*"
+
+ROCKET_CLASSES = \
+  target/scala-2.12/classes \
+  rocket-chip/target/scala-2.12/classes \
+  rocket-chip/chisel3/target/scala-2.12/classes \
+  rocket-chip/chisel3/core/target/scala-2.12/classes \
+  rocket-chip/chisel3/macros/target/scala-2.12/classes
+
+SPACE := $(subst ,, )
 
 FIRRTL_SRC := $(shell test -d rocket-chip/firrtl/src/main && find rocket-chip/firrtl/src/main -iname "*.scala")
 FIRRTL_JAR = rocket-chip/firrtl/utils/bin/firrtl.jar
-FIRRTL = java -Xmx4G -Xss8M -cp "$(FIRRTL_JAR)":"$(ROCKET_CLASSES)" firrtl.stage.FirrtlMain
+FIRRTL = java -Xmx12G -Xss8M -cp $(FIRRTL_JAR):$(subst $(SPACE),:,$(strip $(ROCKET_CLASSES))) firrtl.stage.FirrtlMain
 
 $(FIRRTL_JAR): $(FIRRTL_SRC)
 	make -C rocket-chip/firrtl SBT="$(SBT)" root_dir=$(realpath rocket-chip/firrtl) build-scala
@@ -195,7 +173,7 @@ workspace/$(CONFIG)/system.dts: $(FIRRTL_JAR) $(CHISEL_SRC) rocket-chip/bootrom/
 	cd rocket-chip && git reset --hard && patch -p1 <../patches/rocket-chip.patch
 	mkdir -p workspace/$(CONFIG)/tmp
 	cp rocket-chip/bootrom/bootrom.img workspace/bootrom.img
-	$(SBT) "runMain freechips.rocketchip.system.Generator workspace/$(CONFIG)/tmp Vivado RocketSystem Vivado $(CONFIG_SCALA)"
+	$(SBT) "runMain freechips.rocketchip.system.Generator -td workspace/$(CONFIG)/tmp -T Vivado.RocketSystem -C Vivado.$(CONFIG_SCALA)"
 	mv workspace/$(CONFIG)/tmp/Vivado.$(CONFIG_SCALA).anno.json workspace/$(CONFIG)/system.anno.json
 	mv workspace/$(CONFIG)/tmp/Vivado.$(CONFIG_SCALA).dts workspace/$(CONFIG)/system.dts
 	rm -rf workspace/$(CONFIG)/tmp
@@ -212,7 +190,7 @@ workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir: workspace/$(CONF
 	make -C bootrom CROSS_COMPILE="$(CROSS_COMPILE_NO_OS_TOOLS)" CFLAGS="$(CROSS_COMPILE_NO_OS_FLAGS)" clean bootrom.img
 	cp bootrom/system.dts workspace/$(CONFIG)/system-$(BOARD).dts
 	cp bootrom/bootrom.img workspace/bootrom.img
-	$(SBT) "runMain freechips.rocketchip.system.Generator workspace/$(CONFIG)/system-$(BOARD) Vivado RocketSystem Vivado $(CONFIG_SCALA)"
+	$(SBT) "runMain freechips.rocketchip.system.Generator -td workspace/$(CONFIG)/system-$(BOARD) -T Vivado.RocketSystem -C Vivado.$(CONFIG_SCALA)"
 
 # Generate Rocket SoC HDL
 workspace/$(CONFIG)/system-$(BOARD).v: workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir

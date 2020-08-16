@@ -1,0 +1,20 @@
+vc707         Rocket.*b8        80.0
+vc707         Rocket.*l2        80.0
+vc707         Rocket.*l2w       80.0
+vc707         Rocket.*gem       62.5
+vc707         Rocket64[xyz].*   50.0
+vc707         Rocket.*          100.0
+
+genesys2      Rocket.*b8        80.0
+genesys2      Rocket.*l2        80.0
+genesys2      Rocket.*l2w       62.5
+genesys2      Rocket.*gem       62.5
+genesys2      Rocket64[xyz].*   50.0
+genesys2      Rocket.*          100.0
+
+.*            Rocket.*l2        40.0
+.*            Rocket.*l2w       40.0
+.*            Rocket.*gem       31.25
+.*            Rocket.*          50.0
+
+.*            .*                31.25

@@ -8,7 +8,7 @@ lazy val commonSettings = Seq(
   scalacOptions ++= Seq("-deprecation","-unchecked","-Xsource:2.11"))
 
 lazy val vivado = (project in file("."))
-  //.dependsOn(boom)
+  .dependsOn(boom)
   .dependsOn(rocketchip)
   .dependsOn(sifive_cache)
   .dependsOn(gemmini)
@@ -19,7 +19,7 @@ lazy val rocketchip = (project in file("rocket-chip"))
 
 lazy val testchipip = (project in file("generators/testchipip"))
   .dependsOn(rocketchip)
-  .settings(commonSettings)
+  .settings(commonSettings, excludeFilter in unmanagedSources ~= { _ || "Dromajo.scala" || "SPIFlash.scala" || "UARTAdapter.scala" })
 
 lazy val boom = (project in file("generators/riscv-boom"))
   .dependsOn(rocketchip)

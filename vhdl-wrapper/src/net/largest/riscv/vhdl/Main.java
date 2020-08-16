@@ -417,6 +417,8 @@ public class Main {
             }
         }
         ln("");
+        ln("    signal debug_dmactive : std_logic;");
+        ln("");
         ln("    signal reset_cnt : unsigned(4 downto 0) := \"00000\";");
         ln("    signal reset_inp : std_logic;");
         ln("    signal reset_sync: std_logic;");
@@ -492,6 +494,7 @@ public class Main {
             BusSignal sig = sig_map.get(nm);
             if (sig != null) dst = sig.signal_name;
             else if (nm.equals("reset")) dst = "riscv_reset";
+            else if (nm.equals("debug_clock")) dst = "clock";
             else if (nm.equals("debug_clockeddmi_dmiClock")) dst = "clock";
             else if (nm.equals("debug_clockeddmi_dmiReset")) dst = "reset";
             else if (nm.equals("debug_systemjtag_reset")) dst = "'0'";
@@ -500,7 +503,9 @@ public class Main {
             else if (nm.equals("debug_systemjtag_version")) dst = "\"0000\"";
             else if (nm.equals("debug_systemjtag_jtag_TDO_driven")) dst = "enable_tdo";
             else if (nm.equals("debug_ndreset")) dst = "debug_reset";
-            else if (nm.equals("debug_dmactive")) continue;
+            else if (nm.equals("debug_dmactive")) dst = "debug_dmactive";
+            else if (nm.equals("debug_dmactiveAck")) dst = "debug_dmactive";
+            else if (nm.startsWith("resetctrl_hartIsInReset")) dst = "'0'";
             else dst = nm;
             if (s != null) ln(s + ',');
             while (nm.length() < id_len) nm += ' ';

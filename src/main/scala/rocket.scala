@@ -1,8 +1,7 @@
 package Vivado
 
 import Chisel._
-import freechips.rocketchip.config.Config
-import freechips.rocketchip.config.Parameters
+import freechips.rocketchip.config.{Field, Config, Parameters}
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.subsystem._
 import freechips.rocketchip.devices.tilelink._
@@ -11,27 +10,19 @@ import freechips.rocketchip.util.DontTouch
 import freechips.rocketchip.system._
 
 class RocketSystem(implicit p: Parameters) extends RocketSubsystem
-    with HasHierarchicalBusTopology
     with HasAsyncExtInterrupts
     with CanHaveMasterAXI4MemPort
     with CanHaveMasterAXI4MMIOPort
     with CanHaveSlaveAXI4Port
-    with HasPeripheryBootROM
 {
+  val bootROM  = p(BootROMLocated(location)).map { BootROM.attach(_, this, CBUS) }
   override lazy val module = new RocketSystemModuleImp(this)
 }
 
 class RocketSystemModuleImp[+L <: RocketSystem](_outer: L) extends RocketSubsystemModuleImp(_outer)
     with HasRTCModuleImp
     with HasExtInterruptsModuleImp
-    with HasPeripheryBootROMModuleImp
     with DontTouch
-
-class WithBootROM(FileName: String) extends Config (
-  (site, here, up) => {
-    case BootROMParams => BootROMParams(contentFileName = FileName)
-  }
-)
 
 class WithGemmini(mesh_size: Int, bus_bits: Int) extends Config((site, here, up) => {
   case BuildRoCC => up(BuildRoCC) ++ Seq(
@@ -51,21 +42,25 @@ class WithGemmini(mesh_size: Int, bus_bits: Int) extends Config((site, here, up)
  * It also sets right core clock frequency.
  */
 class RocketBaseConfig extends Config(
-  new WithBootROM("workspace/bootrom.img") ++
+  new WithBootROMFile("workspace/bootrom.img") ++
   new WithExtMemSize(0x40000000) ++
   new WithNExtTopInterrupts(8) ++
   new WithDTS("freechips,rocketchip-vivado", Nil) ++
   new WithDebugSBA ++
   new WithEdgeDataBits(64) ++
+  new WithCoherentBusTopology ++
+  new WithoutTLMonitors ++
   new BaseConfig)
 
 class RocketWideBusConfig extends Config(
-  new WithBootROM("workspace/bootrom.img") ++
+  new WithBootROMFile("workspace/bootrom.img") ++
   new WithExtMemSize(0x40000000) ++
   new WithNExtTopInterrupts(8) ++
   new WithDTS("freechips,rocketchip-vivado", Nil) ++
   new WithDebugSBA ++
   new WithEdgeDataBits(256) ++
+  new WithCoherentBusTopology ++
+  new WithoutTLMonitors ++
   new BaseConfig)
 
 /* Note: Linux not supported yet on 32-bit cores */
@@ -149,7 +144,7 @@ class Rocket64b4 extends Config(
 
 /* With level 2 cache and wide memory bus */
 class Rocket64b4l2w extends Config(
-  new WithInclusiveCache ++
+  new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
   new WithNBigCores(4)    ++
   new RocketWideBusConfig)
@@ -159,10 +154,26 @@ class Rocket64b8 extends Config(
   new WithNBigCores(8)    ++
   new RocketBaseConfig)
 
-/* Cannot get BOOM to work
-class Rocket64x2 extends Config(
+class Rocket64x1 extends Config(
+  new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
-  new boom.common.WithMediumBooms ++
-  new boom.common.WithNBoomCores(2) ++
-  new RocketBaseConfig)
-*/
+  new boom.common.WithNMediumBooms(1) ++
+  new RocketWideBusConfig)
+
+class Rocket64x2 extends Config(
+  new WithInclusiveCache  ++
+  new WithNBreakpoints(8) ++
+  new boom.common.WithNMediumBooms(2) ++
+  new RocketWideBusConfig)
+
+class Rocket64y1 extends Config(
+  new WithInclusiveCache  ++
+  new WithNBreakpoints(8) ++
+  new boom.common.WithNLargeBooms(1) ++
+  new RocketWideBusConfig)
+
+class Rocket64z1 extends Config(
+  new WithInclusiveCache  ++
+  new WithNBreakpoints(8) ++
+  new boom.common.WithNMegaBooms(1) ++
+  new RocketWideBusConfig)

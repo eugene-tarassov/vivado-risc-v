@@ -1,8 +1,34 @@
+diff --git a/src/main/scala/devices/debug/DMI.scala b/src/main/scala/devices/debug/DMI.scala
+index 9e89824b9..0b39531ee 100644
+--- a/src/main/scala/devices/debug/DMI.scala
++++ b/src/main/scala/devices/debug/DMI.scala
+@@ -71,7 +71,7 @@ class DMIIO(implicit val p: Parameters) extends ParameterizedBundle()(p) {
+ class ClockedDMIIO(implicit val p: Parameters) extends ParameterizedBundle()(p){
+   val dmi      = new DMIIO()(p)
+   val dmiClock = Output(Clock())
+-  val dmiReset = Output(Reset())
++  val dmiReset = Output(Bool())
+ }
+ 
+ /** Convert DMI to TL. Avoids using special DMI synchronizers and register accesses
+diff --git a/src/main/scala/devices/debug/Periphery.scala b/src/main/scala/devices/debug/Periphery.scala
+index b66b9784f..13e29fe22 100644
+--- a/src/main/scala/devices/debug/Periphery.scala
++++ b/src/main/scala/devices/debug/Periphery.scala
+@@ -46,7 +46,7 @@ class ClockedAPBBundle(params: APBBundleParameters) extends APBBundle(params) {
+ 
+ class DebugIO(implicit val p: Parameters) extends Bundle {
+   val clock = Input(Clock())
+-  val reset = Input(Reset())
++  val reset = Input(Bool())
+   val clockeddmi = p(ExportDebug).dmi.option(Flipped(new ClockedDMIIO()))
+   val systemjtag = p(ExportDebug).jtag.option(new SystemJTAGIO)
+   val apb = p(ExportDebug).apb.option(Flipped(new ClockedAPBBundle(APBBundleParameters(addrBits=12, dataBits=32))))
 diff --git a/src/main/scala/devices/tilelink/Plic.scala b/src/main/scala/devices/tilelink/Plic.scala
-index a53cd2148..5a905e92f 100644
+index bacb7b505..9d849233f 100644
 --- a/src/main/scala/devices/tilelink/Plic.scala
 +++ b/src/main/scala/devices/tilelink/Plic.scala
-@@ -29,10 +29,12 @@ class LevelGateway extends Module {
+@@ -30,10 +30,12 @@ class LevelGateway extends Module {
      val plic = new GatewayPLICIO
    }
  
