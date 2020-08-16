@@ -63,14 +63,17 @@ For VC707, use `BOARD=vc707`
 For Genesys 2 use `BOARD=genesys2`
 
 Available CONFIG values:
-* 64-bit big RISC-V cores, Linux capable
+* 64-bit big RISC-V cores, Linux capable:
   * `rocket64b2` - 2 cores
   * `rocket64b2l2` - 2 cores with 512KB level 2 cache
   * `rocket64b2gem` - 2 cores with 512KB level 2 cache and Gemmini accelerator
   * `rocket64b4l2w` - 4 cores with 512KB level 2 cache and wide 256-bit memory bus
   * `rocket64b4` - 4 cores
   * `rocket64b8` - 8 cores
-* 32-bit small RISC-V cores, Linux not supported
+  * `rocket64x1` - 2-wide superscalar Medium BOOM, 1 core
+  * `rocket64y1` - 3-wide superscalar Large BOOM, 1 core
+  * `rocket64z1` - 4-wide superscalar Mega BOOM, 1 core, added for completeness - too big for supported boards
+* 32-bit small RISC-V cores, Linux not supported:
   * `rocket32s1` - 1 core
   * `rocket32s2` - 2 cores
   * `rocket32s4` - 4 cores
