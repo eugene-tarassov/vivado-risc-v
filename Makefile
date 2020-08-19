@@ -137,8 +137,8 @@ endif
 
 # valid ROCKET_FREQ values (MHz): 125 100 80 62.5 50 40 31.25
 # less than 30 MHz - too low for UART 
-ROCKET_FREQ ?= $(shell awk '$$3 != "" && "'$(BOARD)'" ~ $$1 && "'$(CONFIG_SCALA)'" ~ $$2 { print $$3; exit }' board/rocket-freq)
-ROCKET_FREQ_KHZ := $(shell echo - | awk '{print '$(ROCKET_FREQ)' * 1000}')
+ROCKET_FREQ ?= $(shell awk '$$3 != "" && "$(BOARD)" ~ $$1 && "$(CONFIG_SCALA)" ~ ("^" $$2 "$$") {print $$3; exit}' board/rocket-freq)
+ROCKET_FREQ_KHZ := $(shell echo - | awk '{print $(ROCKET_FREQ) * 1000}')
 
 ifeq ($(findstring rocket64,$(CONFIG)),)
   CROSS_COMPILE_NO_OS_TOOLS = $(realpath workspace/gcc/riscv/bin)/riscv32-unknown-elf-
