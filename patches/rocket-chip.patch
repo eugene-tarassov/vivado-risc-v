@@ -24,22 +24,3 @@ index b66b9784f..13e29fe22 100644
    val clockeddmi = p(ExportDebug).dmi.option(Flipped(new ClockedDMIIO()))
    val systemjtag = p(ExportDebug).jtag.option(new SystemJTAGIO)
    val apb = p(ExportDebug).apb.option(Flipped(new ClockedAPBBundle(APBBundleParameters(addrBits=12, dataBits=32))))
-diff --git a/src/main/scala/devices/tilelink/Plic.scala b/src/main/scala/devices/tilelink/Plic.scala
-index bacb7b505..9d849233f 100644
---- a/src/main/scala/devices/tilelink/Plic.scala
-+++ b/src/main/scala/devices/tilelink/Plic.scala
-@@ -30,10 +30,12 @@ class LevelGateway extends Module {
-     val plic = new GatewayPLICIO
-   }
- 
-+  val inWaiting = Reg(init=Bool(false))
-   val inFlight = Reg(init=Bool(false))
--  when (io.interrupt && io.plic.ready) { inFlight := true }
-+  when (io.interrupt && !inWaiting) { inWaiting := true }
-+  when (io.plic.valid && io.plic.ready) { inFlight := true; inWaiting := false }
-   when (io.plic.complete) { inFlight := false }
--  io.plic.valid := io.interrupt && !inFlight
-+  io.plic.valid := (io.interrupt || inWaiting) && !inFlight
- }
- 
- object PLICConsts

@@ -16,6 +16,7 @@ set files [list \
  [file normalize "rocket.vhdl"] \
  [file normalize "srams.v"] \
  [file normalize "system-${vivado_board_name}.v"] \
+ [file normalize "../../uart/uart.v"] \
  [file normalize "../../sdc/sd_defines.h"] \
  [file normalize "../../sdc/axi_sd_fifo.v"] \
  [file normalize "../../sdc/axi_sd_fifo_filler.v"] \
@@ -50,6 +51,7 @@ set constraint_fileset [get_filesets constrs_1]
 set files [list \
  [file normalize ../../board/${vivado_board_name}/top.xdc] \
  [file normalize ../../board/${vivado_board_name}/sdc.xdc] \
+ [file normalize ../../board/${vivado_board_name}/uart.xdc] \
  [file normalize ../../board/${vivado_board_name}/ethernet.xdc] \
 ]
 add_files -norecurse -fileset $constraint_fileset $files

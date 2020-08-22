@@ -150,6 +150,7 @@ module ethernet #(parameter burst_size_bits = 4) (
 
 );
 
+(* ASYNC_REG="true" *)
 reg  [2:0] reset_sync;
 assign reset = reset_sync[2];
 

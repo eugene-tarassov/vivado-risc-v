@@ -4,22 +4,19 @@
 
 #include "kprintf.h"
 
-static inline void _kputs(const char *s)
-{
+static inline void _kputs(const char * s) {
     char c;
     for (; (c = *s) != '\0'; s++)
         kputc(c);
 }
 
-void kputs(const char *s)
-{
+void kputs(const char * s) {
     _kputs(s);
     kputc('\r');
     kputc('\n');
 }
 
-void kprintf(const char *fmt, ...)
-{
+void kprintf(const char *fmt, ...) {
     va_list vl;
     bool is_format, is_long, is_char;
     char c;
@@ -87,12 +84,15 @@ void kprintf(const char *fmt, ...)
             is_format = false;
             is_long = false;
             is_char = false;
-        } else if (c == '%') {
+        }
+        else if (c == '%') {
             is_format = true;
-        } else if (c == '\n') {
+        }
+        else if (c == '\n') {
             kputc('\r');
             kputc('\n');
-        } else {
+        }
+        else {
             kputc(c);
         }
     }

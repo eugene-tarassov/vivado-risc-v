@@ -17,7 +17,7 @@ clean:
 	git submodule foreach --recursive git clean -xfdq
 	sudo rm -rf debian-riscv64
 
-# --- download tools, initrd and rootfs ---
+# --- download gcc, initrd and rootfs from github.com ---
 
 workspace/gcc/riscv:
 	mkdir -p workspace/gcc
@@ -135,8 +135,7 @@ ifeq ($(BOARD),vc707)
   ETHER_PHY   ?= sgmii
 endif
 
-# valid ROCKET_FREQ values (MHz): 125 100 80 62.5 50 40 31.25
-# less than 30 MHz - too low for UART 
+# valid ROCKET_FREQ values (MHz): 125 100 80 62.5 50 40 31.25 25 20
 ROCKET_FREQ ?= $(shell awk '$$3 != "" && "$(BOARD)" ~ $$1 && "$(CONFIG_SCALA)" ~ ("^" $$2 "$$") {print $$3; exit}' board/rocket-freq)
 ROCKET_FREQ_KHZ := $(shell echo - | awk '{print $(ROCKET_FREQ) * 1000}')
 
@@ -250,6 +249,8 @@ $(proj_file): workspace/$(CONFIG)/system-$(BOARD).tcl
 
 vivado-project: $(proj_file)
 
+# --- generate FPGA bitstream ---
+
 $(proj_path)/make-bitstream.tcl: $(proj_file)
 	echo "open_project $(proj_file)">$@
 	echo "update_compile_order -fileset sources_1">>$@
@@ -262,6 +263,8 @@ $(bitstream): $(proj_path)/make-bitstream.tcl workspace/$(CONFIG)/rocket.vhdl
 	if find $(proj_path) -name "*.log" -exec cat {} \; | grep 'ERROR: ' ; then exit 1 ; fi
 
 bitstream: $(bitstream)
+
+# --- launch Vivado GUI ---
 
 vivado-gui: $(proj_file)
 	vivado $(proj_file) &

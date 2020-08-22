@@ -40,7 +40,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following 
 # module references:
-# rocket, ethernet, sdc_controller, synchronizer, synchronizer, ethernet_vc707
+# rocket, ethernet, sdc_controller, uart, synchronizer, ethernet_vc707
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -168,7 +168,7 @@ if { $bCheckModules == 1 } {
 rocket\
 ethernet\
 sdc_controller\
-synchronizer\
+uart\
 synchronizer\
 ethernet_vc707\
 "
@@ -562,15 +562,10 @@ proc create_hier_cell_IO { parentCell nameHier } {
 
   # Create interface pins
   create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M00_AXI
-
   create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:uart_rtl:1.0 rs232_uart
-
+  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:uart_rtl:1.0 uart
   create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:sgmii_rtl:1.0 sgmii
-
   create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 sgmii_mgt_clk
-
 
   # Create pins
   create_bd_pin -dir I -type clk ACLK
@@ -619,16 +614,8 @@ proc create_hier_cell_IO { parentCell nameHier } {
    CONFIG.capabilies_reg {0x0001} \
  ] $SD
   
-  # Create instance: axi_uartlite_0, and set properties
-  set axi_uartlite_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_uartlite:2.0 axi_uartlite_0 ]
-  set_property -dict [ list \
-   CONFIG.C_BAUDRATE {115200} \
-   CONFIG.UARTLITE_BOARD_INTERFACE {rs232_uart} \
-   CONFIG.USE_BOARD_FLOW {true} \
- ] $axi_uartlite_0
-
-  # Create instance: xadc_wiz_0, and set properties
-  set xadc_wiz_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xadc_wiz:3.3 xadc_wiz_0 ]
+  # Create instance: XADC, and set properties
+  set XADC [ create_bd_cell -type ip -vlnv xilinx.com:ip:xadc_wiz:3.3 XADC ]
   set_property -dict [ list \
     CONFIG.ADC_OFFSET_AND_GAIN_CALIBRATION {true} \
     CONFIG.ADC_OFFSET_CALIBRATION {true} \
@@ -645,7 +632,7 @@ proc create_hier_cell_IO { parentCell nameHier } {
     CONFIG.XADC_STARUP_SELECTION {channel_sequencer} \
     CONFIG.VCCINT_ALARM {false} \
     CONFIG.VCCAUX_ALARM {false} \
- ] $xadc_wiz_0
+ ] $XADC
 
   # Create instance: io_axi_m, and set properties
   set io_axi_m [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 io_axi_m ]
@@ -663,28 +650,17 @@ proc create_hier_cell_IO { parentCell nameHier } {
    CONFIG.NUM_SI {1} \
  ] $io_axi_s
 
-  # Create instance: synchronizer_0, and set properties
-  set block_name synchronizer
-  set block_cell_name synchronizer_0
-  if { [catch {set synchronizer_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_msg_id "BD_TCL-105" "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+  # Create instance: UART, and set properties
+  set block_name uart
+  set block_cell_name UART
+  if { [catch {set UART [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_msg_id "BD_TCL-095" "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
-   } elseif { $synchronizer_0 eq "" } {
-     catch {common::send_msg_id "BD_TCL-106" "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-  
-  # Create instance: synchronizer_1, and set properties
-  set block_name synchronizer
-  set block_cell_name synchronizer_1
-  if { [catch {set synchronizer_1 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_msg_id "BD_TCL-105" "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $synchronizer_1 eq "" } {
-     catch {common::send_msg_id "BD_TCL-106" "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+   } elseif { $UART eq "" } {
+     catch {common::send_msg_id "BD_TCL-096" "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    }
-  
+
   # Create instance: xlconcat_0, and set properties
   set xlconcat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_0 ]
   set_property -dict [ list \
@@ -692,46 +668,44 @@ proc create_hier_cell_IO { parentCell nameHier } {
  ] $xlconcat_0
 
   # Create interface connections
+  connect_bd_intf_net -intf_net UART_RS232 [get_bd_intf_pins uart] [get_bd_intf_pins UART/RS232]
   connect_bd_intf_net -intf_net Ethernet_SGMII [get_bd_intf_pins sgmii] [get_bd_intf_pins EthernetVC707/sgmii]
   connect_bd_intf_net -intf_net Ethernet_SGMII_Clock [get_bd_intf_pins sgmii_mgt_clk] [get_bd_intf_pins EthernetVC707/sgmii_mgt_clk]
   connect_bd_intf_net -intf_net Ethernet_TX_AXIS [get_bd_intf_pins Ethernet/TX_AXIS] [get_bd_intf_pins EthernetVC707/TX_AXIS]
   connect_bd_intf_net -intf_net io_axi_s [get_bd_intf_pins S00_AXI] [get_bd_intf_pins io_axi_s/S00_AXI]
   connect_bd_intf_net -intf_net S01_AXI_1 [get_bd_intf_pins Ethernet/M_AXI] [get_bd_intf_pins io_axi_m/S01_AXI]
-  connect_bd_intf_net -intf_net axi_uartlite_0_UART [get_bd_intf_pins rs232_uart] [get_bd_intf_pins axi_uartlite_0/UART]
   connect_bd_intf_net -intf_net ethernet_stream_0_RX_AXIS [get_bd_intf_pins Ethernet/RX_AXIS] [get_bd_intf_pins EthernetVC707/RX_AXIS]
   connect_bd_intf_net -intf_net io_axi_m [get_bd_intf_pins M00_AXI] [get_bd_intf_pins io_axi_m/M00_AXI]
   connect_bd_intf_net -intf_net sd_axi_m [get_bd_intf_pins SD/M_AXI] [get_bd_intf_pins io_axi_m/S00_AXI]
-  connect_bd_intf_net -intf_net io_axi_s_M00_AXI [get_bd_intf_pins axi_uartlite_0/S_AXI] [get_bd_intf_pins io_axi_s/M00_AXI]
+  connect_bd_intf_net -intf_net io_axi_s_M00_AXI [get_bd_intf_pins io_axi_s/M00_AXI] [get_bd_intf_pins UART/S_AXI_LITE]
   connect_bd_intf_net -intf_net io_axi_s_M01_AXI [get_bd_intf_pins SD/S_AXI_LITE] [get_bd_intf_pins io_axi_s/M01_AXI]
   connect_bd_intf_net -intf_net io_axi_s_M02_AXI [get_bd_intf_pins Ethernet/S_AXI_LITE] [get_bd_intf_pins io_axi_s/M02_AXI]
-  connect_bd_intf_net -intf_net io_axi_s_M03_AXI [get_bd_intf_pins xadc_wiz_0/s_axi_lite] [get_bd_intf_pins io_axi_s/M03_AXI]
+  connect_bd_intf_net -intf_net io_axi_s_M03_AXI [get_bd_intf_pins XADC/s_axi_lite] [get_bd_intf_pins io_axi_s/M03_AXI]
 
   # Create port connections
-  connect_bd_net -net EthernetVC707_mmcm_locked [get_bd_pins mmcm_locked] [get_bd_pins EthernetVC707/mmcm_locked]
-  connect_bd_net -net Ethernet_interrupt [get_bd_pins Ethernet/interrupt] [get_bd_pins synchronizer_0/dinp]
+  connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins EthernetVC707/sys_reset]
+  connect_bd_net -net AXI_reset [get_bd_pins ARESETN] [get_bd_pins Ethernet/async_resetn] [get_bd_pins SD/async_resetn] [get_bd_pins UART/async_resetn] [get_bd_pins io_axi_m/aresetn] [get_bd_pins io_axi_s/aresetn] [get_bd_pins XADC/s_axi_aresetn]
+  connect_bd_net -net AXI_clock [get_bd_pins ACLK] [get_bd_pins io_axi_m/aclk] [get_bd_pins io_axi_s/aclk] [get_bd_pins XADC/s_axi_aclk]
+  connect_bd_net -net clock_200MHz [get_bd_pins clock_200MHz] [get_bd_pins EthernetVC707/clock_200Mhz]
+  connect_bd_net -net clock_100MHz [get_bd_pins clock_100MHz] [get_bd_pins SD/clock] [get_bd_pins io_axi_s/aclk1] [get_bd_pins io_axi_m/aclk1] [get_bd_pins UART/clock]
+  connect_bd_net -net interrupts [get_bd_pins interrupts] [get_bd_pins xlconcat_0/dout]
+  connect_bd_net -net Ethernet_mmcm_locked [get_bd_pins mmcm_locked] [get_bd_pins EthernetVC707/mmcm_locked]
+  connect_bd_net -net Ethernet_interrupt [get_bd_pins Ethernet/interrupt] [get_bd_pins xlconcat_0/In2]
   connect_bd_net -net Ethernet_reset [get_bd_pins Ethernet/reset] [get_bd_pins EthernetVC707/reset]
+  connect_bd_net -net Ethernet_clock [get_bd_pins Ethernet/clock] [get_bd_pins EthernetVC707/clock] [get_bd_pins io_axi_s/aclk2] [get_bd_pins io_axi_m/aclk2]
+  connect_bd_net -net Ethernet_status_vector [get_bd_pins Ethernet/status_vector] [get_bd_pins EthernetVC707/status_vector]
   connect_bd_net -net Ethernet_mdio_clock [get_bd_pins eth_mdio_clock] [get_bd_pins Ethernet/mdio_clock]
   connect_bd_net -net Ethernet_mdio_data [get_bd_pins eth_mdio_data] [get_bd_pins Ethernet/mdio_data]
   connect_bd_net -net Ethernet_mdio_reset [get_bd_pins eth_mdio_reset] [get_bd_pins Ethernet/mdio_reset]
   connect_bd_net -net Ethernet_mdio_int [get_bd_pins eth_mdio_int] [get_bd_pins Ethernet/mdio_int]
-  connect_bd_net -net SD_interrupt [get_bd_pins SD/interrupt] [get_bd_pins synchronizer_1/dinp]
-  connect_bd_net -net UART_interrupt [get_bd_pins axi_uartlite_0/interrupt] [get_bd_pins xlconcat_0/In0]
-  connect_bd_net -net AXI_clock [get_bd_pins ACLK] [get_bd_pins axi_uartlite_0/s_axi_aclk] [get_bd_pins io_axi_m/aclk] [get_bd_pins io_axi_s/aclk] [get_bd_pins synchronizer_0/clock] [get_bd_pins synchronizer_1/clock] [get_bd_pins xadc_wiz_0/s_axi_aclk]
-  connect_bd_net -net ethernet_0_clock [get_bd_pins Ethernet/clock] [get_bd_pins EthernetVC707/clock] [get_bd_pins io_axi_s/aclk2] [get_bd_pins io_axi_m/aclk2]
-  connect_bd_net -net gig_ethernet_pcs_pma_0_status_vector [get_bd_pins Ethernet/status_vector] [get_bd_pins EthernetVC707/status_vector]
-  connect_bd_net -net independent_clock_bufg_1 [get_bd_pins clock_200MHz] [get_bd_pins EthernetVC707/clock_200Mhz]
-  connect_bd_net -net AXI_reset [get_bd_pins ARESETN] [get_bd_pins Ethernet/async_resetn] [get_bd_pins SD/async_resetn] [get_bd_pins axi_uartlite_0/s_axi_aresetn] [get_bd_pins io_axi_m/aresetn] [get_bd_pins io_axi_s/aresetn] [get_bd_pins xadc_wiz_0/s_axi_aresetn]
-  connect_bd_net -net clock_100MHz [get_bd_pins clock_100MHz] [get_bd_pins SD/clock] [get_bd_pins io_axi_s/aclk1] [get_bd_pins io_axi_m/aclk1]
+  connect_bd_net -net SD_interrupt [get_bd_pins SD/interrupt] [get_bd_pins xlconcat_0/In1]
   connect_bd_net -net SD_sdio_cd [get_bd_pins sdio_cd] [get_bd_pins SD/sdio_cd]
   connect_bd_net -net SD_sdio_clk [get_bd_pins sdio_clk] [get_bd_pins SD/sdio_clk]
   connect_bd_net -net SD_sdio_cmd [get_bd_pins sdio_cmd] [get_bd_pins SD/sdio_cmd]
   connect_bd_net -net SD_sdio_dat [get_bd_pins sdio_dat] [get_bd_pins SD/sdio_dat]
-  connect_bd_net -net synchronizer_0_dout [get_bd_pins synchronizer_0/dout] [get_bd_pins xlconcat_0/In3]
-  connect_bd_net -net synchronizer_1_dout [get_bd_pins synchronizer_1/dout] [get_bd_pins xlconcat_0/In1]
-  connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins EthernetVC707/sys_reset]
-  connect_bd_net -net interrupts [get_bd_pins interrupts] [get_bd_pins xlconcat_0/dout]
-  connect_bd_net -net device_temp [get_bd_pins xadc_wiz_0/temp_out] [get_bd_pins device_temp]
-  connect_bd_net -net fan_en [get_bd_pins xadc_wiz_0/user_temp_alarm_out] [get_bd_pins fan_en]
+  connect_bd_net -net UART_interrupt [get_bd_pins UART/interrupt] [get_bd_pins xlconcat_0/In0]
+  connect_bd_net -net device_temp [get_bd_pins XADC/temp_out] [get_bd_pins device_temp]
+  connect_bd_net -net fan_en [get_bd_pins XADC/user_temp_alarm_out] [get_bd_pins fan_en]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -822,7 +796,7 @@ proc create_hier_cell_DDR { parentCell nameHier } {
 
   # Create interface connections
   connect_bd_intf_net -intf_net axi_smc_1_M00_AXI [get_bd_intf_pins axi_smc_1/M00_AXI] [get_bd_intf_pins mig_7series_0/S_AXI]
-  connect_bd_intf_net -intf_net cpu_0_MEM_AXI4 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins axi_smc_1/S00_AXI]
+  connect_bd_intf_net -intf_net MEM_AXI4 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins axi_smc_1/S00_AXI]
   connect_bd_intf_net -intf_net mig_7series_0_DDR3 [get_bd_intf_pins DDR3_0] [get_bd_intf_pins mig_7series_0/DDR3]
 
   # Create port connections
@@ -912,15 +886,7 @@ proc create_root_design { parentCell } {
   create_hier_cell_IO [current_bd_instance .] IO
 
   # Create instance: RocketChip, and set properties
-  set block_name rocket
-  set block_cell_name RocketChip
-  if { [catch {set RocketChip [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_msg_id "BD_TCL-105" "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $RocketChip eq "" } {
-     catch {common::send_msg_id "BD_TCL-106" "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
+  set RocketChip [create_bd_cell -type module -reference rocket RocketChip]
   
   # Create instance: clk_wiz_0, and set properties
   set clk_wiz_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz_0 ]
@@ -946,12 +912,12 @@ proc create_root_design { parentCell } {
   # Create interface connections
   connect_bd_intf_net -intf_net IO_sgmii_0 [get_bd_intf_ports sgmii] [get_bd_intf_pins IO/sgmii]
   connect_bd_intf_net -intf_net io_axi_s [get_bd_intf_pins IO/S00_AXI] [get_bd_intf_pins RocketChip/IO_AXI4]
-  connect_bd_intf_net -intf_net axi_uartlite_0_UART [get_bd_intf_ports rs232_uart] [get_bd_intf_pins IO/rs232_uart]
-  connect_bd_intf_net -intf_net cpu_0_MEM_AXI4 [get_bd_intf_pins DDR/S00_AXI] [get_bd_intf_pins RocketChip/MEM_AXI4]
+  connect_bd_intf_net -intf_net IO_UART [get_bd_intf_ports rs232_uart] [get_bd_intf_pins IO/uart]
+  connect_bd_intf_net -intf_net MEM_AXI4 [get_bd_intf_pins DDR/S00_AXI] [get_bd_intf_pins RocketChip/MEM_AXI4]
   connect_bd_intf_net -intf_net io_axi_m [get_bd_intf_pins IO/M00_AXI] [get_bd_intf_pins RocketChip/DMA_AXI4]
   connect_bd_intf_net -intf_net mig_7series_0_DDR3 [get_bd_intf_ports DDR3_0] [get_bd_intf_pins DDR/DDR3_0]
-  connect_bd_intf_net -intf_net sgmii_mgt_clk_0_1 [get_bd_intf_ports sgmii_mgt_clk] [get_bd_intf_pins IO/sgmii_mgt_clk]
-  connect_bd_intf_net -intf_net sys_diff_clock_1 [get_bd_intf_ports sys_diff_clock] [get_bd_intf_pins sys_diff_clock_buf/CLK_IN_D]
+  connect_bd_intf_net -intf_net sgmii_mgt_clk [get_bd_intf_ports sgmii_mgt_clk] [get_bd_intf_pins IO/sgmii_mgt_clk]
+  connect_bd_intf_net -intf_net sys_diff_clock [get_bd_intf_ports sys_diff_clock] [get_bd_intf_pins sys_diff_clock_buf/CLK_IN_D]
 
   # Create port connections
   connect_bd_net -net mem_ok [get_bd_pins DDR/init_calib_complete] [get_bd_pins RocketChip/mem_ok]
@@ -977,9 +943,9 @@ proc create_root_design { parentCell } {
 
   # Create address segments
   create_bd_addr_seg -range 0x00010000 -offset 0x60000000 [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/SD/S_AXI_LITE/reg0] SEG_SD_reg0
-  create_bd_addr_seg -range 0x00010000 -offset 0x60010000 [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/axi_uartlite_0/S_AXI/Reg] SEG_axi_uartlite_0_Reg
-  create_bd_addr_seg -range 0x00010000 -offset 0x60020000 [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/Ethernet/S_AXI_LITE/reg0] SEG_ethernet_0_reg0
-  create_bd_addr_seg -range 0x00010000 -offset 0x60030000 [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/xadc_wiz_0/s_axi_lite/Reg] SEG_xadc_wiz_0_Reg
+  create_bd_addr_seg -range 0x00010000 -offset 0x60010000 [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/UART/S_AXI_LITE/Reg] SEG_UART_Reg
+  create_bd_addr_seg -range 0x00010000 -offset 0x60020000 [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/Ethernet/S_AXI_LITE/reg0] SEG_Ethernet_reg0
+  create_bd_addr_seg -range 0x00010000 -offset 0x60030000 [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/XADC/s_axi_lite/Reg] SEG_XADC_Reg
   create_bd_addr_seg -range 0x40000000 -offset 0x80000000 [get_bd_addr_spaces RocketChip/MEM_AXI4] [get_bd_addr_segs DDR/mig_7series_0/memmap/memaddr] SEG_mig_7series_0_memaddr
   create_bd_addr_seg -range 0x000100000000 -offset 0x00000000 [get_bd_addr_spaces IO/Ethernet/M_AXI] [get_bd_addr_segs RocketChip/DMA_AXI4/reg0] SEG_RocketChip_reg0
   create_bd_addr_seg -range 0x000100000000 -offset 0x00000000 [get_bd_addr_spaces IO/SD/M_AXI] [get_bd_addr_segs RocketChip/DMA_AXI4/reg0] SEG_RISCV_reg0

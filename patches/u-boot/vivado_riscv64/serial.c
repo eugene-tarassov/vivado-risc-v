@@ -14,15 +14,15 @@
 #include <linux/compiler.h>
 #include <serial.h>
 
-#define SR_TX_FIFO_FULL         BIT(3) /* transmit FIFO full */
-#define SR_TX_FIFO_EMPTY        BIT(2) /* transmit FIFO empty */
-#define SR_RX_FIFO_VALID_DATA   BIT(0) /* data in receive FIFO */
-#define SR_RX_FIFO_FULL         BIT(1) /* receive FIFO full */
+#define SR_RX_FIFO_VALID_DATA   (1 << 0) /* data in receive FIFO */
+#define SR_RX_FIFO_FULL         (1 << 1) /* receive FIFO full */
+#define SR_TX_FIFO_EMPTY        (1 << 2) /* transmit FIFO empty */
+#define SR_TX_FIFO_FULL         (1 << 3) /* transmit FIFO full */
 
 #define ULITE_CONTROL_RST_TX    0x01
 #define ULITE_CONTROL_RST_RX    0x02
 
-struct uartlite_regs {
+struct uart_regs {
     unsigned int rx_fifo;
     unsigned int tx_fifo;
     unsigned int status;
@@ -30,13 +30,12 @@ struct uartlite_regs {
 };
 
 struct uartlite_platdata {
-    struct uartlite_regs *regs;
+    struct uart_regs *regs;
 };
 
-static int uartlite_serial_putc(struct udevice *dev, const char ch)
-{
+static int uartlite_serial_putc(struct udevice *dev, const char ch) {
     struct uartlite_platdata *plat = dev_get_platdata(dev);
-    struct uartlite_regs *regs = plat->regs;
+    struct uart_regs *regs = plat->regs;
 
     if (in_le32(&regs->status) & SR_TX_FIFO_FULL) return -EAGAIN;
 
@@ -45,42 +44,37 @@ static int uartlite_serial_putc(struct udevice *dev, const char ch)
     return 0;
 }
 
-static int uartlite_serial_getc(struct udevice *dev)
-{
+static int uartlite_serial_getc(struct udevice *dev) {
     struct uartlite_platdata *plat = dev_get_platdata(dev);
-    struct uartlite_regs *regs = plat->regs;
+    struct uart_regs *regs = plat->regs;
 
     if (!(in_le32(&regs->status) & SR_RX_FIFO_VALID_DATA)) return -EAGAIN;
 
     return in_le32(&regs->rx_fifo) & 0xff;
 }
 
-static int uartlite_serial_pending(struct udevice *dev, bool input)
-{
+static int uartlite_serial_pending(struct udevice *dev, bool input) {
     struct uartlite_platdata *plat = dev_get_platdata(dev);
-    struct uartlite_regs *regs = plat->regs;
+    struct uart_regs *regs = plat->regs;
 
     if (input) return in_le32(&regs->status) & SR_RX_FIFO_VALID_DATA;
 
     return !(in_le32(&regs->status) & SR_TX_FIFO_EMPTY);
 }
 
-static int uartlite_serial_probe(struct udevice *dev)
-{
+static int uartlite_serial_probe(struct udevice *dev) {
     struct uartlite_platdata *plat = dev_get_platdata(dev);
-    struct uartlite_regs *regs = plat->regs;
+    struct uart_regs *regs = plat->regs;
 
-    out_le32(&regs->control, 0);
     out_le32(&regs->control, ULITE_CONTROL_RST_RX | ULITE_CONTROL_RST_TX);
 
     return 0;
 }
 
-static int uartlite_serial_ofdata_to_platdata(struct udevice *dev)
-{
+static int uartlite_serial_ofdata_to_platdata(struct udevice *dev) {
     struct uartlite_platdata *plat = dev_get_platdata(dev);
 
-    plat->regs = (struct uartlite_regs *)devfdt_get_addr(dev);
+    plat->regs = (struct uart_regs *)devfdt_get_addr(dev);
 
     return 0;
 }
@@ -103,5 +97,5 @@ U_BOOT_DRIVER(serial_uartlite) = {
     .ofdata_to_platdata = uartlite_serial_ofdata_to_platdata,
     .platdata_auto_alloc_size = sizeof(struct uartlite_platdata),
     .probe = uartlite_serial_probe,
-    .ops    = &uartlite_serial_ops,
+    .ops = &uartlite_serial_ops,
 };

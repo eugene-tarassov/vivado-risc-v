@@ -187,6 +187,7 @@ reg  [7:0] clock_divider_reg = 124; // 400KHz
 
 // ------ Clocks and resets
 
+(* ASYNC_REG="true" *)
 reg  [2:0] reset_sync;
 assign reset = reset_sync[2];
 

@@ -42,7 +42,7 @@
             phy-mode = "rgmii";
             local-mac-address = [00 0a 35 00 00 00];
             interrupt-parent = <&{/soc/interrupt-controller@c000000}>;
-            interrupts = <4>;
+            interrupts = <3>;
         };
     };
 };

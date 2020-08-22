@@ -399,6 +399,8 @@ public class Main {
 
     private static void generateSignalDeclarations() {
         ln("");
+        ln("    attribute ASYNC_REG : string;");
+        ln("");
         ln("    signal reset       : std_logic := '1';");
         ln("    signal debug_reset : std_logic;");
         ln("    signal riscv_reset : std_logic;");
@@ -422,6 +424,15 @@ public class Main {
         ln("    signal reset_cnt : unsigned(4 downto 0) := \"00000\";");
         ln("    signal reset_inp : std_logic;");
         ln("    signal reset_sync: std_logic;");
+        if (interrupt_bits > 0) {
+            ln("");
+            ln("    signal interrupts_ss1 : std_logic_vector(" + (interrupt_bits - 1) + " downto 0);");
+            ln("    signal interrupts_ss2 : std_logic_vector(" + (interrupt_bits - 1) + " downto 0);");
+            ln("    signal interrupts_sync: std_logic_vector(" + (interrupt_bits - 1) + " downto 0);");
+            ln("    attribute ASYNC_REG of interrupts_ss1 : signal is \"TRUE\";");
+            ln("    attribute ASYNC_REG of interrupts_ss2 : signal is \"TRUE\";");
+            ln("    attribute ASYNC_REG of interrupts_sync: signal is \"TRUE\";");
+        }
     }
 
     private static void generateResetLogic() {
@@ -457,6 +468,18 @@ public class Main {
         ln("    end process;");
         ln("");
         ln("    riscv_reset <= reset or debug_reset;");
+    }
+
+    private static void generateInterruptSynchronizer() {
+        ln("");
+        ln("    process (clock)");
+        ln("    begin");
+        ln("        if clock'event and clock = '1' then");
+        ln("            interrupts_ss1 <= interrupts;");
+        ln("            interrupts_ss2 <= interrupts_ss1;");
+        ln("            interrupts_sync <= interrupts_ss2;");
+        ln("        end if;");
+        ln("    end process;");
     }
 
     private static void generateRocketSystemComponent() {
@@ -506,6 +529,7 @@ public class Main {
             else if (nm.equals("debug_dmactive")) dst = "debug_dmactive";
             else if (nm.equals("debug_dmactiveAck")) dst = "debug_dmactive";
             else if (nm.startsWith("resetctrl_hartIsInReset")) dst = "'0'";
+            else if (nm.equals("interrupts")) dst = "interrupts_sync";
             else dst = nm;
             if (s != null) ln(s + ',');
             while (nm.length() < id_len) nm += ' ';
@@ -574,6 +598,7 @@ public class Main {
         ln("begin");
 
         generateResetLogic();
+        if (interrupt_bits > 0) generateInterruptSynchronizer();
         if (jtag_bus != null) ln("    jtag_tdt <= not enable_tdo;");
         generateRocketSystemComponent();
         generateDebugComponent();

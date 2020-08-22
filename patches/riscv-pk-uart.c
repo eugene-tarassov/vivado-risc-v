@@ -4,15 +4,12 @@
 #include "uart.h"
 #include "fdt.h"
 
-#define SR_TX_FIFO_FULL         (1 << 3) /* transmit FIFO full */
-#define SR_TX_FIFO_EMPTY        (1 << 2) /* transmit FIFO empty */
 #define SR_RX_FIFO_VALID_DATA   (1 << 0) /* data in receive FIFO */
 #define SR_RX_FIFO_FULL         (1 << 1) /* receive FIFO full */
+#define SR_TX_FIFO_EMPTY        (1 << 2) /* transmit FIFO empty */
+#define SR_TX_FIFO_FULL         (1 << 3) /* transmit FIFO full */
 
-#define ULITE_CONTROL_RST_TX    0x01
-#define ULITE_CONTROL_RST_RX    0x02
-
-struct uartlite {
+struct uart_regs {
     volatile uint32_t rx_fifo;
     volatile uint32_t tx_fifo;
     volatile uint32_t status;
@@ -20,7 +17,7 @@ struct uartlite {
 };
 
 volatile uint32_t * uart;
-static struct uartlite * regs = NULL;
+static struct uart_regs * regs = NULL;
 
 void uart_putchar(uint8_t ch) {
     if (regs == NULL) return;
@@ -58,7 +55,7 @@ static void uart_done(const struct fdt_scan_node *node, void *extra) {
     struct uart_scan *scan = (struct uart_scan *)extra;
     if (!scan->compat || !scan->reg || uart) return;
     uart = (void *)(uintptr_t)scan->reg;
-    regs = (struct uartlite *)uart;
+    regs = (struct uart_regs *)uart;
 }
 
 void query_uart(uintptr_t fdt) {
