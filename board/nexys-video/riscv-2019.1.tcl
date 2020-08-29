@@ -765,7 +765,7 @@ proc create_root_design { parentCell } {
 
   # Create address segments
   create_bd_addr_seg -range 0x00010000 -offset 0x60000000 [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/SD/S_AXI_LITE/reg0] SEG_SD_reg0
-  create_bd_addr_seg -range 0x00010000 -offset 0x60010000 [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/UART/S_AXI_LITE/Reg] SEG_UART_Reg
+  create_bd_addr_seg -range 0x00010000 -offset 0x60010000 [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/UART/S_AXI_LITE/reg0] SEG_UART_reg0
   create_bd_addr_seg -range 0x00010000 -offset 0x60020000 [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/Ethernet/S_AXI_LITE/reg0] SEG_Ethernet_reg0
   create_bd_addr_seg -range 0x00010000 -offset 0x60030000 [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/XADC/s_axi_lite/Reg] SEG_XADC_Reg
   create_bd_addr_seg -range 0x20000000 -offset 0x80000000 [get_bd_addr_spaces RocketChip/MEM_AXI4] [get_bd_addr_segs DDR/mig_7series_0/memmap/memaddr] SEG_mig_7series_0_memaddr
