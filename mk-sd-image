@@ -3,14 +3,17 @@
 set -e
 cd `dirname $0`
 
-while getopts r: name
-do
+while getopts r: name ; do
   case $name in
   r)
     RSYNC_BOOT=$OPTARG
     ;;
   esac
 done
+
+if [ ! -d linux-stable/kernel ] ; then
+  make update-submodules
+fi
 
 KERNEL_VER=$(cd linux-stable && git describe --exact-match --abbrev=0)
 
@@ -32,9 +35,10 @@ fi
 SD_SIZE=1500
 SD_IMG=debian-riscv64/debian-riscv64.sd.img
 
-losetup -a | grep `pwd` | while IFS=':' read -ra LINE ; do
-  sudo umount ${LINE[0]}p1 || true
-  sudo umount ${LINE[0]}p2 || true
+mount -l | grep `pwd`/ | while IFS=' ' read -ra LINE ; do
+  sudo umount ${LINE[0]}
+done
+losetup -a | grep `pwd`/ | while IFS=':' read -ra LINE ; do
   sudo losetup -d ${LINE[0]}
 done
 
@@ -43,7 +47,7 @@ dd if=/dev/zero of=$SD_IMG bs=1M count=$SD_SIZE
 sudo losetup -f $SD_IMG
 
 SD_LOOP=$(
-losetup -a | grep `pwd` | while IFS=':' read -ra LINE ; do
+losetup -a | grep `pwd`/ | while IFS=':' read -ra LINE ; do
   echo ${LINE[0]}
 done
 )
@@ -107,5 +111,6 @@ fi
 
 sudo umount ${SD_LOOP}p1
 sudo umount ${SD_LOOP}p2
-sudo fsck -f -p ${SD_LOOP}p2
+sudo fsck -f -p -T ${SD_LOOP}p1
+sudo fsck -f -p -T ${SD_LOOP}p2
 sudo losetup -d ${SD_LOOP}
