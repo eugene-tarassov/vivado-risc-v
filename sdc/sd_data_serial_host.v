@@ -36,17 +36,17 @@ module sd_data_serial_host(
     input clock_posedge,
     input clock_data_in,
     input rst,
-    //Tx Fifo
+    // Tx Fifo
     input [31:0] data_in,
     output reg rd,
-    //Rx Fifo
+    // Rx Fifo
     output reg [31:0] data_out,
     output reg we,
     //tristate data
     output reg DAT_oe_o,
     output reg[3:0] DAT_dat_o,
     input [3:0] DAT_dat_i,
-    //Controll signals
+    // Controll signals
     input [`BLKSIZE_W-1:0] blksize,
     input bus_4bit,
     input [`BLKCNT_W-1:0] blkcnt,
@@ -60,30 +60,27 @@ module sd_data_serial_host(
 reg [3:0] DAT_dat_reg;
 reg [`BLKSIZE_W-1+3:0] data_cycles;
 reg bus_4bit_reg;
-//CRC16
+// CRC16
 reg crc_en;
 reg crc_rst;
 wire [15:0] crc_out [3:0];
 reg [`BLKSIZE_W-1+4:0] transf_cnt;
-parameter SIZE = 6;
+parameter SIZE = 7;
 reg [SIZE-1:0] state;
-reg [SIZE-1:0] next_state;
-parameter IDLE       = 6'b000001;
-parameter WRITE_DAT  = 6'b000010;
-parameter WRITE_CRC  = 6'b000100;
-parameter WRITE_BUSY = 6'b001000;
-parameter READ_WAIT  = 6'b010000;
-parameter READ_DAT   = 6'b100000;
-reg [2:0] crc_status;
-reg busy_int;
+parameter IDLE       = 7'b0000001;
+parameter WRITE_DAT  = 7'b0000010;
+parameter WRITE_WAIT = 7'b0000100;
+parameter WRITE_DRT  = 7'b0001000;
+parameter WRITE_BUSY = 7'b0010000;
+parameter READ_WAIT  = 7'b0100000;
+parameter READ_DAT   = 7'b1000000;
+reg [3:0] drt_bit;
+reg [3:0] drt_reg;
 reg [`BLKCNT_W-1:0] blkcnt_reg;
 reg [1:0] byte_alignment_reg;
 reg [`BLKSIZE_W-1:0] blksize_reg;
-reg next_block;
-wire start_bit;
-reg [4:0] crc_c;
+reg [3:0] crc_bit;
 reg [3:0] last_din;
-reg [2:0] crc_s ;
 reg [4:0] data_index;
 
 //sd data input pad register
@@ -99,60 +96,7 @@ generate
 endgenerate
 
 assign busy = (state != IDLE);
-assign start_bit = !DAT_dat_reg[0];
 assign sd_data_busy = !DAT_dat_reg[0];
-
-always @(state or start or start_bit or  transf_cnt or data_cycles or crc_status or crc_ok or busy_int or next_block)
-begin: FSM_COMBO
-    case (state)
-        IDLE: begin
-            if (start == 2'b01)
-                next_state <= WRITE_DAT;
-            else if  (start == 2'b10)
-                next_state <= READ_WAIT;
-            else
-                next_state <= IDLE;
-        end
-        WRITE_DAT: begin
-            if (transf_cnt >= data_cycles+21 && start_bit)
-                next_state <= WRITE_CRC;
-            else
-                next_state <= WRITE_DAT;
-        end
-        WRITE_CRC: begin
-            if (crc_status == 3)
-                next_state <= WRITE_BUSY;
-            else
-                next_state <= WRITE_CRC;
-        end
-        WRITE_BUSY: begin
-            if (!busy_int && next_block && crc_ok)
-                next_state <= WRITE_DAT;
-            else if (!busy_int)
-                next_state <= IDLE;
-            else
-                next_state <= WRITE_BUSY;
-        end
-        READ_WAIT: begin
-            if (start_bit)
-                next_state <= READ_DAT;
-            else
-                next_state <= READ_WAIT;
-        end
-        READ_DAT: begin
-            if (transf_cnt == data_cycles+17 && next_block && crc_ok)
-                next_state <= READ_WAIT;
-            else if (transf_cnt == data_cycles+17)
-                next_state <= IDLE;
-            else
-                next_state <= READ_DAT;
-        end
-        default: next_state <= IDLE;
-    endcase
-    //abort
-    if (start == 2'b11)
-        next_state <= IDLE;
-end
 
 always @(posedge clock)
 begin: FSM_OUT
@@ -164,49 +108,46 @@ begin: FSM_OUT
         transf_cnt <= 0;
         rd <= 0;
         last_din <= 0;
-        crc_c <= 0;
+        crc_bit <= 0;
         DAT_dat_o <= 4'b1111;
-        crc_status <= 0;
-        crc_s <= 0;
+        drt_bit <= 0;
+        drt_reg <= 0;
         we <= 0;
         data_out <= 0;
         crc_ok <= 0;
-        busy_int <= 0;
         data_index <= 0;
-        next_block <= 0;
         blkcnt_reg <= 0;
         blksize_reg <= 0;
         byte_alignment_reg <= 0;
         data_cycles <= 0;
         bus_4bit_reg <= 0;
     end else if (clock_posedge) begin
-        state <= next_state;
         case (state)
             IDLE: begin
                 DAT_oe_o <= 0;
                 DAT_dat_o <= 4'b1111;
+                transf_cnt <= 0;
                 crc_en <= 0;
                 crc_rst <= 1;
-                transf_cnt <= 0;
-                crc_c <= 16;
-                crc_status <= 0;
-                crc_s <= 0;
+                crc_bit <= 15;
                 we <= 0;
                 rd <= 0;
                 data_index <= 0;
-                next_block <= 0;
                 blkcnt_reg <= blkcnt;
                 byte_alignment_reg <= byte_alignment;
                 blksize_reg <= blksize;
                 data_cycles <= (bus_4bit ? (blksize << 1) + `BLKSIZE_W'd2 : (blksize << 3) + `BLKSIZE_W'd8);
                 bus_4bit_reg <= bus_4bit;
+                if (start == 2'b01) state <= WRITE_DAT;
+                else if (start == 2'b10) state <= READ_WAIT;
             end
             WRITE_DAT: begin
-                crc_ok <= 0;
-                transf_cnt <= transf_cnt + 16'h1;
-                next_block <= 0;
                 rd <= 0;
-                if (transf_cnt == 1) begin
+                transf_cnt <= transf_cnt + 16'h1;
+                if (transf_cnt == 0) begin
+                    crc_ok <= 0;
+                    crc_bit <= 15;
+                end else if (transf_cnt == 1) begin
                     crc_rst <= 0;
                     crc_en <= 1;
                     if (bus_4bit_reg) begin
@@ -222,14 +163,14 @@ begin: FSM_OUT
                     DAT_oe_o <= 1;
                     DAT_dat_o <= bus_4bit_reg ? 4'h0 : 4'he;
                     data_index <= bus_4bit_reg ? {2'b00, byte_alignment_reg, 1'b1} : {byte_alignment_reg, 3'b001};
-                end else if ((transf_cnt >= 2) && (transf_cnt <= data_cycles+1)) begin
+                end else if (transf_cnt <= data_cycles+1) begin
                     if (bus_4bit_reg) begin
                         last_din <= {
                             data_in[31-(data_index[2:0]<<2)],
                             data_in[30-(data_index[2:0]<<2)],
                             data_in[29-(data_index[2:0]<<2)],
                             data_in[28-(data_index[2:0]<<2)]
-                            };
+                        };
                         if (data_index[2:0] == 3'h6 && transf_cnt <= data_cycles-1) rd <= 1;
                     end else begin
                         last_din <= {3'h7, data_in[31-data_index]};
@@ -238,48 +179,62 @@ begin: FSM_OUT
                     data_index <= data_index + 5'h1;
                     DAT_dat_o <= last_din;
                     if (transf_cnt == data_cycles+1) crc_en <= 0;
-                end else if (transf_cnt > data_cycles+1 & crc_c != 0) begin
+                end else if (transf_cnt <= data_cycles+17) begin
                     crc_en <= 0;
-                    crc_c <= crc_c - 5'h1;
-                    DAT_dat_o[0] <= crc_out[0][crc_c-1];
+                    DAT_dat_o[0] <= crc_out[0][crc_bit];
                     if (bus_4bit_reg)
-                        DAT_dat_o[3:1] <= {crc_out[3][crc_c-1], crc_out[2][crc_c-1], crc_out[1][crc_c-1]};
+                        DAT_dat_o[3:1] <= {crc_out[3][crc_bit], crc_out[2][crc_bit], crc_out[1][crc_bit]};
+                    crc_bit <= crc_bit - 1;
                 end else if (transf_cnt == data_cycles+18) begin
                     DAT_dat_o <= 4'hf;
-                end else if (transf_cnt >= data_cycles+19) begin
+                end else if (transf_cnt == data_cycles+19) begin
                     DAT_oe_o <= 0;
+                end else begin
+                    state <= WRITE_WAIT;
                 end
             end
-            WRITE_CRC: begin
-                DAT_oe_o <= 0;
-                if (crc_status < 3) crc_s[crc_status] <= DAT_dat_reg[0];
-                crc_status <= crc_status + 3'h1;
-                busy_int <= 1;
+            WRITE_WAIT: begin
+                drt_bit <= 0;
+                if (!DAT_dat_reg[0]) state <= WRITE_DRT;
+            end
+            WRITE_DRT: begin
+                // See 7.3.3.1 Data Response Token
+                if (drt_bit <= 3) begin
+                    drt_reg[drt_bit] <= DAT_dat_reg[0];
+                end else if (drt_bit == 15) begin
+                    crc_ok <= drt_reg[3:0] == 4'b1010;
+                    state <= WRITE_BUSY;
+                end
+                drt_bit <= drt_bit + 1;
             end
             WRITE_BUSY: begin
-                crc_ok <= crc_s == 3'b010;
-                busy_int <= !DAT_dat_reg[0];
-                next_block <= (blkcnt_reg != 0);
-                if (next_state != WRITE_BUSY) begin
-                    blkcnt_reg <= blkcnt_reg - `BLKCNT_W'h1;
-                    byte_alignment_reg <= byte_alignment_reg + blksize_reg[1:0] + 2'b1;
-                    crc_rst <= 1;
-                    crc_c <= 16;
-                    crc_status <= 0;
+                if (DAT_dat_reg[0]) begin
+                    if (blkcnt_reg != 0 && crc_ok) begin
+                        transf_cnt <= 0;
+                        blkcnt_reg <= blkcnt_reg - 1;
+                        byte_alignment_reg <= byte_alignment_reg + blksize_reg[1:0] + 2'b1;
+                        crc_rst <= 1;
+                        state <= WRITE_DAT;
+                    end else begin
+                        state <= IDLE;
+                    end
                 end
-                transf_cnt <= 0;
             end
             READ_WAIT: begin
                 DAT_oe_o <= 0;
-                crc_rst <= 0;
-                crc_en <= 1;
+                crc_bit <= 15;
                 last_din <= 0;
-                crc_c <= 15;
-                next_block <= 0;
                 transf_cnt <= 0;
                 data_index <= bus_4bit_reg ? (byte_alignment_reg << 1) : (byte_alignment_reg << 3);
+                if (!DAT_dat_reg[0]) begin
+                    crc_rst <= 0;
+                    crc_en <= 1;
+                    state <= READ_DAT;
+                end
             end
             READ_DAT: begin
+                last_din <= DAT_dat_reg;
+                transf_cnt <= transf_cnt + 16'h1;
                 if (transf_cnt < data_cycles) begin
                     if (bus_4bit_reg) begin
                         we <= (data_index[2:0] == 7 || (transf_cnt == data_cycles-1  && !blkcnt_reg));
@@ -292,32 +247,34 @@ begin: FSM_OUT
                         data_out[31-data_index] <= DAT_dat_reg[0];
                     end
                     data_index <= data_index + 5'h1;
-                    last_din <= DAT_dat_reg;
                     crc_ok <= 1;
-                    transf_cnt <= transf_cnt + 16'h1;
-                end else if (transf_cnt <= data_cycles+16) begin
-                    transf_cnt <= transf_cnt + 16'h1;
+                end else if (transf_cnt == data_cycles) begin
                     crc_en <= 0;
-                    last_din <= DAT_dat_reg;
-                    we<=0;
-                    if (transf_cnt > data_cycles) begin
-                        crc_c <= crc_c - 5'h1;
-                        if  (crc_out[0][crc_c] != last_din[0]) crc_ok <= 0;
-                        if (bus_4bit_reg) begin
-                            if  (crc_out[1][crc_c] != last_din[1]) crc_ok <= 0;
-                            if  (crc_out[2][crc_c] != last_din[2]) crc_ok <= 0;
-                            if  (crc_out[3][crc_c] != last_din[3]) crc_ok <= 0;
-                        end
-                        if (crc_c == 0) begin
-                            next_block <= (blkcnt_reg != 0);
-                            blkcnt_reg <= blkcnt_reg - `BLKCNT_W'h1;
-                            byte_alignment_reg <= byte_alignment_reg + blksize_reg[1:0] + 2'b1;
-                            crc_rst <= 1;
-                        end
+                    we <= 0;
+                end else if (transf_cnt <= data_cycles+16) begin
+                    if (crc_out[0][crc_bit] != last_din[0]) crc_ok <= 0;
+                    if (bus_4bit_reg) begin
+                        if (crc_out[1][crc_bit] != last_din[1]) crc_ok <= 0;
+                        if (crc_out[2][crc_bit] != last_din[2]) crc_ok <= 0;
+                        if (crc_out[3][crc_bit] != last_din[3]) crc_ok <= 0;
                     end
+                    if (crc_bit == 0) begin
+                        byte_alignment_reg <= byte_alignment_reg + blksize_reg[1:0] + 2'b1;
+                        crc_rst <= 1;
+                    end else begin
+                        crc_bit <= crc_bit - 1;
+                    end
+                end else if (blkcnt_reg != 0 && crc_ok) begin
+                    blkcnt_reg <= blkcnt_reg - 1;
+                    state <= READ_WAIT;
+                end else begin
+                    state <= IDLE;
                 end
             end
+            default:
+                state <= IDLE;
         endcase
+        if (start == 2'b11) state <= IDLE; // Abort
     end
 end
 
