@@ -190,13 +190,13 @@ Program the FPGA or the board flash memory.
 
 # Prebuilt images
 
-Prebuilt FPGA bitstream and SD card image are available in the releases area.
+Prebuilt FPGA bitstream and SD card image are available in the [releases area](https://github.com/eugene-tarassov/vivado-risc-v/releases).
 
 # Notes
 
 Rocket Chip is used as RISC-V implementation: [UC Berkeley Architecture Research - Rocket Chip Generator](https://bar.eecs.berkeley.edu/projects/rocket_chip.html).
 Rocket Chip is configured to include virtual memory, instruction and data caches, coherent interconnect, floating point, and all the relevant infrastructure.
-See [rocket.scala](https://github.com/eugene-tarassov/vivado-risc-v/blob/master/rocket.scala) for Rocket Chip configuration classes.
+See [rocket.scala](https://github.com/eugene-tarassov/vivado-risc-v/blob/master/src/main/scala/rocket.scala) for Rocket Chip configuration classes.
 
 RISC-V SoC in this repo contains bootrom, which differ from original Rocket Chip bootrom.
 The modified bootrom contains SD card boot loader and extended device tree.
