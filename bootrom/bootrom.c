@@ -617,7 +617,7 @@ int main(void) {
         const TCHAR * p = fnm;
         fnm[0] = 0;
         kputs("");
-        kprintf("RISC-V %d, Boot ROM V3.0\n", __riscv_xlen);
+        kprintf("RISC-V %d, Boot ROM V3.1\n", __riscv_xlen);
         drv_status = STA_NOINIT;
         errno = f_mount(0, &fatfs) != FR_OK || chk_mounted(&p, &fs, 0);
         if (errno) {
