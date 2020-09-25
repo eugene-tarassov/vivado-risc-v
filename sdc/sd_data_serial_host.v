@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2013 Authors                                   ////
+//// Copyright (C) 2013-2020 Authors                              ////
 ////                                                              ////
 //// Based on original work by                                    ////
 ////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
@@ -26,7 +26,7 @@
 ////                                                              ////
 //// You should have received a copy of the GNU Lesser General    ////
 //// Public License along with this source; if not, download it   ////
-//// from http://www.opencores.org/lgpl.shtml                     ////
+//// from https://www.gnu.org/licenses/                           ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 `include "sd_defines.h"
@@ -42,7 +42,7 @@ module sd_data_serial_host(
     // Rx Fifo
     output reg [31:0] data_out,
     output reg we,
-    //tristate data
+    // tristate data
     output reg DAT_oe_o,
     output reg[3:0] DAT_dat_o,
     input [3:0] DAT_dat_i,
@@ -58,15 +58,21 @@ module sd_data_serial_host(
 );
 
 reg [3:0] DAT_dat_reg;
-reg [`BLKSIZE_W-1+3:0] data_cycles;
 reg bus_4bit_reg;
-// CRC16
 reg crc_en;
 reg crc_rst;
 wire [15:0] crc_out [3:0];
-reg [`BLKSIZE_W-1+4:0] transf_cnt;
-parameter SIZE = 7;
-reg [SIZE-1:0] state;
+reg [`BLKSIZE_W+4-1:0] data_cycles;
+reg [`BLKSIZE_W+4-1:0] transf_cnt;
+reg [3:0] drt_bit;
+reg [3:0] drt_reg;
+reg [`BLKCNT_W-1:0] blkcnt_reg;
+reg [1:0] byte_alignment_reg;
+reg [3:0] crc_bit;
+reg [3:0] last_din;
+reg [4:0] data_index;
+
+reg [6:0] state;
 parameter IDLE       = 7'b0000001;
 parameter WRITE_DAT  = 7'b0000010;
 parameter WRITE_WAIT = 7'b0000100;
@@ -74,16 +80,8 @@ parameter WRITE_DRT  = 7'b0001000;
 parameter WRITE_BUSY = 7'b0010000;
 parameter READ_WAIT  = 7'b0100000;
 parameter READ_DAT   = 7'b1000000;
-reg [3:0] drt_bit;
-reg [3:0] drt_reg;
-reg [`BLKCNT_W-1:0] blkcnt_reg;
-reg [1:0] byte_alignment_reg;
-reg [`BLKSIZE_W-1:0] blksize_reg;
-reg [3:0] crc_bit;
-reg [3:0] last_din;
-reg [4:0] data_index;
 
-//sd data input pad register
+// sd data input pad register
 always @(posedge clock) begin
     if (clock_data_in) DAT_dat_reg <= DAT_dat_i;
 end
@@ -98,8 +96,7 @@ endgenerate
 assign busy = (state != IDLE);
 assign sd_data_busy = !DAT_dat_reg[0];
 
-always @(posedge clock)
-begin: FSM_OUT
+always @(posedge clock) begin
     if (rst) begin
         state <= IDLE;
         DAT_oe_o <= 0;
@@ -117,7 +114,6 @@ begin: FSM_OUT
         crc_ok <= 0;
         data_index <= 0;
         blkcnt_reg <= 0;
-        blksize_reg <= 0;
         byte_alignment_reg <= 0;
         data_cycles <= 0;
         bus_4bit_reg <= 0;
@@ -135,8 +131,7 @@ begin: FSM_OUT
                 data_index <= 0;
                 blkcnt_reg <= blkcnt;
                 byte_alignment_reg <= byte_alignment;
-                blksize_reg <= blksize;
-                data_cycles <= (bus_4bit ? (blksize << 1) + `BLKSIZE_W'd2 : (blksize << 3) + `BLKSIZE_W'd8);
+                data_cycles <= (bus_4bit ? {3'b000, blksize, 1'b0} + 2 : {1'b0, blksize, 3'b000} + 8);
                 bus_4bit_reg <= bus_4bit;
                 if (start == 2'b01) state <= WRITE_DAT;
                 else if (start == 2'b10) state <= READ_WAIT;
@@ -212,7 +207,7 @@ begin: FSM_OUT
                     if (blkcnt_reg != 0 && crc_ok) begin
                         transf_cnt <= 0;
                         blkcnt_reg <= blkcnt_reg - 1;
-                        byte_alignment_reg <= byte_alignment_reg + blksize_reg[1:0] + 2'b1;
+                        byte_alignment_reg <= byte_alignment_reg + blksize[1:0] + 2'b1;
                         crc_rst <= 1;
                         state <= WRITE_DAT;
                     end else begin
@@ -259,7 +254,7 @@ begin: FSM_OUT
                         if (crc_out[3][crc_bit] != last_din[3]) crc_ok <= 0;
                     end
                     if (crc_bit == 0) begin
-                        byte_alignment_reg <= byte_alignment_reg + blksize_reg[1:0] + 2'b1;
+                        byte_alignment_reg <= byte_alignment_reg + blksize[1:0] + 2'b1;
                         crc_rst <= 1;
                     end else begin
                         crc_bit <= crc_bit - 1;

@@ -212,7 +212,7 @@ workspace/$(CONFIG)/rocket.vhdl: workspace/$(CONFIG)/system-$(BOARD).v
 	  net.largest.riscv.vhdl.Main \
 	  workspace/$(CONFIG)/system-$(BOARD).v >$@
 
-# --- utility make targets to run SDB command line ---
+# --- utility make targets to run SBT command line ---
 
 .PHONY: sbt rocket-sbt
 

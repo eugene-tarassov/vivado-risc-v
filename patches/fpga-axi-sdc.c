@@ -59,7 +59,8 @@
 #define SDC_DAT_INT_STATUS_CRC  0x0008  // CRC error
 #define SDC_DAT_INT_STATUS_CFE  0x0010  // Data FIFO underrun or overrun
 
-#define CMD_TIMEOUT 0xfffff
+#define CMD_TIMEOUT_MS 1000
+#define BUSY_TIMEOUT_MS 500
 
 struct sdc_regs {
     volatile uint32_t argument;
@@ -139,8 +140,8 @@ static int sdc_finish(struct sdc_host * host, struct mmc_command * cmd) {
                 host->acmd = cmd->opcode == MMC_APP_CMD;
                 return 0;
             }
-            if (status & SDC_CMD_INT_STATUS_CTE) cmd->error = -ETIME;
-            else cmd->error = -EIO;
+            if (status & SDC_CMD_INT_STATUS_CTE) return cmd->error = -ETIME;
+            cmd->error = -EIO;
             break;
         }
     }
@@ -149,7 +150,6 @@ static int sdc_finish(struct sdc_host * host, struct mmc_command * cmd) {
 
 static int sdc_data_finish(struct sdc_host * host, struct mmc_data * data) {
     int status;
-    int command;
 
     while ((status = host->regs->dat_int_status) == 0) {}
     host->regs->dat_int_status = 0;
@@ -160,46 +160,42 @@ static int sdc_data_finish(struct sdc_host * host, struct mmc_data * data) {
         return 0;
     }
 
-    if (status & SDC_DAT_INT_STATUS_CTE) data->error = -ETIME;
-    else data->error = -EIO;
-
-    command = (MMC_STOP_TRANSMISSION << 8) | 1 | (1 << 2) | (1 << 3) | (1 << 4);
-    host->regs->command = command;
-    host->regs->cmd_timeout = CMD_TIMEOUT;
-    host->regs->argument = 0;
-    while ((status = host->regs->cmd_int_status) == 0) {}
-
-    return data->error;
+    if (status & SDC_DAT_INT_STATUS_CTE) return data->error = -ETIME;
+    return data->error = -EIO;
 }
 
 static int sdc_setup_data_xfer(struct sdc_host * host, struct mmc_host * mmc, struct mmc_data * data) {
-    unsigned timeout = data->blocks * data->blksz * 8 / (1 << mmc->ios.bus_width);
     uint64_t addr = sg_phys(data->sg);
+    uint64_t timeout = 0;
 
     data->bytes_xfered = 0;
 
     if (addr & 3) return -EINVAL;
     if (data->blksz & 3) return -EINVAL;
     if (data->blksz < 4) return -EINVAL;
-    if (data->blksz > 0x200) return -EINVAL;
+    if (data->blksz > 0x1000) return -EINVAL;
     if (data->blocks > 0x10000) return -EINVAL;
     if (addr + data->blksz * data->blocks > 0x100000000) return -EINVAL;
     if (data->sg->length < data->blksz * data->blocks) return -EINVAL;
 
-    timeout += mmc->ios.clock / 100; // 10ms
-    if (timeout > 0xffffff) timeout = 0;
+    // SD card data transfer time
+    timeout += data->blocks * data->blksz * 8 / (1 << mmc->ios.bus_width);
+    // SD card "busy" time
+    timeout += (uint64_t)mmc->ios.clock * BUSY_TIMEOUT_MS / 1000 * data->blocks;
 
     host->regs->dma_addres = (uint32_t)addr;
     host->regs->block_size = data->blksz - 1;
     host->regs->block_count = data->blocks - 1;
-    host->regs->data_timeout = timeout;
+    host->regs->data_timeout = (uint32_t)timeout;
+    if (host->regs->data_timeout != timeout) host->regs->data_timeout = 0;
 
     return 0;
 }
 
 static int sdc_send_cmd(struct sdc_host * host, struct mmc_host * mmc, struct mmc_command * cmd, struct mmc_data * data) {
-    int xfer = 0;
     int command = cmd->opcode << 8;
+    uint64_t timeout = 0;
+    int xfer = 0;
 
     if (cmd->flags & MMC_RSP_PRESENT) {
         if (cmd->flags & MMC_RSP_136)
@@ -220,8 +216,11 @@ static int sdc_send_cmd(struct sdc_host * host, struct mmc_host * mmc, struct mm
         xfer = 1;
     }
 
+    timeout = (uint64_t)mmc->ios.clock * CMD_TIMEOUT_MS / 1000;
+
     host->regs->command = command;
-    host->regs->cmd_timeout = CMD_TIMEOUT;
+    host->regs->cmd_timeout = (uint32_t)timeout;
+    if (host->regs->cmd_timeout != timeout) host->regs->cmd_timeout = 0;
     host->regs->argument = cmd->arg;
 
     if (sdc_finish(host, cmd) < 0) return cmd->error;
@@ -323,9 +322,7 @@ static int axi_sdc_probe(struct platform_device * pdev) {
     host->regs = (struct sdc_regs __iomem *)ioaddr;
 
     ret = of_property_read_u32(dev->of_node, "clock", &host->clk_freq);
-    if (ret) {
-        host->clk_freq = 100000000;
-    }
+    if (ret) host->clk_freq = 100000000;
 
     ret = mmc_of_parse(mmc);
     if (ret) {
@@ -341,7 +338,7 @@ static int axi_sdc_probe(struct platform_device * pdev) {
     mmc->max_segs = 1;
     mmc->max_req_size = 0x2000000;
     mmc->max_seg_size = 0x2000000;
-    mmc->max_blk_size = 0x200;
+    mmc->max_blk_size = 0x1000;
     mmc->max_blk_count = 0x10000;
 
     sdc_reset(mmc);

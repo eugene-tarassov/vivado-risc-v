@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2013 Authors                                   ////
+//// Copyright (C) 2013-2020 Authors                              ////
 ////                                                              ////
 //// Based on original work by                                    ////
 ////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
@@ -26,7 +26,7 @@
 ////                                                              ////
 //// You should have received a copy of the GNU Lesser General    ////
 //// Public License along with this source; if not, download it   ////
-//// from http://www.opencores.org/lgpl.shtml                     ////
+//// from https://www.gnu.org/licenses/                           ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 

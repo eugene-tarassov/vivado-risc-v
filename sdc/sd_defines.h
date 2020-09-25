@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2013 Authors                                   ////
+//// Copyright (C) 2013-2020 Authors                              ////
 ////                                                              ////
 //// Based on original work by                                    ////
 ////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
@@ -26,17 +26,17 @@
 ////                                                              ////
 //// You should have received a copy of the GNU Lesser General    ////
 //// Public License along with this source; if not, download it   ////
-//// from http://www.opencores.org/lgpl.shtml                     ////
+//// from https://www.gnu.org/licenses/                           ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-//global defines
+// global defines
 `define BLKSIZE_W 12
 `define BLKCNT_W 16
-`define CMD_TIMEOUT_W 24
-`define DATA_TIMEOUT_W 24
+`define CMD_TIMEOUT_W 25
+`define DATA_TIMEOUT_W 28
 
-//cmd module interrupts
+// cmd module interrupts
 `define INT_CMD_SIZE 5
 `define INT_CMD_CC 0
 `define INT_CMD_EI 1
@@ -44,7 +44,7 @@
 `define INT_CMD_CCRCE 3
 `define INT_CMD_CIE  4
 
-//data module interrupts
+// data module interrupts
 `define INT_DATA_SIZE 5
 `define INT_DATA_CC 0
 `define INT_DATA_EI 1
@@ -52,7 +52,7 @@
 `define INT_DATA_CCRCE 3
 `define INT_DATA_CFE 4
 
-//command register defines
+// command register defines
 `define CMD_REG_SIZE 14
 `define CMD_RESPONSE_CHECK 1:0
 `define CMD_BUSY_CHECK 2
@@ -61,7 +61,7 @@
 `define CMD_WITH_DATA 6:5
 `define CMD_INDEX 13:8
 
-//register addreses
+// register addreses
 `define argument 8'h00
 `define command 8'h04
 `define resp0 8'h08
@@ -84,7 +84,7 @@
 `define card_detect 8'h4c
 `define dst_src_addr 8'h60
 
-//wb module defines
+// register contents
 `define RESET_BLOCK_SIZE 12'd511
-`define RESET_CLK_DIV 0
+`define RESET_CLOCK_DIV 124
 `define SUPPLY_VOLTAGE_mV 3300

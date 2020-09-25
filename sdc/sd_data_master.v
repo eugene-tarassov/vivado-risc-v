@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2013 Authors                                   ////
+//// Copyright (C) 2013-2020 Authors                              ////
 ////                                                              ////
 //// Based on original work by                                    ////
 ////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
@@ -26,7 +26,7 @@
 ////                                                              ////
 //// You should have received a copy of the GNU Lesser General    ////
 //// Public License along with this source; if not, download it   ////
-//// from http://www.opencores.org/lgpl.shtml                     ////
+//// from https://www.gnu.org/licenses/                           ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 `include "sd_defines.h"
@@ -62,10 +62,11 @@ localparam START_RX_FIFO = 4'b0100;
 localparam DATA_TRANSFER = 4'b1000;
 
 reg [`DATA_TIMEOUT_W-1:0] watchdog;
+reg watchdog_enable;
+reg watchdog_alarm;
 reg tx_cycle;
 
-always @(posedge clock)
-begin
+always @(posedge clock) begin
     if (rst) begin
         start_tx_fifo_o <= 0;
         start_rx_fifo_o <= 0;
@@ -74,6 +75,8 @@ begin
         tx_cycle <= 0;
         int_status_o <= 0;
         watchdog <= 0;
+        watchdog_enable <= 0;
+        watchdog_alarm <= 0;
         state <= IDLE;
     end else if (clock_posedge) begin
         case (state)
@@ -84,6 +87,8 @@ begin
                 d_read_o <= 0;
                 tx_cycle <= 0;
                 watchdog <= 0;
+                watchdog_enable <= timeout_i != 0;
+                watchdog_alarm <= 0;
                 if (start_tx_i) state <= START_TX_FIFO;
                 else if (start_rx_i) state <= START_RX_FIFO;
             end
@@ -106,7 +111,6 @@ begin
             DATA_TRANSFER: begin
                 d_read_o <= 0;
                 d_write_o <= 0;
-                watchdog <= watchdog + 1;
                 if (tx_cycle) begin
                     if (tx_fifo_empty_i) begin
                         int_status_o[`INT_DATA_CFE] <= 1;
@@ -126,7 +130,7 @@ begin
                         d_read_o <= 1;
                     end
                 end
-                if (timeout_i && watchdog >= timeout_i) begin
+                if (watchdog_alarm) begin
                     int_status_o[`INT_DATA_CTE] <= 1;
                     int_status_o[`INT_DATA_EI] <= 1;
                     state <= IDLE;
@@ -141,6 +145,9 @@ begin
                     end else begin
                         int_status_o[`INT_DATA_CC] <= 1;
                     end
+                end else if (watchdog_enable) begin
+                    watchdog <= watchdog + 1;
+                    if (watchdog >= timeout_i) watchdog_alarm <= 1;
                 end
             end
         endcase

@@ -175,7 +175,7 @@ static int sdc_setup_data_xfer(struct sdc_priv * dev, struct mmc * mmc, struct m
     if (addr & 3) return -1;
     if (data->blocksize & 3) return -1;
     if (data->blocksize < 4) return -1;
-    if (data->blocksize > 0x200) return -1;
+    if (data->blocksize > 0x1000) return -1;
     if (data->blocks > 0x10000) return -1;
     if (addr + data->blocksize * data->blocks > 0x100000000) return -1;
 

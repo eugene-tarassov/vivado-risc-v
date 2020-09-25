@@ -26,7 +26,7 @@
 ////                                                              ////
 //// You should have received a copy of the GNU Lesser General    ////
 //// Public License along with this source; if not, download it   ////
-//// from http://www.opencores.org/lgpl.shtml                     ////
+//// from https://www.gnu.org/licenses/                           ////
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
@@ -121,7 +121,7 @@ module sdc_controller (
     output reg sdio_clk,
     (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 sdio_reset RST" *)
     (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_HIGH" *)
-    output wire sdio_reset,
+    output reg sdio_reset,
     input wire sdio_cd,
 
     // Interrupts
@@ -164,7 +164,7 @@ reg  cmd_int_rst;
 reg  data_int_rst;
 reg  ctrl_rst;
 
-// wb accessible registers
+// AXI accessible registers
 reg  [31:0] argument_reg;
 reg  [`CMD_REG_SIZE-1:0] command_reg;
 reg  [`CMD_TIMEOUT_W-1:0] cmd_timeout_reg;
@@ -199,14 +199,8 @@ reg clock_state;
 reg clock_posedge;
 reg clock_data_in;
 
-always @(posedge clock)
-begin
-    if (sdio_reset) begin
-        clock_cnt <= 0;
-        clock_state <= 0;
-        clock_posedge <= 0;
-        clock_data_in <= 0;
-    end else if (clock_cnt >= clock_divider_reg) begin
+always @(posedge clock) begin
+    if (clock_cnt >= clock_divider_reg) begin
         clock_state <= !clock_state;
         clock_posedge <= !clock_state;
         if (clock_divider_reg == 0)
@@ -219,10 +213,9 @@ begin
         clock_data_in <= 0;
         clock_cnt <= clock_cnt + 1;
     end
-    sdio_clk <= clock_state;
+    sdio_clk <= sdio_reset || clock_state;
+    if (clock_posedge) sdio_reset <= controller_setting_reg[1];
 end
-
-assign sdio_reset = controller_setting_reg[1];
 
 // ------ SD IO Buffers
 
@@ -311,12 +304,12 @@ always @(posedge clock) begin
         command_reg <= 0;
         cmd_timeout_reg <= 0;
         data_timeout_reg <= 0;
-        block_size_reg <= 0;
+        block_size_reg <= `RESET_BLOCK_SIZE;
         controller_setting_reg <= 0;
         cmd_int_enable_reg <= 0;
         data_int_enable_reg <= 0;
         software_reset_reg <= 0;
-        clock_divider_reg <= 124; // 400KHz
+        clock_divider_reg <= `RESET_CLOCK_DIV;
         block_count_reg <= 0;
         sd_insert_ie <= 0;
         sd_remove_ie <= 0;
@@ -416,7 +409,6 @@ wire m_bus_ack_i;
 reg m_axi_cyc;
 reg m_axi_write;
 reg [fifo_addr_bits-1:0] m_axi_wcnt;
-wire [`BLKSIZE_W+`BLKCNT_W-1:0] xfersize;
 wire [31:2] m_bus_adr_o;
 wire [31:0] m_bus_dat_o;
 wire [31:0] m_bus_dat_i;
@@ -506,8 +498,6 @@ axi_sd_fifo_filler #(.fifo_addr_bits(fifo_addr_bits)) sd_fifo_filler0(
     .rx_empty_o(rx_fifo_empty), // SD -> HOST empty
     .tx_ready_o(tx_fifo_ready)  // HOST -> SD has enough data to start transmission
     );
-
-// ------
 
 sd_cmd_master sd_cmd_master0(
     .clock        (clock),
