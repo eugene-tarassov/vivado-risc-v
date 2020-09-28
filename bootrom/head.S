@@ -3,11 +3,15 @@
 .section .text.start, "ax", @progbits
 .globl _start
 _start:
-  la s0, _ram
   csrr a0, mhartid
   la a1, _dtb
+  la s0, _ram
   jr s0
-_hart0_entry:
+_start_bootrom:
+  # a0 - hart ID
+  # a1 - Device Tree
+  # s0 - start of RAM and trap vector
+  sw s2, 0(s0) # clear trap vector
   li sp, BOOTROM_MEM_END
   call main
   j _hang
@@ -17,17 +21,17 @@ _hart0_entry:
 _hang:
   csrr a0, mhartid
   la a1, _dtb
+  la s0, _ram
   li s2, 0
-  beq a0, s2, _hart0_entry
+  beq a0, s2, _start_bootrom
 _hartx_loop:
   # write mtvec
-  la t0, _ram
-  csrw mtvec, t0
+  csrw mtvec, s0
   # enable software interrupt
   csrwi mie, 0x8
   wfi
   # check for valid trap vector
-  lw t1, 0(t0)
+  lw t1, 0(s0)
   beqz t1, _hartx_loop
   # jump to code in RAM
   ecall

@@ -5,10 +5,10 @@ OBJDUMP=$(CROSS_COMPILE)objdump
 CFLAGS = -march=rv64im -mabi=lp64
 
 CCFLAGS = $(CFLAGS)
-CCFLAGS += -mcmodel=medany -Os -Wall -nostartfiles
+CCFLAGS += -mcmodel=medany -O0 -Wall
 CCFLAGS += -fno-pic -fno-common -g -I.
 
-LFLAGS = -static -nostdlib -T bootrom.lds
+LFLAGS = -static -nostartfiles -T bootrom.lds
 
 dts := system.dts
 dtb := system.dtb
@@ -22,8 +22,8 @@ all: bootrom.img bootrom.elf
 	$(OBJCOPY) -O binary $< $@
 	ls -l $@
 
-%.elf: $(dtb) head.S kprintf.c bootrom.c ff.c
-	$(CC) $(CCFLAGS) -DDEVICE_TREE='"$(dtb)"' $(LFLAGS) -o $@ head.S kprintf.c bootrom.c ff.c
+%.elf: $(dtb) head.S kprintf.c bootrom.c ff.c ffunicode.c
+	$(CC) $(CCFLAGS) -DDEVICE_TREE='"$(dtb)"' $(LFLAGS) -o $@ head.S kprintf.c bootrom.c ff.c ffunicode.c
 	$(OBJDUMP) -h -p $@
 
 clean:

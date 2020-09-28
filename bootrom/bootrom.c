@@ -1,7 +1,8 @@
 #include <stdint.h>
 #include <stdlib.h>
-#include <diskio.h>
+
 #include <ff.h>
+#include <diskio.h>
 
 #include "common.h"
 #include "kprintf.h"
@@ -73,7 +74,7 @@
 // Data status bits
 #define SDC_DAT_INT_STATUS_TRS  0x0001  // Transfer complete
 #define SDC_DAT_INT_STATUS_ERR  0x0002  // Any error
-#define SDC_DAT_INT_STATUS_CTE  0x0004  // Timeout 
+#define SDC_DAT_INT_STATUS_CTE  0x0004  // Timeout
 #define SDC_DAT_INT_STATUS_CRC  0x0008  // CRC error
 #define SDC_DAT_INT_STATUS_CFE  0x0010  // Data FIFO underrun or overrun
 
@@ -81,6 +82,11 @@
 #define ERR_NOT_ELF         31
 #define ERR_ELF_BITS        32
 #define ERR_ELF_ENDIANNESS  33
+#define ERR_CMD_CRC         34
+#define ERR_CMD_CHECK       35
+#define ERR_DATA_CRC        36
+#define ERR_DATA_FIFO       37
+#define ERR_BUF_ALIGNMENT   38
 
 struct sdc_regs {
     volatile uint32_t argument;
@@ -131,6 +137,40 @@ extern unsigned char _etext[];
 extern unsigned char _fbss[];
 extern unsigned char _ebss[];
 
+static const char * errno_to_str(void) {
+    switch (errno) {
+    case FR_OK: return "No error";
+    case FR_DISK_ERR: return "Disk I/O error";
+    case FR_INT_ERR: return "Assertion failed";
+    case FR_NOT_READY: return "Disk not ready";
+    case FR_NO_FILE: return "Could not find the file";
+    case FR_NO_PATH: return "Could not find the path";
+    case FR_INVALID_NAME: return "The path name format is invalid";
+    case FR_DENIED: return "Acces denied";
+    case FR_EXIST: return "Already exist";
+    case FR_INVALID_OBJECT: return "The file/directory object is invalid";
+    case FR_WRITE_PROTECTED: return "The drive is write protected";
+    case FR_INVALID_DRIVE: return "The drive number is invalid";
+    case FR_NOT_ENABLED: return "The volume has no work area";
+    case FR_NO_FILESYSTEM: return "Not a valid FAT volume";
+    case FR_MKFS_ABORTED: return "The f_mkfs() aborted";
+    case FR_TIMEOUT: return "Timeout";
+    case FR_LOCKED: return "Locked";
+    case FR_NOT_ENOUGH_CORE: return "Not enough memory";
+    case FR_TOO_MANY_OPEN_FILES: return "Too many open files";
+    case ERR_EOF: return "Unexpected EOF";
+    case ERR_NOT_ELF: return "Not an ELF file";
+    case ERR_ELF_BITS: return "Wrong ELF word size";
+    case ERR_ELF_ENDIANNESS: return "Wrong ELF endianness";
+    case ERR_CMD_CRC: return "Command CRC error";
+    case ERR_CMD_CHECK: return "Command code check error";
+    case ERR_DATA_CRC: return "Data CRC error";
+    case ERR_DATA_FIFO: return "Data FIFO error";
+    case ERR_BUF_ALIGNMENT: return "Bad buffer alignment";
+    }
+    return "Unknown error code";
+}
+
 static void usleep(unsigned us) {
     uintptr_t cycles0;
     uintptr_t cycles1;
@@ -163,6 +203,10 @@ static int sdc_finish(unsigned cmd) {
                 response[3] = regs->response4;
                 return 0;
             }
+            errno = FR_DISK_ERR;
+            if (status & SDC_CMD_INT_STATUS_CTE) errno = FR_TIMEOUT;
+            if (status & SDC_CMD_INT_STATUS_CCRC) errno = ERR_CMD_CRC;
+            if (status & SDC_CMD_INT_STATUS_CIE) errno = ERR_CMD_CHECK;
             break;
         }
     }
@@ -177,6 +221,10 @@ static int sdc_data_finish(void) {
     while (regs->software_reset != 0) {}
 
     if (status == SDC_DAT_INT_STATUS_TRS) return 0;
+    errno = FR_DISK_ERR;
+    if (status & SDC_DAT_INT_STATUS_CTE) errno = FR_TIMEOUT;
+    if (status & SDC_DAT_INT_STATUS_CRC) errno = ERR_DATA_CRC;
+    if (status & SDC_DAT_INT_STATUS_CFE) errno = ERR_DATA_FIFO;
     return -1;
 }
 
@@ -249,7 +297,10 @@ static int send_data_cmd(unsigned cmd, unsigned arg, void * buf, unsigned blocks
 
     if (blocks) {
         command |= 1 << 5;
-        if ((intptr_t)buf & 3) return -1;
+        if ((intptr_t)buf & 3) {
+            errno = ERR_BUF_ALIGNMENT;
+            return -1;
+        }
         regs->dma_addres = (uint32_t)(intptr_t)buf;
         regs->block_size = 511;
         regs->block_count = blocks - 1;
@@ -266,56 +317,9 @@ static int send_data_cmd(unsigned cmd, unsigned arg, void * buf, unsigned blocks
     return 0;
 }
 
-static int send_cmd(unsigned cmd, unsigned arg) {
-    return send_data_cmd(cmd, arg, NULL, 0);
-}
+#define send_cmd(cmd, arg) send_data_cmd(cmd, arg, NULL, 0)
 
-WCHAR ff_convert(WCHAR ch, UINT unicode) {
-    return ch;
-}
-
-WCHAR ff_wtoupper(WCHAR ch) {
-    if (ch >= 'a' && ch <= 'z') return ch - 'a' + 'A';
-    return ch;
-}
-
-DSTATUS disk_status(BYTE drv) {
-    return drv_status;
-}
-
-DRESULT disk_read(BYTE drv, BYTE * buf, DWORD sector, BYTE count) {
-    DSTATUS s;
-
-    if (!count) return RES_PARERR;
-    s = disk_status(drv);
-    if (s & STA_NOINIT) return RES_NOTRDY;
-
-    /* Convert LBA to byte address if needed */
-    if (!(card_type & CT_BLOCK)) sector *= 512;
-    while (count > 0) {
-        BYTE bcnt = count > MAX_BLOCK_CNT ? MAX_BLOCK_CNT : count;
-        unsigned bytes = bcnt * 512;
-        if (send_data_cmd(bcnt == 1 ? CMD17 : CMD18, sector, buf, bcnt) == 0 &&
-                (bcnt == 1 || send_cmd(CMD12, 0) == 0)) {
-            if (card_type & CT_BLOCK) {
-                sector += bcnt;
-            }
-            else {
-                sector += bytes;
-            }
-            buf += bytes;
-            count -= bcnt;
-        }
-        else {
-            kprintf("SD read error, sector: %d\n", (int)sector);
-            break;
-        }
-    }
-
-    return count ? RES_ERROR : RES_OK;
-}
-
-DSTATUS disk_initialize(BYTE drv) {
+static int ini_sd(void) {
     unsigned rca;
 
     /* Reset controller */
@@ -329,13 +333,6 @@ DSTATUS disk_initialize(BYTE drv) {
     card_type = 0;
     drv_status = STA_NOINIT;
 
-    /* Check if card is in the socket */
-    drv_status = disk_status(drv);
-    if (drv_status & STA_NODISK) {
-        kprintf("No SD card present.\n");
-        return drv_status;
-    }
-
     if (regs->capability & SDC_CAPABILITY_SD_RESET) {
         /* Power cycle SD card */
         regs->control |= SDC_CONTROL_SD_RESET;
@@ -347,66 +344,72 @@ DSTATUS disk_initialize(BYTE drv) {
     /* Enter Idle state */
     send_cmd(CMD0, 0);
 
-    if (send_cmd(CMD8, 0x1AA) == 0) {
-        card_type = CT_SD1;
-        if ((response[0] & 0xfff) == 0x1AA) card_type = CT_SD2;
-    }
-    else {
-        kprintf("CMD8 failed.\n");
-        return drv_status;
-    }
+    if (send_cmd(CMD8, 0x1AA) < 0) return -1;
+    card_type = CT_SD1;
+    if ((response[0] & 0xfff) == 0x1AA) card_type = CT_SD2;
 
     /* Wait for leaving idle state (ACMD41 with HCS bit) */
     while (1) {
         /* ACMD41, Set Operating Conditions */
-        send_cmd(CMD55, 0);
+        if (send_cmd(CMD55, 0) < 0) return -1;
         /* Host High Capacity & 3.3V */
-        if (send_cmd(ACMD41, 0x40300000) == 0) {
-            if (response[0] & (1 << 31)) {
-                if (response[0] & (1 << 30)) card_type |= CT_BLOCK;
-                break;
-            }
-        }
-        else {
-            kprintf("ACMD41 failed.\n");
-            return STA_NOINIT;
+        if (send_cmd(ACMD41, 0x40300000) < 0) return -1;
+        if (response[0] & (1 << 31)) {
+            if (response[0] & (1 << 30)) card_type |= CT_BLOCK;
+            break;
         }
     }
 
     /* Get CID */
-    if (send_cmd(CMD2, 0) != 0) {
-        kprintf("Cannot get CID\n");
-        return STA_NOINIT;
-    }
+    if (send_cmd(CMD2, 0) < 0) return -1;
 
     /* Get RCA */
     rca = 0x1234;
-    send_cmd(CMD3, rca << 16);
+    if (send_cmd(CMD3, rca << 16) < 0) return -1;
     rca = response[0] >> 16;
 
     /* Select card */
-    if (send_cmd(CMD7, rca << 16) != 0) {
-        kprintf("Cannot select the card\n");
-        return STA_NOINIT;
-    }
+    if (send_cmd(CMD7, rca << 16) < 0) return -1;
 
     /* Set R/W block length to 512 */
-    if (send_cmd(CMD16, 512) != 0) {
-        kprintf("Cannot set block length\n");
-        return STA_NOINIT;
-    }
+    if (send_cmd(CMD16, 512) < 0) return -1;
 
     regs->control = 0;
-    if (send_cmd(CMD55, rca << 16) || send_cmd(ACMD6, 0)) {
-        kprintf("Cannot set bus bits\n");
-        return STA_NOINIT;
-    }
+    if (send_cmd(CMD55, rca << 16) < 0 || send_cmd(ACMD6, 0) < 0) return -1;
 
     regs->clock_divider = 3;
     usleep(10000);
 
     drv_status &= ~STA_NOINIT;
+    return 0;
+}
 
+DSTATUS disk_status(BYTE drv) {
+    return drv_status;
+}
+
+DRESULT disk_read(BYTE drv, BYTE * buf, LBA_t sector, UINT count) {
+
+    if (!count) return RES_PARERR;
+    if (drv_status & STA_NOINIT) return RES_NOTRDY;
+
+    /* Convert LBA to byte address if needed */
+    if (!(card_type & CT_BLOCK)) sector *= 512;
+    while (count > 0) {
+        UINT bcnt = count > MAX_BLOCK_CNT ? MAX_BLOCK_CNT : count;
+        unsigned bytes = bcnt * 512;
+        if (send_data_cmd(bcnt == 1 ? CMD17 : CMD18, sector, buf, bcnt) < 0) return RES_ERROR;
+        if (bcnt > 1 && send_cmd(CMD12, 0) < 0) return RES_ERROR;
+        sector += (card_type & CT_BLOCK) ? bcnt : bytes;
+        count -= bcnt;
+        buf += bytes;
+    }
+
+    return RES_OK;
+}
+
+DSTATUS disk_initialize(BYTE drv) {
+    if (ini_sd() < 0) kprintf("Cannot init SD: %s\n", errno_to_str());
     return drv_status;
 }
 
@@ -578,48 +581,15 @@ static int download(void) {
     return 0;
 }
 
-static const char * errno_to_str(void) {
-    switch (errno) {
-    case FR_OK              : return "No error";
-    case FR_DISK_ERR        : return "Disk I/O error";
-    case FR_INT_ERR         : return "Assertion failed";
-    case FR_NOT_READY       : return "Disk not ready";
-    case FR_NO_FILE         : return "Could not find the file";
-    case FR_NO_PATH         : return "Could not find the path";
-    case FR_INVALID_NAME    : return "The path name format is invalid";
-    case FR_DENIED          : return "Acces denied due to prohibited access or directory full";
-    case FR_EXIST           : return "Acces denied due to prohibited access";
-    case FR_INVALID_OBJECT  : return "The file/directory object is invalid";
-    case FR_WRITE_PROTECTED : return "The physical drive is write protected";
-    case FR_INVALID_DRIVE   : return "The logical drive number is invalid";
-    case FR_NOT_ENABLED     : return "The volume has no work area";
-    case FR_NO_FILESYSTEM   : return "There is no valid FAT volume on the physical drive";
-    case FR_MKFS_ABORTED    : return "The f_mkfs() aborted due to any parameter error";
-    case FR_TIMEOUT         : return "Could not get a grant to access the volume within defined period";
-    case FR_LOCKED          : return "The operation is rejected according to the file shareing policy";
-    case FR_NOT_ENOUGH_CORE : return "LFN working buffer could not be allocated";
-    case FR_TOO_MANY_OPEN_FILES: return "Too many open files";
-    case ERR_EOF            : return "Unexpected EOF";
-    case ERR_NOT_ELF        : return "Not an ELF file";
-    case ERR_ELF_BITS       : return "Wrong ELF word size";
-    case ERR_ELF_ENDIANNESS : return "Wrong ELF endianness";
-    }
-    return "Unknown error code";
-}
-
 int main(void) {
     uint64_t * bss = (uint64_t *)_fbss;
     while (bss < (uint64_t *)_ebss) *bss++ = 0;
 
     for (;;) {
-        FATFS * fs = NULL;
-        TCHAR fnm[1];
-        const TCHAR * p = fnm;
-        fnm[0] = 0;
         kputs("");
         kprintf("RISC-V %d, Boot ROM V3.1\n", __riscv_xlen);
         drv_status = STA_NOINIT;
-        errno = f_mount(0, &fatfs) != FR_OK || chk_mounted(&p, &fs, 0);
+        errno = f_mount(&fatfs, "", 1);
         if (errno) {
             kprintf("Cannot mount SD: %s\n", errno_to_str());
         }
