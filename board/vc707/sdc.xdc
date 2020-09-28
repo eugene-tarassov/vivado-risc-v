@@ -11,6 +11,9 @@ set_property -dict { PACKAGE_PIN AP32  IOSTANDARD LVCMOS18 } [get_ports {sdio_cd
 set main_clock [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out1]]
 set sdio_clock [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out2]]
 
+set_max_delay -from $sdio_clock -to $main_clock -datapath_only 12.0
+set_max_delay -from $main_clock -to $sdio_clock -datapath_only 12.0
+
 set_max_delay -from $sdio_clock -to [get_ports sdio_*] -datapath_only 8.0
 set_max_delay -from [get_ports sdio_cmd]  -to $sdio_clock -datapath_only 8.0
 set_max_delay -from [get_ports sdio_dat*] -to $sdio_clock -datapath_only 8.0
