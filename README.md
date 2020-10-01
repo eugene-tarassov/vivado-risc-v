@@ -202,7 +202,7 @@ RISC-V SoC in this repo contains bootrom, which differ from original Rocket Chip
 The modified bootrom contains SD card boot loader and extended device tree.
 
 RISC-V SoC in this repo contains DDR, UART, SD and Ethernet controllers.
-DDR and UART are provided by Vivado, SD and Ethernet are open source Verilog.
+DDR is provided by Vivado. UART, SD and Ethernet are open source Verilog.
 
 SD controller implements SD HS (High Speed) specs, 25MB/s read/write speed.
 
