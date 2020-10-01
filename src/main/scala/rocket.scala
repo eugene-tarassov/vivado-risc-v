@@ -2,6 +2,7 @@ package Vivado
 
 import Chisel._
 import freechips.rocketchip.config.{Field, Config, Parameters}
+import freechips.rocketchip.devices.debug.DebugModuleKey
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.subsystem._
 import freechips.rocketchip.devices.tilelink._
@@ -33,6 +34,10 @@ class WithGemmini(mesh_size: Int, bus_bits: Int) extends Config((site, here, up)
           gemmini.GemminiConfigs.defaultConfig.copy(meshRows = mesh_size, meshColumns = mesh_size, dma_buswidth = bus_bits)))
     }
   )
+})
+
+class WithDebugProgBuf(prog_buf_words: Int, imp_break: Boolean) extends Config((site, here, up) => {
+  case DebugModuleKey => up(DebugModuleKey, site).map(_.copy(nProgramBufferWords = prog_buf_words, hasImplicitEbreak = imp_break))
 })
 
 /*
@@ -104,6 +109,27 @@ class Rocket32s16 extends Config(
 class Rocket64b2 extends Config(
   new WithNBreakpoints(8) ++
   new WithNBigCores(2)    ++
+  new RocketBaseConfig)
+
+/* Smaller debug module */
+class Rocket64b2d1 extends Config(
+  new WithNBreakpoints(1) ++
+  new WithNBigCores(2)    ++
+  new WithDebugProgBuf(1, true) ++
+  new RocketBaseConfig)
+
+/* Smaller debug module */
+class Rocket64b2d2 extends Config(
+  new WithNBreakpoints(2) ++
+  new WithNBigCores(2)    ++
+  new WithDebugProgBuf(2, true) ++
+  new RocketBaseConfig)
+
+/* Smaller debug module */
+class Rocket64b2d3 extends Config(
+  new WithNBreakpoints(3) ++
+  new WithNBigCores(2)    ++
+  new WithDebugProgBuf(2, false) ++
   new RocketBaseConfig)
 
 /* With 512KB level 2 cache */
