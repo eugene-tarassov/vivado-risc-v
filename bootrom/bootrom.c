@@ -181,7 +181,7 @@ static void usleep(unsigned us) {
     }
 }
 
-static int sdc_finish(unsigned cmd) {
+static int sdc_cmd_finish(unsigned cmd) {
     while (1) {
         unsigned status = regs->cmd_int_status;
         if (status) {
@@ -266,9 +266,9 @@ static int send_data_cmd(unsigned cmd, unsigned arg, void * buf, unsigned blocks
     case CMD38:
         // R1b
         command |= 1; // 48 bits
+        command |= 1 << 2; // busy
         command |= 1 << 3; // resp CRC
         command |= 1 << 4; // resp OPCODE
-        command |= 1 << 2; // R1b
         break;
     case CMD2:
     case CMD9:
@@ -284,6 +284,7 @@ static int send_data_cmd(unsigned cmd, unsigned arg, void * buf, unsigned blocks
     case CMD3:
         // R6
         command |= 1; // 48 bits
+        command |= 1 << 2; // busy
         command |= 1 << 3; // resp CRC
         command |= 1 << 4; // resp OPCODE
         break;
@@ -304,14 +305,14 @@ static int send_data_cmd(unsigned cmd, unsigned arg, void * buf, unsigned blocks
         regs->dma_addres = (uint32_t)(intptr_t)buf;
         regs->block_size = 511;
         regs->block_count = blocks - 1;
-        regs->data_timeout = 0xFFFFF;
+        regs->data_timeout = 0xFFFFFF;
     }
 
     regs->command = command;
-    regs->cmd_timeout = 0xFFFF;
+    regs->cmd_timeout = 0xFFFFF;
     regs->argument = arg;
 
-    if (sdc_finish(cmd) < 0) return -1;
+    if (sdc_cmd_finish(cmd) < 0) return -1;
     if (blocks) return sdc_data_finish();
 
     return 0;
@@ -344,26 +345,29 @@ static int ini_sd(void) {
     /* Enter Idle state */
     send_cmd(CMD0, 0);
 
-    if (send_cmd(CMD8, 0x1AA) < 0) return -1;
     card_type = CT_SD1;
-    if ((response[0] & 0xfff) == 0x1AA) card_type = CT_SD2;
+    if (send_cmd(CMD8, 0x1AA) == 0) {
+        if ((response[0] & 0xfff) != 0x1AA) {
+            errno = ERR_CMD_CHECK;
+            return -1;
+        }
+        card_type = CT_SD2;
+    }
 
     /* Wait for leaving idle state (ACMD41 with HCS bit) */
     while (1) {
-        /* ACMD41, Set Operating Conditions */
-        if (send_cmd(CMD55, 0) < 0) return -1;
-        /* Host High Capacity & 3.3V */
-        if (send_cmd(ACMD41, 0x40300000) < 0) return -1;
+        /* ACMD41, Set Operating Conditions: Host High Capacity & 3.3V */
+        if (send_cmd(CMD55, 0) < 0 || send_cmd(ACMD41, 0x40300000) < 0) return -1;
         if (response[0] & (1 << 31)) {
             if (response[0] & (1 << 30)) card_type |= CT_BLOCK;
             break;
         }
     }
 
-    /* Get CID */
+    /* Enter Identification state */
     if (send_cmd(CMD2, 0) < 0) return -1;
 
-    /* Get RCA */
+    /* Get RCA (Relative Card Address) */
     rca = 0x1234;
     if (send_cmd(CMD3, rca << 16) < 0) return -1;
     rca = response[0] >> 16;
@@ -371,14 +375,16 @@ static int ini_sd(void) {
     /* Select card */
     if (send_cmd(CMD7, rca << 16) < 0) return -1;
 
-    /* Set R/W block length to 512 */
-    if (send_cmd(CMD16, 512) < 0) return -1;
+    /* Clock 25MHz */
+    regs->clock_divider = 3;
+    usleep(10000);
 
+    /* Bus width 1-bit */
     regs->control = 0;
     if (send_cmd(CMD55, rca << 16) < 0 || send_cmd(ACMD6, 0) < 0) return -1;
 
-    regs->clock_divider = 3;
-    usleep(10000);
+    /* Set R/W block length to 512 */
+    if (send_cmd(CMD16, 512) < 0) return -1;
 
     drv_status &= ~STA_NOINIT;
     return 0;

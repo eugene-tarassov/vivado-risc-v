@@ -1,5 +1,7 @@
 #include "common.h"
 
+#define MIP_MSIP (1 << 3)
+
 .section .text.start, "ax", @progbits
 .globl _start
 _start:
@@ -22,17 +24,17 @@ _hang:
   csrr a0, mhartid
   la a1, _dtb
   la s0, _ram
-  li s2, 0
-  beq a0, s2, _start_bootrom
+  beqz a0, _start_bootrom
 _hartx_loop:
   # write mtvec
   csrw mtvec, s0
   # enable software interrupt
-  csrwi mie, 0x8
+  csrwi mie, MIP_MSIP
   wfi
-  # check for valid trap vector
-  lw t1, 0(s0)
-  beqz t1, _hartx_loop
+  # only start if interrupt request is set
+  csrr a2, mip
+  andi a2, a2, MIP_MSIP
+  beqz a2, _hartx_loop
   # jump to code in RAM
   ecall
   j _hartx_loop

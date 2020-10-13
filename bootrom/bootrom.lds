@@ -15,7 +15,7 @@ SECTIONS {
   PROVIDE(_ram = ORIGIN(memory_mem));
   PROVIDE(_ram_end = _ram + LENGTH(memory_mem));
 
-  .text : {
+  .text 0x00010000 : {
     PROVIDE(_ftext = .);
     *(.text.start)
     . = _ftext + 0x40;
