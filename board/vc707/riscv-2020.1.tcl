@@ -135,8 +135,6 @@ xilinx.com:ip:clk_wiz:6.0\
 xilinx.com:ip:util_ds_buf:2.1\
 xilinx.com:ip:smartconnect:1.0\
 xilinx.com:ip:mig_7series:4.2\
-xilinx.com:ip:proc_sys_reset:5.0\
-xilinx.com:ip:axi_uartlite:2.0\
 xilinx.com:ip:xadc_wiz:3.3\
 xilinx.com:ip:xlconcat:2.1\
 xilinx.com:ip:gig_ethernet_pcs_pma:16.2\
@@ -466,9 +464,6 @@ proc create_hier_cell_EthernetVC707 { parentCell nameHier } {
   create_bd_pin -dir I -type rst reset
   create_bd_pin -dir O -from 15 -to 0 status_vector
   create_bd_pin -dir I sys_reset
-
-  set_property ASSOCIATED_BUSIF TX_AXIS:RX_AXIS:GMII [get_bd_pins clock]
-  set_property ASSOCIATED_RESET reset [get_bd_pins clock]
 
   # Create instance: ethernet_stream_0, and set properties
   set block_name ethernet_vc707

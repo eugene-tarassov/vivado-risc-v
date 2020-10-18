@@ -135,8 +135,6 @@ xilinx.com:ip:clk_wiz:6.0\
 xilinx.com:ip:util_vector_logic:2.0\
 xilinx.com:ip:smartconnect:1.0\
 xilinx.com:ip:mig_7series:4.2\
-xilinx.com:ip:proc_sys_reset:5.0\
-xilinx.com:ip:axi_uartlite:2.0\
 xilinx.com:ip:xadc_wiz:3.3\
 xilinx.com:ip:xlconcat:2.1\
 "
@@ -681,7 +679,7 @@ proc create_root_design { parentCell } {
   # Create ports
   set reset [ create_bd_port -dir I -type rst reset ]
   set_property -dict [ list \
-   CONFIG.POLARITY {ACTIVE_HIGH} \
+   CONFIG.POLARITY {ACTIVE_LOW} \
  ] $reset
   set eth_mdio_clock [ create_bd_port -dir O eth_mdio_clock ]
   set eth_mdio_data [ create_bd_port -dir IO eth_mdio_data ]
