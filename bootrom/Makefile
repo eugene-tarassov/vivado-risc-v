@@ -5,7 +5,7 @@ OBJDUMP=$(CROSS_COMPILE)objdump
 CFLAGS = -march=rv64im -mabi=lp64
 
 CCFLAGS = $(CFLAGS)
-CCFLAGS += -mcmodel=medany -O0 -Wall
+CCFLAGS += -mcmodel=medany -Os -Wall
 CCFLAGS += -fno-pic -fno-common -g -I.
 
 LFLAGS = -static -nostartfiles -T bootrom.lds

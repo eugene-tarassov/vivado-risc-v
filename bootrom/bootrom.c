@@ -424,6 +424,7 @@ static uintptr_t read_num(FIL * fd, unsigned size) {
     uintptr_t v = 0;
     unsigned n = 0;
     UINT rd;
+    if (errno) return 0;
     errno = f_read(fd, buf, size, &rd);
     if (errno) return 0;
     if (rd < size) {
@@ -475,15 +476,11 @@ static int download(void) {
         return -1;
     }
     errno = f_lseek(&fd, 24);
-    if (errno) return -1;
     entry_addr = read_addr();
-    if (errno) return -1;
     phoff = read_addr();
     if (errno) return -1;
     errno = f_lseek(&fd, f_tell(&fd) + 8 + 6);
-    if (errno) return -1;
     phentsize = read_uint16();
-    if (errno) return -1;
     phnum = read_uint16();
     if (errno) return -1;
     for (i = 0; i < phnum; i++) {
@@ -495,20 +492,14 @@ static int download(void) {
         uintptr_t addr = 0;
         size_t pos = 0;
         errno = f_lseek(&fd, phoff + i * phentsize);
-        if (errno) return -1;
         p_type = read_uint32();
         if (errno) return -1;
         if (p_type != PT_LOAD) continue;
         errno = f_lseek(&fd, f_tell(&fd) + 4);
-        if (errno) return -1;
         p_offset = read_addr();
-        if (errno) return -1;
         p_vaddr = read_addr();
-        if (errno) return -1;
         read_addr(); /* p_paddr */
-        if (errno) return -1;
         p_filesz = read_addr();
-        if (errno) return -1;
         p_memsz = read_addr();
         if (errno) return -1;
         errno = f_lseek(&fd, p_offset);
