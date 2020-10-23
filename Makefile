@@ -194,10 +194,10 @@ workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir: workspace/$(CONF
 # Generate Rocket SoC HDL
 workspace/$(CONFIG)/system-$(BOARD).v: workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir
 	$(FIRRTL) -i $< -o system-$(BOARD).v -X verilog --infer-rw RocketSystem --repl-seq-mem \
-         -c:RocketSystem:-o:workspace/$(CONFIG)/system.conf \
-         -faf workspace/$(CONFIG)/system.anno.json \
-         -td workspace/$(CONFIG)/ \
-         -fct firrtl.passes.InlineInstances
+	  -c:RocketSystem:-o:workspace/$(CONFIG)/system.conf \
+	  -faf workspace/$(CONFIG)/system.anno.json \
+	  -td workspace/$(CONFIG)/ \
+	  -fct firrtl.passes.InlineInstances
 	rocket-chip/scripts/vlsi_mem_gen workspace/$(CONFIG)/system.conf >workspace/$(CONFIG)/srams.v
 
 # Generate Rocket SoC wrapper for Vivado
@@ -207,7 +207,7 @@ workspace/$(CONFIG)/rocket.vhdl: workspace/$(CONFIG)/system-$(BOARD).v
 	  -sourcepath vhdl-wrapper/src -d vhdl-wrapper/bin \
 	  -classpath vhdl-wrapper/antlr-4.8-complete.jar \
 	  vhdl-wrapper/src/net/largest/riscv/vhdl/Main.java
-	java -classpath \
+	java -Xmx4G -Xss8M -classpath \
 	  vhdl-wrapper/src:vhdl-wrapper/bin:vhdl-wrapper/antlr-4.8-complete.jar \
 	  net.largest.riscv.vhdl.Main \
 	  workspace/$(CONFIG)/system-$(BOARD).v >$@
