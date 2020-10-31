@@ -1,8 +1,8 @@
 diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
-index 3b706af35ec3..58042f51c9aa 100644
+index 9a34c827c96e..a1ccdfb347f1 100644
 --- a/drivers/mmc/host/Kconfig
 +++ b/drivers/mmc/host/Kconfig
-@@ -1075,6 +1075,14 @@ config MMC_SDHCI_AM654
+@@ -1076,6 +1076,14 @@ config MMC_SDHCI_AM654
  
  	  If unsure, say N.
  
@@ -30,7 +30,7 @@ index 4d5bcb0144a0..b5365ada69af 100644
  
  obj-$(CONFIG_MMC_REALTEK_PCI)	+= rtsx_pci_sdmmc.o
 diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
-index de50e8b9e656..fbfdcb0baf56 100644
+index de50e8b9e656..5b6cbf26fe7d 100644
 --- a/drivers/net/ethernet/Kconfig
 +++ b/drivers/net/ethernet/Kconfig
 @@ -153,6 +153,14 @@ config ETHOC
@@ -39,7 +39,7 @@ index de50e8b9e656..fbfdcb0baf56 100644
  
 +config FPGA_AXI_ETH
 +	tristate "FPGA AXI Ethernet controller"
-+	---help---
++	help
 +	  This selects the FPGA AXI Ethernet controller. If you have
 +	  a FPGA development board with Ethernet phy, say Y or M here.
 +
