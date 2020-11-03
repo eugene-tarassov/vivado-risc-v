@@ -48,8 +48,8 @@ set_max_delay -from $main_clock -to $eth_main_clock -datapath_only 10.0
 set_max_delay -from $eth_main_clock -to rgmii_rx_clk -datapath_only 7.0
 set_max_delay -from rgmii_rx_clk -to $eth_main_clock -datapath_only 7.0
 
-set_max_delay -from $eth_main_clock -to [get_ports {eth_mdio_clock eth_mdio_data eth_mdio_reset}] -datapath_only 20.0
-set_max_delay -from [get_ports {eth_mdio_data eth_mdio_int}] -to $eth_main_clock -datapath_only 20.0
+set_max_delay -from $eth_main_clock -to [get_ports {eth_mdio_clock eth_mdio_data eth_mdio_reset}] -datapath_only 40.0
+set_max_delay -from [get_ports {eth_mdio_data eth_mdio_int}] -to $eth_main_clock -datapath_only 40.0
 
 set_max_delay -from $main_clock -through [get_pins -hier Ethernet/async_resetn] -datapath_only 10.0
 set_max_delay -from $eth_main_clock -through [get_pins -hier Ethernet/interrupt] -datapath_only 10.0
