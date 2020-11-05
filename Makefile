@@ -231,7 +231,7 @@ proj_path = workspace/$(CONFIG)/vivado-$(proj_name)
 proj_file = $(proj_path)/$(proj_name).xpr
 bitstream = $(proj_path)/$(proj_name).runs/impl_1/riscv_wrapper.bit
 mcs_file  = workspace/$(CONFIG)/$(proj_name).mcs
-vivado    = vivado -mode batch -nojournal -nolog -notrace -quiet
+vivado    = env XILINX_LOCAL_USER_DATA=no vivado -mode batch -nojournal -nolog -notrace -quiet
 
 workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl workspace/$(CONFIG)/system-$(BOARD).v
 	echo "set vivado_board_name $(BOARD)" >$@
