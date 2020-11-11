@@ -30,7 +30,7 @@ Nexys Video is several times less expensive, academic discount is avaialble.
 Genesys 2 is as fast as VC707, but has slightly smaller FPGA.
 
 ## Workstation
-[Ubuntu 18 LTS](https://ubuntu.com/download/desktop) machine is recommended.
+[Ubuntu 20 LTS](https://ubuntu.com/download/desktop) machine is recommended.
 sudo access required.
 
 ## Software
