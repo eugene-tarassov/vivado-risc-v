@@ -27,20 +27,3 @@ set_property -dict { PACKAGE_PIN R19 IOSTANDARD LVCMOS33 } [get_ports reset];
 
 # Fan control
 set_property -dict { PACKAGE_PIN W19 IOSTANDARD LVCMOS33 } [get_ports fan_en];
-
-create_clock -period 10.000 [get_pins -hier jtag/TCK]
-
-set jtag_clock [get_clocks -of_objects [get_pins -hier jtag/TCK]]
-set main_clock [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out1]]
-set ddrc_clock [get_clocks -of_objects [get_pins -hier mig_7series_0/ui_clk]]
-
-# Workaround for what apears to be incorrect constraint in MIG
-set_max_delay  -from $main_clock -to clk_pll_i -datapath_only 8.0
-
-set_max_delay -from $main_clock -to $jtag_clock -datapath_only 8.0
-set_max_delay -from $jtag_clock -to $main_clock -datapath_only 8.0
-
-set_false_path -through [get_pins -hier RocketChip/clock_ok]
-set_false_path -through [get_pins -hier RocketChip/mem_ok]
-set_false_path -through [get_pins -hier RocketChip/io_ok]
-set_false_path -through [get_pins -hier RocketChip/sys_reset]

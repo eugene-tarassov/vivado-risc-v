@@ -13,20 +13,3 @@ create_clock -name sys_clk_pin -period 10.00 [get_ports sys_clock]
 
 ## Reset button
 set_property -dict { PACKAGE_PIN G4 IOSTANDARD LVCMOS15 } [get_ports reset]; #IO_L12N_T1_MRCC_35 Sch=cpu_resetn
-
-create_clock -period 12.5 [get_pins -hier jtag/TCK]
-
-set jtag_clock [get_clocks -of_objects [get_pins -hier jtag/TCK]]
-set main_clock [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out1]]
-set ddrc_clock [get_clocks -of_objects [get_pins -hier mig_7series_0/ui_clk]]
-
-# Workaround for what apears to be incorrect constraint in MIG
-set_max_delay  -from $main_clock -to clk_pll_i -datapath_only 8.0
-
-set_max_delay -from $main_clock -to $jtag_clock -datapath_only 8.0
-set_max_delay -from $jtag_clock -to $main_clock -datapath_only 8.0
-
-set_false_path -through [get_pins -hier RocketChip/clock_ok]
-set_false_path -through [get_pins -hier RocketChip/mem_ok]
-set_false_path -through [get_pins -hier RocketChip/io_ok]
-set_false_path -through [get_pins -hier RocketChip/sys_reset]

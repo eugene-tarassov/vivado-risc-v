@@ -34,6 +34,7 @@ set files [list \
  [file normalize "../../ethernet/verilog-ethernet/rtl/eth_mac_1g.v"] \
  [file normalize "../../ethernet/verilog-ethernet/rtl/lfsr.v"] \
  [file normalize "../../ethernet/ethernet.v"] \
+ [file normalize "../../vhdl-wrapper/src/net/largest/riscv/vhdl/bscan2jtag.vhdl"] \
  [file normalize "../../board/${vivado_board_name}/ethernet-${vivado_board_name}.v"] \
 ]
 add_files -norecurse -fileset $source_fileset $files
@@ -53,6 +54,7 @@ set files [list \
  [file normalize ../../board/${vivado_board_name}/sdc.xdc] \
  [file normalize ../../board/${vivado_board_name}/uart.xdc] \
  [file normalize ../../board/${vivado_board_name}/ethernet.xdc] \
+ [file normalize ../../board/timing-constraints.tcl] \
 ]
 add_files -norecurse -fileset $constraint_fileset $files
 
@@ -66,9 +68,22 @@ set_property -name "file_type" -value "XDC" -objects $file_obj
 set_property -name "used_in" -value "implementation" -objects $file_obj
 set_property -name "used_in_synthesis" -value "0" -objects $file_obj
 
+set file_obj [get_files -of_objects $constraint_fileset [list "*/*.tcl"]]
+set_property -name "file_type" -value "TCL" -objects $file_obj
+set_property -name "used_in" -value "implementation" -objects $file_obj
+set_property -name "used_in_synthesis" -value "0" -objects $file_obj
+
 # Create block design
 set current_vivado_version [version -short]
 source ../../board/${vivado_board_name}/riscv-${current_vivado_version}.tcl
+
+if { [llength [get_bd_intf_pins -quiet RocketChip/JTAG]] == 1 } {
+  create_bd_cell -type module -reference bscan2jtag JTAG
+  connect_bd_intf_net -intf_net JTAG [get_bd_intf_pins JTAG/JTAG] [get_bd_intf_pins RocketChip/JTAG]
+  create_bd_cell -type ip -vlnv xilinx.com:ip:debug_bridge:3.0 BSCAN
+  set_property -dict [list CONFIG.C_DEBUG_MODE {7} CONFIG.C_USER_SCAN_CHAIN {1} CONFIG.C_NUM_BS_MASTER {1}] [get_bd_cells BSCAN]
+  connect_bd_intf_net -intf_net BSCAN [get_bd_intf_pins BSCAN/m0_bscan] [get_bd_intf_pins JTAG/S_BSCAN]
+}
 
 set_property CONFIG.CLKOUT1_REQUESTED_OUT_FREQ $riscv_clock_frequency [get_bd_cells clk_wiz_0]
 validate_bd_design

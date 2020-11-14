@@ -887,9 +887,9 @@ proc create_root_design { parentCell } {
   set clk_wiz_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz_0 ]
   set_property -dict [ list \
    CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {100.000} \
-   CONFIG.CLKOUT2_REQUESTED_OUT_FREQ {100.000} \
+   CONFIG.CLKOUT2_REQUESTED_OUT_FREQ {200.000} \
    CONFIG.CLKOUT2_USED {true} \
-   CONFIG.CLKOUT3_REQUESTED_OUT_FREQ {200.000} \
+   CONFIG.CLKOUT3_REQUESTED_OUT_FREQ {100.000} \
    CONFIG.CLKOUT3_USED {true} \
    CONFIG.CLK_IN1_BOARD_INTERFACE {Custom} \
    CONFIG.CLK_IN2_BOARD_INTERFACE {Custom} \
@@ -920,8 +920,8 @@ proc create_root_design { parentCell } {
   connect_bd_net -net IO_mmcm_locked [get_bd_pins IO/mmcm_locked] [get_bd_pins RocketChip/io_ok]
   connect_bd_net -net clock_ok [get_bd_pins RocketChip/clock_ok] [get_bd_pins clk_wiz_0/locked]
   connect_bd_net -net AXI_clock [get_bd_pins DDR/aclk] [get_bd_pins IO/ACLK] [get_bd_pins RocketChip/clock] [get_bd_pins clk_wiz_0/clk_out1]
-  connect_bd_net -net clock_100MHz [get_bd_pins IO/clock_100MHz] [get_bd_pins clk_wiz_0/clk_out2]
-  connect_bd_net -net clock_200MHz [get_bd_pins DDR/clock_200MHz] [get_bd_pins IO/clock_200MHz] [get_bd_pins clk_wiz_0/clk_out3]
+  connect_bd_net -net clock_100MHz [get_bd_pins IO/clock_100MHz] [get_bd_pins clk_wiz_0/clk_out3]
+  connect_bd_net -net clock_200MHz [get_bd_pins DDR/clock_200MHz] [get_bd_pins IO/clock_200MHz] [get_bd_pins clk_wiz_0/clk_out2]
   connect_bd_net -net reset_h [get_bd_ports reset] [get_bd_pins DDR/sys_reset] [get_bd_pins IO/sys_reset] [get_bd_pins RocketChip/sys_reset] [get_bd_pins clk_wiz_0/reset]
   connect_bd_net -net AXI_reset [get_bd_pins DDR/aresetn] [get_bd_pins IO/ARESETN] [get_bd_pins RocketChip/aresetn]
   connect_bd_net -net IO_sdio_cd [get_bd_ports sdio_cd] [get_bd_pins IO/sdio_cd]

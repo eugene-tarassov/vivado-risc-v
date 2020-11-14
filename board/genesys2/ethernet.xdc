@@ -38,18 +38,3 @@ set_input_delay -add_delay -clock rgmii_rx_clk -min  1.30 -clock_fall [get_ports
 
 #report_timing -rise_from [get_ports {rgmii_td* rgmii_tx_ctl}] -delay_type min_max -max_paths 100 -name rgmii_tx_rise  -file rgmii_tx_rise.txt
 #report_timing -fall_from [get_ports {rgmii_td* rgmii_tx_ctl}] -delay_type min_max -max_paths 100 -name rgmii_tx_fall  -file rgmii_tx_fall.txt
-
-set main_clock [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out1]]
-set eth_main_clock [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out4]]
-
-set_max_delay -from $eth_main_clock -to $main_clock -datapath_only 10.0
-set_max_delay -from $main_clock -to $eth_main_clock -datapath_only 10.0
-
-set_max_delay -from $eth_main_clock -to rgmii_rx_clk -datapath_only 7.0
-set_max_delay -from rgmii_rx_clk -to $eth_main_clock -datapath_only 7.0
-
-set_max_delay -from $eth_main_clock -to [get_ports {eth_mdio_clock eth_mdio_data eth_mdio_reset}] -datapath_only 40.0
-set_max_delay -from [get_ports {eth_mdio_data eth_mdio_int}] -to $eth_main_clock -datapath_only 40.0
-
-set_max_delay -from $main_clock -through [get_pins -hier Ethernet/async_resetn] -datapath_only 10.0
-set_max_delay -from $eth_main_clock -through [get_pins -hier Ethernet/interrupt] -datapath_only 10.0

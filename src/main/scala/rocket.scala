@@ -68,22 +68,25 @@ class RocketWideBusConfig extends Config(
   new WithoutTLMonitors ++
   new BaseConfig)
 
-/* Note: Linux not supported yet on 32-bit cores */
+/*----------------- 32-bit RocketChip ---------------*/
+/* Note: Linux not supported yet on 32-bit cores     */
+
 class Rocket32s1 extends Config(
   new WithNBreakpoints(8) ++
   new WithNSmallCores(1)  ++
   new WithRV32            ++
   new RocketBaseConfig)
 
-class Rocket32s2j extends Config(
+class Rocket32s2 extends Config(
   new WithNBreakpoints(8) ++
-  new WithJtagDTM         ++
   new WithNSmallCores(2)  ++
   new WithRV32            ++
   new RocketBaseConfig)
 
-class Rocket32s2 extends Config(
+/* With exposed JTAG port */
+class Rocket32s2j extends Config(
   new WithNBreakpoints(8) ++
+  new WithJtagDTM         ++
   new WithNSmallCores(2)  ++
   new WithRV32            ++
   new RocketBaseConfig)
@@ -106,8 +109,17 @@ class Rocket32s16 extends Config(
   new WithRV32            ++
   new RocketBaseConfig)
 
+/*----------------- 64-bit RocketChip ---------------*/
+
 class Rocket64b2 extends Config(
   new WithNBreakpoints(8) ++
+  new WithNBigCores(2)    ++
+  new RocketBaseConfig)
+
+/* With exposed JTAG port */
+class Rocket64b2j extends Config(
+  new WithNBreakpoints(8) ++
+  new WithJtagDTM         ++
   new WithNBigCores(2)    ++
   new RocketBaseConfig)
 
@@ -179,6 +191,8 @@ class Rocket64b8 extends Config(
   new WithNBreakpoints(8) ++
   new WithNBigCores(8)    ++
   new RocketBaseConfig)
+
+/*----------------- Sonic BOOM   ---------------*/
 
 class Rocket64x1 extends Config(
   new WithInclusiveCache  ++
