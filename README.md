@@ -34,9 +34,10 @@ Genesys 2 is as fast as VC707, but has slightly smaller FPGA.
 sudo access required.
 
 ## Software
-[Vivado 2019.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2019-2.html) or
+[Vitis 2020.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2020-2.html) or
+[Vitis 2020.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2020-1.html) or
 [Vitis 2019.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2019-2.html) or
-[Vitis 2020.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2020-1.html).
+[Vivado 2019.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2019-2.html).
 
 Nexys Video is supported by free version of Vivado. VC707 and Genesys 2 requires Vivado license.
 
@@ -55,7 +56,7 @@ make update-submodules
 
 ## Build FPGA bitstream
 ```
-source /opt/Xilinx/Vivado/2020.1/settings64.sh
+source /opt/Xilinx/Vivado/2020.2/settings64.sh
 make CONFIG=rocket64b2 BOARD=nexys-video bitstream
 ```
 For VC707, use `BOARD=vc707`
@@ -91,7 +92,7 @@ Make sure to confirm right SD card device - all old data will be erased.
 ## Program the FPGA flash memory
 - Open Vivado
 ```
-source /opt/Xilinx/Vivado/2020.1/settings64.sh
+source /opt/Xilinx/Vivado/2020.2/settings64.sh
 make CONFIG=rocket64b2 BOARD=nexys-video vivado-gui
 ```
 - Open the hardware manager and open the target board
@@ -132,7 +133,7 @@ ssh debian@debian
 
 Open Vivado:
 ```
-source /opt/Xilinx/Vivado/2020.1/settings64.sh
+source /opt/Xilinx/Vivado/2020.2/settings64.sh
 make CONFIG=rocket64b2 BOARD=nexys-video vivado-gui
 ```
 The IO block in the design is the best place to add device controllers, like GPIO.
