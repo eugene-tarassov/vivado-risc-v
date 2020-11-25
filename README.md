@@ -36,8 +36,8 @@ sudo access required.
 ## Software
 [Vitis 2020.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2020-2.html) or
 [Vitis 2020.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2020-1.html) or
-[Vitis 2019.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2019-2.html) or
-[Vivado 2019.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vivado-design-tools/2019-2.html).
+[Vitis 2019.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2019-2.html).
+Vitis installation includes Vivado Design Suite – there is no need to install Vivado separately.
 
 Nexys Video is supported by free version of Vivado. VC707 and Genesys 2 requires Vivado license.
 
