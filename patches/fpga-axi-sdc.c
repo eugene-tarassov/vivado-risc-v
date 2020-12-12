@@ -94,9 +94,10 @@ struct sdc_host {
     struct platform_device * pdev;
     struct sdc_regs __iomem * regs;
     uint32_t clk_freq;
-    struct mutex mutex;
+    spinlock_t lock;
     struct mmc_request * mrq;
-    int acmd;
+    struct mmc_data * data;
+    int irq;
 };
 
 static const struct of_device_id axi_sdc_of_match_table[] = {
@@ -122,7 +123,7 @@ static void sdc_set_clock(struct sdc_host * host, uint clock) {
     }
 }
 
-static int sdc_finish(struct sdc_host * host, struct mmc_command * cmd) {
+static int sdc_cmd_finish(struct sdc_host * host, struct mmc_command * cmd) {
     while (1) {
         unsigned status = host->regs->cmd_int_status;
         if (status) {
@@ -137,7 +138,6 @@ static int sdc_finish(struct sdc_host * host, struct mmc_command * cmd) {
                     cmd->resp[2] = host->regs->response3;
                     cmd->resp[3] = host->regs->response4;
                 }
-                host->acmd = cmd->opcode == MMC_APP_CMD;
                 return 0;
             }
             if (status & SDC_CMD_INT_STATUS_CTE) return cmd->error = -ETIME;
@@ -146,22 +146,6 @@ static int sdc_finish(struct sdc_host * host, struct mmc_command * cmd) {
         }
     }
     return cmd->error;
-}
-
-static int sdc_data_finish(struct sdc_host * host, struct mmc_data * data) {
-    int status;
-
-    while ((status = host->regs->dat_int_status) == 0) {}
-    host->regs->dat_int_status = 0;
-    while (host->regs->software_reset != 0) {}
-
-    if (status == SDC_DAT_INT_STATUS_TRS) {
-        data->bytes_xfered = data->blksz * data->blocks;
-        return 0;
-    }
-
-    if (status & SDC_DAT_INT_STATUS_CTE) return data->error = -ETIME;
-    return data->error = -EIO;
 }
 
 static int sdc_setup_data_xfer(struct sdc_host * host, struct mmc_host * mmc, struct mmc_data * data) {
@@ -223,8 +207,8 @@ static int sdc_send_cmd(struct sdc_host * host, struct mmc_host * mmc, struct mm
     if (host->regs->cmd_timeout != timeout) host->regs->cmd_timeout = 0;
     host->regs->argument = cmd->arg;
 
-    if (sdc_finish(host, cmd) < 0) return cmd->error;
-    if (xfer) return sdc_data_finish(host, data);
+    if (sdc_cmd_finish(host, cmd) < 0) return cmd->error;
+    if (xfer) host->data = data;
 
     return 0;
 }
@@ -238,36 +222,41 @@ static void sdc_request(struct mmc_host * mmc, struct mmc_request * mrq) {
     if (mrq->data) mrq->data->error = 0;
     if (mrq->stop) mrq->stop->error = 0;
 
-    mutex_lock(&host->mutex);
+    spin_lock_irq(&host->lock);
+    host->data = NULL;
     host->mrq = mrq;
 
     if (!mrq->sbc || sdc_send_cmd(host, mmc, mrq->sbc, NULL) == 0) {
-        if (sdc_send_cmd(host, mmc, mrq->cmd, mrq->data) == 0) {
-            if (mrq->stop) sdc_send_cmd(host, mmc, mrq->stop, NULL);
-        }
+        sdc_send_cmd(host, mmc, mrq->cmd, mrq->data);
     }
 
-    mmc_request_done(mmc, mrq);
+    if (host->data == NULL) {
+        mmc_request_done(mmc, mrq);
+        host->mrq = NULL;
+    }
+    else {
+        host->regs->dat_int_enable = SDC_DAT_INT_STATUS_TRS | SDC_DAT_INT_STATUS_ERR;
+    }
 
-    host->mrq = NULL;
-    mutex_unlock(&host->mutex);
+    spin_unlock_irq(&host->lock);
 }
 
 static void sdc_set_ios(struct mmc_host * mmc, struct mmc_ios * ios) {
     struct sdc_host * host = mmc_priv(mmc);
 
-    mutex_lock(&host->mutex);
+    spin_lock_irq(&host->lock);
 
     sdc_set_clock(host, ios->clock);
     host->regs->control = ios->bus_width == MMC_BUS_WIDTH_4 ? SDC_CONTROL_SD_4BIT : 0;
 
-    mutex_unlock(&host->mutex);
+    spin_unlock_irq(&host->lock);
 }
 
 static void sdc_reset(struct mmc_host * mmc) {
     struct sdc_host * host = mmc_priv(mmc);
+    uint32_t card_detect = 0;
 
-    mutex_lock(&host->mutex);
+    spin_lock_irq(&host->lock);
 
     sdc_set_clock(host, 400000);
 
@@ -282,15 +271,78 @@ static void sdc_reset(struct mmc_host * mmc) {
     // set bus width 1 bit
     host->regs->control = 0;
 
-    // disable all interrupts
+    // disable cmd/data interrupts
     host->regs->cmd_int_enable = 0;
     host->regs->dat_int_enable = 0;
-    // clear all interrupts
+    // clear cmd/data interrupts
     host->regs->cmd_int_status = 0;
     host->regs->dat_int_status = 0;
+    // enable card detect interrupt
+    card_detect = host->regs->card_detect;
+    if (card_detect & SDC_CARD_INSERT_INT_REQ) {
+        host->regs->card_detect = SDC_CARD_REMOVE_INT_EN;
+    }
+    else if (card_detect & SDC_CARD_REMOVE_INT_REQ) {
+        host->regs->card_detect = SDC_CARD_INSERT_INT_EN;
+    }
     while (host->regs->software_reset != 0) {}
 
-    mutex_unlock(&host->mutex);
+    spin_unlock_irq(&host->lock);
+}
+
+static int sdc_get_cd(struct mmc_host * mmc) {
+    struct sdc_host * host = mmc_priv(mmc);
+    uint32_t card_detect = host->regs->card_detect;
+    if (card_detect == 0) return 1; /* Card detect not supported */
+    return (card_detect & SDC_CARD_INSERT_INT_REQ) != 0;
+}
+
+static irqreturn_t sdc_isr(int irq, void * dev_id) {
+    struct mmc_host * mmc = (struct mmc_host *)dev_id;
+    struct sdc_host * host = mmc_priv(mmc);
+    uint32_t card_detect = 0;
+    uint32_t data_status = 0;
+    unsigned long flags;
+
+    spin_lock_irqsave(&host->lock, flags);
+
+    card_detect = host->regs->card_detect;
+    if (card_detect & SDC_CARD_INSERT_INT_REQ) {
+        if (card_detect & SDC_CARD_INSERT_INT_EN) {
+            host->regs->card_detect = SDC_CARD_REMOVE_INT_EN;
+            mmc_detect_change(mmc, 0);
+        }
+    }
+    else if (card_detect & SDC_CARD_REMOVE_INT_REQ) {
+        if (card_detect & SDC_CARD_REMOVE_INT_EN) {
+            host->regs->card_detect = SDC_CARD_INSERT_INT_EN;
+            mmc_detect_change(mmc, 0);
+        }
+    }
+
+    if ((data_status = host->regs->dat_int_status) != 0) {
+        host->regs->dat_int_enable = 0;
+        host->regs->dat_int_status = 0;
+        while (host->regs->software_reset != 0) {}
+        if (host->data) {
+            struct mmc_request * mrq = host->mrq;
+            struct mmc_data * data = host->data;
+            if (data_status == SDC_DAT_INT_STATUS_TRS) {
+                data->bytes_xfered = data->blksz * data->blocks;
+            }
+            else {
+                data->error = -EIO;
+                if (data_status & SDC_DAT_INT_STATUS_CTE) data->error = -ETIME;
+            }
+            if (mrq->stop) sdc_send_cmd(host, mmc, mrq->stop, NULL);
+            mmc_request_done(mmc, mrq);
+            host->data = NULL;
+            host->mrq = NULL;
+        }
+    }
+
+    spin_unlock_irqrestore(&host->lock, flags);
+    return IRQ_HANDLED;
 }
 
 /*---------------------------------------------------------------------*/
@@ -298,6 +350,7 @@ static void sdc_reset(struct mmc_host * mmc) {
 static const struct mmc_host_ops axi_sdc_ops = {
     .request = sdc_request,
     .set_ios = sdc_set_ios,
+    .get_cd = sdc_get_cd,
     .hw_reset = sdc_reset,
 };
 
@@ -307,11 +360,15 @@ static int axi_sdc_probe(struct platform_device * pdev) {
     struct sdc_host * host;
     struct mmc_host * mmc;
     void __iomem * ioaddr;
-    int ret = 0;
+    int irq;
+    int ret;
 
     iomem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
     ioaddr = devm_ioremap_resource(dev, iomem);
     if (IS_ERR(ioaddr)) return PTR_ERR(ioaddr);
+
+    irq = platform_get_irq(pdev, 0);
+    if (irq <= 0) return -ENXIO;
 
     mmc = mmc_alloc_host(sizeof(*host), dev);
     if (!mmc) return -ENOMEM;
@@ -320,6 +377,7 @@ static int axi_sdc_probe(struct platform_device * pdev) {
     host = mmc_priv(mmc);
     host->pdev = pdev;
     host->regs = (struct sdc_regs __iomem *)ioaddr;
+    host->irq = irq;
 
     ret = of_property_read_u32(dev->of_node, "clock", &host->clk_freq);
     if (ret) host->clk_freq = 100000000;
@@ -341,6 +399,12 @@ static int axi_sdc_probe(struct platform_device * pdev) {
     mmc->max_blk_size = 0x1000;
     mmc->max_blk_count = 0x10000;
 
+    ret = request_irq(host->irq, sdc_isr, IRQF_TRIGGER_HIGH, "fpga-axi-sdc", mmc);
+    if (ret) {
+        mmc_free_host(mmc);
+        return ret;
+    }
+
     sdc_reset(mmc);
 
     ret = mmc_add_host(mmc);
@@ -349,7 +413,7 @@ static int axi_sdc_probe(struct platform_device * pdev) {
         return ret;
     }
 
-    mutex_init(&host->mutex);
+    spin_lock_init(&host->lock);
 
     platform_set_drvdata(pdev, host);
     return 0;
@@ -359,6 +423,7 @@ static int axi_sdc_remove(struct platform_device * pdev) {
     struct sdc_host * host = platform_get_drvdata(pdev);
     struct mmc_host * mmc = mmc_from_priv(host);
 
+    free_irq(host->irq, mmc);
     mmc_remove_host(mmc);
     mmc_free_host(mmc);
     return 0;
