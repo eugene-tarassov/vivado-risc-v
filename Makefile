@@ -140,7 +140,7 @@ endif
 ROCKET_FREQ ?= $(shell awk '$$3 != "" && "$(BOARD)" ~ $$1 && "$(CONFIG_SCALA)" ~ ("^" $$2 "$$") {print $$3; exit}' board/rocket-freq)
 ROCKET_FREQ_KHZ := $(shell echo - | awk '{print $(ROCKET_FREQ) * 1000}')
 
-ifeq ($(findstring rocket64,$(CONFIG)),)
+ifeq ($(findstring Rocket64,$(CONFIG_SCALA)),)
   CROSS_COMPILE_NO_OS_TOOLS = $(realpath workspace/gcc/riscv/bin)/riscv32-unknown-elf-
   CROSS_COMPILE_NO_OS_FLAGS = -march=rv32im -mabi=ilp32
 else
