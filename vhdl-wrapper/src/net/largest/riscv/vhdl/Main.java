@@ -610,14 +610,16 @@ public class Main {
             ln("");
             ln("library ieee;");
             ln("use ieee.std_logic_1164.all;");
+            ln("use ieee.numeric_std.all;");
             ln("");
             ln("entity plusarg_reader is");
-            ln("    port (\\out\\: out std_logic_vector(31 downto 0));");
+            ln("    generic (FORMAT : string := \"\"; DEFAULT : integer := 0; WIDTH : integer := 32);");
+            ln("    port (\\out\\: out std_logic_vector(WIDTH-1 downto 0));");
             ln("end plusarg_reader;");
             ln("");
             ln("architecture Behavioral of plusarg_reader is");
             ln("begin");
-            ln("    \\out\\ <= (others => '0');");
+            ln("    \\out\\ <= std_logic_vector(to_unsigned(DEFAULT, WIDTH));");
             ln("end Behavioral;");
         }
 
