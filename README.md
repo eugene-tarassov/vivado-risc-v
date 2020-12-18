@@ -100,7 +100,7 @@ make CONFIG=rocket64b2 BOARD=nexys-video vivado-gui
 - Select the following device:
   - Nexys Video: Spansion s25fl256xxxxxx0
   - Genesys 2: Spansion s25fl256xxxxxx0
-  - VC707: Micron mt28gu01gaaxle
+  - VC707: Micron mt28gu01gaax1e
 - Add configuration file:
   - Nexys Video: workspace/rocket64b2/nexys-video-riscv.mcs
   - Genesys 2: workspace/rocket64b2/genesys2-riscv.mcs

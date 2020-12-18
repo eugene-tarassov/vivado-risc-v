@@ -225,6 +225,8 @@ public class Main {
             else if (sig_name.startsWith("l2_frontend_bus_axi4_0_")) bus_name = "dma_axi4";
             else if (sig_name.startsWith("debug_clockeddmi_dmi_")) bus_name = "dmi";
             else if (sig_name.startsWith("debug_systemjtag_jtag_")) bus_name = "jtag";
+            else if (sig_name.startsWith("debug_debug_clockeddmi_dmi_")) bus_name = "dmi";
+            else if (sig_name.startsWith("debug_debug_systemjtag_jtag_")) bus_name = "jtag";
             else continue;
             for (int i = 0; i < atts.length; i += 2) {
                 if (sig_name.endsWith("_" + atts[i])) {
@@ -529,6 +531,19 @@ public class Main {
             else if (nm.equals("debug_dmactive")) dst = "debug_dmactive";
             else if (nm.equals("debug_dmactiveAck")) dst = "debug_dmactive";
             else if (nm.startsWith("resetctrl_hartIsInReset")) dst = "'0'";
+            else if (nm.equals("debug_debug_clock")) dst = "clock";
+            else if (nm.equals("debug_debug_reset")) dst = "debug_reset";
+            else if (nm.equals("debug_debug_clockeddmi_dmiClock")) dst = "clock";
+            else if (nm.equals("debug_debug_clockeddmi_dmiReset")) dst = "reset";
+            else if (nm.equals("debug_debug_systemjtag_reset")) dst = "'0'";
+            else if (nm.equals("debug_debug_systemjtag_mfr_id")) dst = "\"10010001001\"";
+            else if (nm.equals("debug_debug_systemjtag_part_number")) dst = "\"0000000000000000\"";
+            else if (nm.equals("debug_debug_systemjtag_version")) dst = "\"0000\"";
+            else if (nm.equals("debug_debug_systemjtag_jtag_TDO_driven")) dst = "enable_tdo";
+            else if (nm.equals("debug_debug_ndreset")) dst = "debug_reset";
+            else if (nm.equals("debug_debug_dmactive")) dst = "debug_dmactive";
+            else if (nm.equals("debug_debug_dmactiveAck")) dst = "debug_dmactive";
+            else if (nm.startsWith("resetctrl_resetctrl_hartIsInReset")) dst = "'0'";
             else if (nm.equals("interrupts")) dst = "interrupts_sync";
             else dst = nm;
             if (s != null) ln(s + ',');

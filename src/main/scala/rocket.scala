@@ -27,13 +27,14 @@ class RocketSystemModuleImp[+L <: RocketSystem](_outer: L) extends RocketSubsyst
 
 class WithGemmini(mesh_size: Int, bus_bits: Int) extends Config((site, here, up) => {
   case BuildRoCC => up(BuildRoCC) ++ Seq(
-      (p: Parameters) => {
-        implicit val q = p
-        implicit val v = implicitly[ValName]
-        LazyModule(new gemmini.Gemmini(OpcodeSet.custom3,
-          gemmini.GemminiConfigs.defaultConfig.copy(meshRows = mesh_size, meshColumns = mesh_size, dma_buswidth = bus_bits)))
+    (p: Parameters) => {
+      implicit val q = p
+      implicit val v = implicitly[ValName]
+      LazyModule(new gemmini.Gemmini(OpcodeSet.custom3,
+        gemmini.GemminiConfigs.defaultConfig.copy(meshRows = mesh_size, meshColumns = mesh_size, dma_buswidth = bus_bits)))
     }
   )
+  case SystemBusKey => up(SystemBusKey).copy(beatBytes = bus_bits/8)
 })
 
 class WithDebugProgBuf(prog_buf_words: Int, imp_break: Boolean) extends Config((site, here, up) => {
@@ -191,6 +192,18 @@ class Rocket64b8 extends Config(
   new WithNBreakpoints(8) ++
   new WithNBigCores(8)    ++
   new RocketBaseConfig)
+
+/* Without slave port - for use in HDL simulation */
+class Rocket64b2s extends Config(
+  new WithNBigCores(2)    ++
+  new WithBootROMFile("workspace/bootrom.img") ++
+  new WithExtMemSize(0x40000000) ++
+  new WithNExtTopInterrupts(8) ++
+  new WithEdgeDataBits(64) ++
+  new WithCoherentBusTopology ++
+  new WithoutTLMonitors ++
+  new WithNoSlavePort ++
+  new BaseConfig)
 
 /*----------------- Sonic BOOM   ---------------*/
 

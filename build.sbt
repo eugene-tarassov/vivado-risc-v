@@ -12,7 +12,7 @@ lazy val vivado = (project in file("."))
   .dependsOn(sifive_cache)
   .dependsOn(gemmini)
   .settings(commonSettings)
-  
+
 lazy val rocketchip = (project in file("rocket-chip"))
   .settings(commonSettings)
 
@@ -23,7 +23,7 @@ lazy val testchipip = (project in file("generators/testchipip"))
 lazy val boom = (project in file("generators/riscv-boom"))
   .dependsOn(rocketchip)
   .dependsOn(testchipip)
-  .settings(commonSettings)
+  .settings(commonSettings, addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full))
 
 lazy val sifive_cache = (project in file("generators/sifive-cache"))
   .dependsOn(rocketchip)

@@ -151,26 +151,18 @@ endif
 SBT := java -Xmx4G -Xss8M $(JAVA_OPTIONS) -jar $(realpath rocket-chip/sbt-launch.jar)
 CHISEL_SRC := $(foreach path, src/main rocket-chip/src/main riscv-boom/src/main, $(shell test -d $(path) && find $(path) -iname "*.scala"))
 
-ROCKET_CLASSES = \
-  target/scala-2.12/classes \
-  rocket-chip/target/scala-2.12/classes \
-  rocket-chip/chisel3/target/scala-2.12/classes \
-  rocket-chip/chisel3/core/target/scala-2.12/classes \
-  rocket-chip/chisel3/macros/target/scala-2.12/classes
-
-SPACE := $(subst ,, )
-
 FIRRTL_SRC := $(shell test -d rocket-chip/firrtl/src/main && find rocket-chip/firrtl/src/main -iname "*.scala")
 FIRRTL_JAR = rocket-chip/firrtl/utils/bin/firrtl.jar
-FIRRTL = java -Xmx12G -Xss8M $(JAVA_OPTIONS) -cp $(FIRRTL_JAR):$(subst $(SPACE),:,$(strip $(ROCKET_CLASSES))) firrtl.stage.FirrtlMain
+FIRRTL = java -Xmx12G -Xss8M $(JAVA_OPTIONS) -cp $(FIRRTL_JAR):target/scala-2.12/classes:rocket-chip/rocketchip.jar firrtl.stage.FirrtlMain
 
 $(FIRRTL_JAR): $(FIRRTL_SRC)
-	make -C rocket-chip/firrtl SBT="$(SBT)" root_dir=$(realpath rocket-chip/firrtl) build-scala
+	make -C rocket-chip/firrtl SBT="$(SBT)" build-scala
 	touch $(FIRRTL_JAR)
 
 # Generate default device tree - not including peripheral devices or board specific data 
 workspace/$(CONFIG)/system.dts: $(FIRRTL_JAR) $(CHISEL_SRC) rocket-chip/bootrom/bootrom.img
 	cd rocket-chip && git reset --hard && patch -p1 <../patches/rocket-chip.patch
+	cd generators/gemmini && git reset --hard && patch -p1 <../../patches/gemmini.patch
 	mkdir -p workspace/$(CONFIG)/tmp
 	cp rocket-chip/bootrom/bootrom.img workspace/bootrom.img
 	$(SBT) "runMain freechips.rocketchip.system.Generator -td workspace/$(CONFIG)/tmp -T Vivado.RocketSystem -C Vivado.$(CONFIG_SCALA)"
@@ -191,6 +183,7 @@ workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir: workspace/$(CONF
 	cp bootrom/system.dts workspace/$(CONFIG)/system-$(BOARD).dts
 	cp bootrom/bootrom.img workspace/bootrom.img
 	$(SBT) "runMain freechips.rocketchip.system.Generator -td workspace/$(CONFIG)/system-$(BOARD) -T Vivado.RocketSystem -C Vivado.$(CONFIG_SCALA)"
+	cd rocket-chip && $(SBT) assembly
 
 # Generate Rocket SoC HDL
 workspace/$(CONFIG)/system-$(BOARD).v: workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir
@@ -255,6 +248,7 @@ vivado-project: $(proj_file)
 $(proj_path)/make-bitstream.tcl: $(proj_file)
 	echo "open_project $(proj_file)">$@
 	echo "update_compile_order -fileset sources_1">>$@
+	echo "set_param general.maxThreads 4">>$@
 	echo "launch_runs impl_1 -to_step write_bitstream -jobs 4">>$@
 	echo "wait_on_run impl_1">>$@
 	echo "write_cfgmem -format mcs -interface $(CFG_DEVICE) -loadbit \"up 0x0 $(bitstream)\" -file $(mcs_file) -force">>$@

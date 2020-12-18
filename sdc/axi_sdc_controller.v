@@ -200,7 +200,16 @@ reg clock_posedge;
 reg clock_data_in;
 
 always @(posedge clock) begin
-    if (clock_cnt >= clock_divider_reg) begin
+    if (reset) begin
+        clock_posedge <= 0;
+        clock_data_in <= 0;
+        clock_state <= 0;
+        clock_cnt <= 0;
+    end else if (clock_cnt < clock_divider_reg) begin
+        clock_posedge <= 0;
+        clock_data_in <= 0;
+        clock_cnt <= clock_cnt + 1;
+    end else begin
         clock_state <= !clock_state;
         clock_posedge <= !clock_state;
         if (clock_divider_reg == 0)
@@ -208,13 +217,11 @@ always @(posedge clock) begin
         else
             clock_data_in <= clock_state;
         clock_cnt <= 0;
-    end else begin
-        clock_posedge <= 0;
-        clock_data_in <= 0;
-        clock_cnt <= clock_cnt + 1;
     end
     sdio_clk <= sdio_reset || clock_state;
-    if (clock_posedge) sdio_reset <= controller_setting_reg[1];
+
+    if (reset) sdio_reset <= 0;
+    else if (clock_posedge) sdio_reset <= controller_setting_reg[1];
 end
 
 // ------ SD IO Buffers
