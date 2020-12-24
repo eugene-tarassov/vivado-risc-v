@@ -170,7 +170,7 @@ workspace/$(CONFIG)/system.dts: $(FIRRTL_JAR) $(CHISEL_SRC) rocket-chip/bootrom/
 	mv workspace/$(CONFIG)/tmp/Vivado.$(CONFIG_SCALA).dts workspace/$(CONFIG)/system.dts
 	rm -rf workspace/$(CONFIG)/tmp
 
-# Generate board specific device tree and FIR
+# Generate board specific device tree, boot ROM and FIRRTL
 workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir: workspace/$(CONFIG)/system.dts $(wildcard bootrom/*) workspace/gcc/riscv
 	mkdir -p workspace/$(CONFIG)/system-$(BOARD)
 	cat workspace/$(CONFIG)/system.dts bootrom/bootrom.dts >bootrom/system.dts
@@ -232,8 +232,7 @@ workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl workspa
 	echo "set vivado_board_part $(BOARD_PART)" >>$@
 	echo "set xilinx_part $(XILINX_PART)" >>$@
 	echo "set riscv_clock_frequency $(ROCKET_FREQ)" >>$@
-	echo 'set script_folder [file dirname [file normalize [info script]]]' >>$@
-	echo 'cd $$script_folder' >>$@
+	echo 'cd [file dirname [file normalize [info script]]]' >>$@
 	echo 'source ../../vivado.tcl' >>$@
 
 vivado-tcl: workspace/$(CONFIG)/system-$(BOARD).tcl
