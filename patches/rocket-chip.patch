@@ -12,10 +12,10 @@ index 5561c4850..259cd8fcc 100644
  
  /** Convert DMI to TL. Avoids using special DMI synchronizers and register accesses
 diff --git a/src/main/scala/devices/debug/DebugTransport.scala b/src/main/scala/devices/debug/DebugTransport.scala
-index 5b28567f9..8eb94254e 100644
+index 02659b4f9..31143570e 100644
 --- a/src/main/scala/devices/debug/DebugTransport.scala
 +++ b/src/main/scala/devices/debug/DebugTransport.scala
-@@ -67,7 +67,7 @@ class DTMInfo extends Bundle {
+@@ -65,7 +65,7 @@ class DTMInfo extends Bundle {
  /** A wrapper around JTAG providing a reset signal and manufacturer id. */
  class SystemJTAGIO extends Bundle {
    val jtag = Flipped(new JTAGIO(hasTRSTn = false))
@@ -25,10 +25,10 @@ index 5b28567f9..8eb94254e 100644
    val part_number = Input(UInt(16.W))
    val version = Input(UInt(4.W))
 diff --git a/src/main/scala/devices/debug/Periphery.scala b/src/main/scala/devices/debug/Periphery.scala
-index da2e3819f..f4b16624c 100644
+index 812dffb6f..0ffd127ae 100644
 --- a/src/main/scala/devices/debug/Periphery.scala
 +++ b/src/main/scala/devices/debug/Periphery.scala
-@@ -44,7 +44,7 @@ class ClockedAPBBundle(params: APBBundleParameters) extends APBBundle(params) {
+@@ -45,7 +45,7 @@ class ClockedAPBBundle(params: APBBundleParameters) extends APBBundle(params) {
  
  class DebugIO(implicit val p: Parameters) extends Bundle {
    val clock = Input(Clock())
@@ -37,7 +37,7 @@ index da2e3819f..f4b16624c 100644
    val clockeddmi = p(ExportDebug).dmi.option(Flipped(new ClockedDMIIO()))
    val systemjtag = p(ExportDebug).jtag.option(new SystemJTAGIO)
    val apb = p(ExportDebug).apb.option(Flipped(new ClockedAPBBundle(APBBundleParameters(addrBits=12, dataBits=32))))
-@@ -167,7 +167,7 @@ trait HasPeripheryDebugModuleImp extends LazyModuleImp {
+@@ -173,7 +173,7 @@ trait HasPeripheryDebugModuleImp extends LazyModuleImp {
      outer.debugOpt.map { outerdebug => 
        outerdebug.module.io.dmi.get.dmi <> dtm.io.dmi
        outerdebug.module.io.dmi.get.dmiClock := sj.jtag.TCK
