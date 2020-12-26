@@ -5,11 +5,11 @@
 #include "fdt.h"
 
 #define SR_RX_FIFO_VALID_DATA   (1 << 0) /* data in receive FIFO */
-#define SR_RX_FIFO_FULL         (1 << 1) /* receive FIFO full */
-#define SR_TX_FIFO_EMPTY        (1 << 2) /* transmit FIFO empty */
-#define SR_TX_FIFO_FULL         (1 << 3) /* transmit FIFO full */
+#define SR_RX_FIFO_FULL         (1 << 1) /* receive FIFO full    */
+#define SR_TX_FIFO_EMPTY        (1 << 2) /* transmit FIFO empty  */
+#define SR_TX_FIFO_FULL         (1 << 3) /* transmit FIFO full   */
 
-struct uart_regs {
+struct axi_uart_regs {
     volatile uint32_t rx_fifo;
     volatile uint32_t tx_fifo;
     volatile uint32_t status;
@@ -17,7 +17,7 @@ struct uart_regs {
 };
 
 volatile uint32_t * uart;
-static struct uart_regs * regs = NULL;
+static struct axi_uart_regs * regs = NULL;
 
 void uart_putchar(uint8_t ch) {
     if (regs == NULL) return;
@@ -43,8 +43,10 @@ static void uart_open(const struct fdt_scan_node *node, void *extra) {
 
 static void uart_prop(const struct fdt_scan_prop *prop, void *extra) {
     struct uart_scan *scan = (struct uart_scan *)extra;
-    if (!strcmp(prop->name, "compatible") && !strcmp((const char*)prop->value, "xlnx,xps-uartlite-1.00.a")) {
-        scan->compat = 1;
+    if (!strcmp(prop->name, "compatible")) {
+        if (!strcmp((const char*)prop->value, "xlnx,opb-uartlite-1.00.b")) scan->compat = 1;
+        if (!strcmp((const char*)prop->value, "xlnx,xps-uartlite-1.00.a")) scan->compat = 1;
+        if (!strcmp((const char*)prop->value, "riscv,axi-uart-1.0")) scan->compat = 1;
     }
     else if (!strcmp(prop->name, "reg")) {
         fdt_get_address(prop->node->parent, prop->value, &scan->reg);
@@ -55,7 +57,7 @@ static void uart_done(const struct fdt_scan_node *node, void *extra) {
     struct uart_scan *scan = (struct uart_scan *)extra;
     if (!scan->compat || !scan->reg || uart) return;
     uart = (void *)(uintptr_t)scan->reg;
-    regs = (struct uart_regs *)uart;
+    regs = (struct axi_uart_regs *)uart;
 }
 
 void query_uart(uintptr_t fdt) {

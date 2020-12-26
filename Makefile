@@ -49,6 +49,7 @@ linux-patch: patches/linux.patch patches/fpga-axi-sdc.c patches/fpga-axi-eth.c p
 	cd linux-stable && git reset --hard && patch -p1 <../patches/linux.patch
 	cp patches/fpga-axi-eth.c  linux-stable/drivers/net/ethernet
 	cp patches/fpga-axi-sdc.c  linux-stable/drivers/mmc/host
+	cp patches/fpga-axi-uart.c linux-stable/drivers/tty/serial
 	cp patches/linux.config linux-stable/.config
 
 linux-stable/arch/riscv/boot/Image: linux-patch

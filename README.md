@@ -39,7 +39,7 @@ sudo access required.
 [Vitis 2019.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2019-2.html).
 Vitis installation includes Vivado Design Suite – there is no need to install Vivado separately.
 
-Nexys Video is supported by free version of Vivado. VC707 and Genesys 2 requires Vivado license.
+Nexys Video is supported by free version of Vivado. VC707 and Genesys 2 require Vivado license.
 
 If using Nexys Video or Genesys 2, install [Vivado Board Files for Digilent FPGA Boards](https://github.com/Digilent/vivado-boards).
 

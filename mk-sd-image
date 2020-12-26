@@ -72,7 +72,7 @@ default Debain $KERNEL_VER
 label Debain $KERNEL_VER
  kernel /extlinux/image-$KERNEL_VER
  initrd /extlinux/initrd-$KERNEL_VER.img
- append ro root=UUID=$UUID earlycon console=ttyUL0,115200n8 LANG=en_US.UTF-8
+ append ro root=UUID=$UUID earlycon LANG=en_US.UTF-8
 EOF
 
 mkdir -p debian-riscv64/boot
