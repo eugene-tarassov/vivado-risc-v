@@ -1,8 +1,8 @@
 diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
-index 9a34c827c96e..a1ccdfb347f1 100644
+index 31481c9fcc2e..003ba9110cfd 100644
 --- a/drivers/mmc/host/Kconfig
 +++ b/drivers/mmc/host/Kconfig
-@@ -1076,6 +1076,14 @@ config MMC_SDHCI_AM654
+@@ -1091,6 +1091,14 @@ config MMC_SDHCI_AM654
  
  	  If unsure, say N.
  
@@ -18,7 +18,7 @@ index 9a34c827c96e..a1ccdfb347f1 100644
  	tristate "Actions Semi Owl SD/MMC Host Controller support"
  	depends on HAS_DMA
 diff --git a/drivers/mmc/host/Makefile b/drivers/mmc/host/Makefile
-index 4d5bcb0144a0..b5365ada69af 100644
+index 451c25fc2c69..6a0a8a8ca629 100644
 --- a/drivers/mmc/host/Makefile
 +++ b/drivers/mmc/host/Makefile
 @@ -76,6 +76,7 @@ obj-$(CONFIG_MMC_SUNXI)		+= sunxi-mmc.o
@@ -61,7 +61,7 @@ index f8f38dcb5f8a..53d1c7b0f0f3 100644
  obj-$(CONFIG_NET_VENDOR_PASEMI) += pasemi/
  obj-$(CONFIG_NET_VENDOR_QLOGIC) += qlogic/
 diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index 1a7e84a0db64..83acd70696c4 100644
+index 28f22e58639c..d130abc8d605 100644
 --- a/drivers/tty/serial/Kconfig
 +++ b/drivers/tty/serial/Kconfig
 @@ -556,6 +556,32 @@ config SERIAL_UARTLITE_NR_UARTS
