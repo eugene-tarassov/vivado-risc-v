@@ -150,7 +150,16 @@ else
 endif
 
 SBT := java -Xmx4G -Xss8M $(JAVA_OPTIONS) -jar $(realpath rocket-chip/sbt-launch.jar)
-CHISEL_SRC := $(foreach path, src/main rocket-chip/src/main riscv-boom/src/main, $(shell test -d $(path) && find $(path) -iname "*.scala"))
+
+CHISEL_SRC_DIRS = \
+  src/main \
+  rocket-chip/src/main \
+  generators/gemmini/src/main \
+  generators/riscv-boom/src/main \
+  generators/sifive-cache/design/craft \
+  generators/testchipip/src/main
+
+CHISEL_SRC := $(foreach path, $(CHISEL_SRC_DIRS), $(shell test -d $(path) && find $(path) -iname "*.scala"))
 
 FIRRTL_SRC := $(shell test -d rocket-chip/firrtl/src/main && find rocket-chip/firrtl/src/main -iname "*.scala")
 FIRRTL_JAR = rocket-chip/firrtl/utils/bin/firrtl.jar
@@ -246,12 +255,12 @@ vivado-project: $(proj_file)
 # --- generate FPGA bitstream ---
 
 $(proj_path)/make-bitstream.tcl: $(proj_file)
-	echo "open_project $(proj_file)">$@
-	echo "update_compile_order -fileset sources_1">>$@
-	echo "set_param general.maxThreads 4">>$@
-	echo "launch_runs impl_1 -to_step write_bitstream -jobs 4">>$@
-	echo "wait_on_run impl_1">>$@
-	echo "write_cfgmem -format mcs -interface $(CFG_DEVICE) -loadbit \"up 0x0 $(bitstream)\" -file $(mcs_file) -force">>$@
+	echo "open_project $(proj_file)" >$@
+	echo "update_compile_order -fileset sources_1" >>$@
+	echo "set_param general.maxThreads 4" >>$@
+	echo "launch_runs impl_1 -to_step write_bitstream -jobs 4" >>$@
+	echo "wait_on_run impl_1" >>$@
+	echo "write_cfgmem -format mcs -interface $(CFG_DEVICE) -loadbit \"up 0x0 $(bitstream)\" -file $(mcs_file) -force" >>$@
 
 $(bitstream): $(proj_path)/make-bitstream.tcl workspace/$(CONFIG)/rocket.vhdl
 	$(vivado) -source $(proj_path)/make-bitstream.tcl
