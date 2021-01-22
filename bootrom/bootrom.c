@@ -128,6 +128,7 @@ static BYTE card_type __attribute__((section(".bss")));
 static uint32_t response[4] __attribute__((section(".bss")));
 static FATFS fatfs __attribute__((section(".bss")));
 static int alt_mem __attribute__((section(".bss")));
+static FIL fd __attribute__((section(".bss")));
 
 extern unsigned char _ram[];
 extern unsigned char _ram_end[];
@@ -143,12 +144,12 @@ static const char * errno_to_str(void) {
     case FR_DISK_ERR: return "Disk I/O error";
     case FR_INT_ERR: return "Assertion failed";
     case FR_NOT_READY: return "Disk not ready";
-    case FR_NO_FILE: return "Could not find the file";
-    case FR_NO_PATH: return "Could not find the path";
-    case FR_INVALID_NAME: return "The path name format is invalid";
-    case FR_DENIED: return "Acces denied";
+    case FR_NO_FILE: return "File not found";
+    case FR_NO_PATH: return "Path not found";
+    case FR_INVALID_NAME: return "Invalid path";
+    case FR_DENIED: return "Access denied";
     case FR_EXIST: return "Already exist";
-    case FR_INVALID_OBJECT: return "The file/directory object is invalid";
+    case FR_INVALID_OBJECT: return "The FS object is invalid";
     case FR_WRITE_PROTECTED: return "The drive is write protected";
     case FR_INVALID_DRIVE: return "The drive number is invalid";
     case FR_NOT_ENABLED: return "The volume has no work area";
@@ -185,13 +186,6 @@ static int sdc_cmd_finish(unsigned cmd) {
     while (1) {
         unsigned status = regs->cmd_int_status;
         if (status) {
-#if 0
-            dprintf("cmd %x (%d) %c%c, status %x\n",
-                cmd, cmd,
-                regs->command & (1 << 5) ? 'R' : ' ',
-                regs->command & (1 << 6) ? 'W' : ' ',
-                status);
-#endif
             // clear interrupts
             regs->cmd_int_status = 0;
             while (regs->software_reset != 0) {}
@@ -415,17 +409,17 @@ DRESULT disk_read(BYTE drv, BYTE * buf, LBA_t sector, UINT count) {
 }
 
 DSTATUS disk_initialize(BYTE drv) {
-    if (ini_sd() < 0) kprintf("Cannot init SD: %s\n", errno_to_str());
+    if (ini_sd() < 0) kprintf("Cannot access SD: %s\n", errno_to_str());
     return drv_status;
 }
 
-static uintptr_t read_num(FIL * fd, unsigned size) {
+static uintptr_t read_num(unsigned size) {
     uint8_t buf[0x10];
     uintptr_t v = 0;
     unsigned n = 0;
     UINT rd;
     if (errno) return 0;
-    errno = f_read(fd, buf, size, &rd);
+    errno = f_read(&fd, buf, size, &rd);
     if (errno) return 0;
     if (rd < size) {
         errno = ERR_EOF;
@@ -437,9 +431,9 @@ static uintptr_t read_num(FIL * fd, unsigned size) {
     return v;
 }
 
-#define read_uint16() (uint16_t)read_num(&fd, 2)
-#define read_uint32() (uint32_t)read_num(&fd, 4)
-#define read_addr() (uintptr_t)read_num(&fd, __riscv_xlen >> 3)
+#define read_uint16() (uint16_t)read_num(2)
+#define read_uint32() (uint32_t)read_num(4)
+#define read_addr() (uintptr_t)read_num(__riscv_xlen >> 3)
 
 #define PT_LOAD 1
 
@@ -451,7 +445,6 @@ static int download(void) {
     uint16_t phentsize = 0;
     uint16_t phnum = 0;
     unsigned i = 0;
-    FIL fd;
 
     errno = f_open(&fd, fnm, FA_READ);
     if (errno) return -1;
@@ -571,8 +564,10 @@ static int download(void) {
         asm volatile ("addi t0, t0, 8");
         asm volatile ("addi t2, t2, 8");
         asm volatile ("bne  t0, t1, boot_rom_memcpy");
+        asm volatile ("fence.i" ::: "memory");
         asm volatile ("jr   a5");
     }
+    asm volatile ("fence.i" ::: "memory");
     asm volatile ("jr %0" :: "r" (entry_addr));
 
     return 0;
@@ -593,6 +588,7 @@ int main(void) {
         else if (download() != 0) {
             kprintf("Cannot read BOOT.ELF: %s\n", errno_to_str());
         }
+        if (fd.obj.fs) f_close(&fd);
         usleep(1000000);
     }
     return 0;
