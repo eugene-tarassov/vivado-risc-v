@@ -1736,7 +1736,7 @@ fragment Sign
 
 
 fragment Size
-   : Non_zero_unsigned_number
+   : Non_zero_unsigned_number ([ \t\n\r])*
    ;
 
 
