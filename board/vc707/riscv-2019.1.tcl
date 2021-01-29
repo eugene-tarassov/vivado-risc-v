@@ -40,7 +40,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following 
 # module references:
-# rocket, ethernet, sdc_controller, uart, synchronizer, ethernet_vc707
+# $rocket_module_name, ethernet, sdc_controller, uart, synchronizer, ethernet_vc707
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -163,7 +163,7 @@ xilinx.com:ip:gig_ethernet_pcs_pma:16.1\
 set bCheckModules 1
 if { $bCheckModules == 1 } {
    set list_check_mods "\ 
-rocket\
+$rocket_module_name\
 ethernet\
 sdc_controller\
 uart\
@@ -881,7 +881,8 @@ proc create_root_design { parentCell } {
   create_hier_cell_IO [current_bd_instance .] IO
 
   # Create instance: RocketChip, and set properties
-  set RocketChip [create_bd_cell -type module -reference rocket RocketChip]
+  global rocket_module_name
+  set RocketChip [create_bd_cell -type module -reference $rocket_module_name RocketChip]
   
   # Create instance: clk_wiz_0, and set properties
   set clk_wiz_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz_0 ]

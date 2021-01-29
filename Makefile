@@ -213,7 +213,7 @@ workspace/$(CONFIG)/rocket.vhdl: workspace/$(CONFIG)/system-$(BOARD).v
 	  vhdl-wrapper/src/net/largest/riscv/vhdl/Main.java
 	java -Xmx4G -Xss8M $(JAVA_OPTIONS) -cp \
 	  vhdl-wrapper/src:vhdl-wrapper/bin:vhdl-wrapper/antlr-4.8-complete.jar \
-	  net.largest.riscv.vhdl.Main \
+	  net.largest.riscv.vhdl.Main -m $(CONFIG_SCALA) \
 	  workspace/$(CONFIG)/system-$(BOARD).v >$@
 
 # --- utility make targets to run SBT command line ---
@@ -241,6 +241,7 @@ workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl workspa
 	echo "set vivado_board_name $(BOARD)" >$@
 	echo "set vivado_board_part $(BOARD_PART)" >>$@
 	echo "set xilinx_part $(XILINX_PART)" >>$@
+	echo "set rocket_module_name $(CONFIG_SCALA)" >>$@
 	echo "set riscv_clock_frequency $(ROCKET_FREQ)" >>$@
 	echo 'cd [file dirname [file normalize [info script]]]' >>$@
 	echo 'source ../../vivado.tcl' >>$@

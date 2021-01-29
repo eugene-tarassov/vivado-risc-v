@@ -25,6 +25,8 @@ import net.largest.riscv.vhdl.Verilog2001Parser.Unary_operatorContext;
 
 public class Main {
 
+    private static String rocket_module_name = "rocket";
+
     private static final Map<String,String> macros = new HashMap<String,String>();
 
     private enum IfDefState {
@@ -287,7 +289,7 @@ public class Main {
 
     private static void generateEntityPort() {
         ln("");
-        ln("entity rocket is");
+        ln("entity " + rocket_module_name + " is");
         ln("    port (");
         ln("        clock      : in std_logic;");
         ln("        clock_ok   : in std_logic;");
@@ -334,7 +336,7 @@ public class Main {
         }
         if (s != null) ln(s + ");");
         else ln("    );");
-        ln("end rocket;");
+        ln("end " + rocket_module_name + ";");
     }
 
     private static void generateBusAttributes() {
@@ -589,7 +591,7 @@ public class Main {
         generateEntityPort();
 
         ln("");
-        ln("architecture Behavioral of rocket is");
+        ln("architecture Behavioral of " + rocket_module_name + " is");
         ln("    ATTRIBUTE X_INTERFACE_INFO : STRING;");
         ln("    ATTRIBUTE X_INTERFACE_PARAMETER : STRING;");
         ln("");
@@ -681,13 +683,20 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        if (args.length != 1) {
+        int arg_pos = 0;
+        if (arg_pos < args.length && args[arg_pos].equals("-m")) {
+            arg_pos++;
+            if (arg_pos < args.length) {
+                rocket_module_name = args[arg_pos++];
+            }
+        }
+        if (args.length - arg_pos != 1) {
             System.err.println("Usage:");
             System.err.println("  java net.largest.riscv.vhdl.Main [options] <Verilog file name>");
             System.exit(1);
         }
         try {
-            CharStream input = CharStreams.fromFileName(args[0]);
+            CharStream input = CharStreams.fromFileName(args[arg_pos]);
             Verilog2001Lexer lexer = new Verilog2001Lexer(input) {
                 boolean skip = false;
                 final LinkedList<IfDefState> stack = new LinkedList<IfDefState>();
