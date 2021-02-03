@@ -169,12 +169,12 @@ always @(negedge clk) begin
     rgmii_tx_clk_2r <= rgmii_tx_clk_2;
 end
 
-reg [3:0] rgmii_txd_1;
-reg [3:0] rgmii_txd_2;
-reg rgmii_tx_ctl_1;
-reg rgmii_tx_ctl_2;
+reg [3:0] rgmii_txd_1 = 0;
+reg [3:0] rgmii_txd_2 = 0;
+reg rgmii_tx_ctl_1 = 1'b0;
+reg rgmii_tx_ctl_2 = 1'b0;
 
-reg gmii_clk_en;
+reg gmii_clk_en = 1'b1;
 
 always @* begin
     if (speed == 2'b00) begin
