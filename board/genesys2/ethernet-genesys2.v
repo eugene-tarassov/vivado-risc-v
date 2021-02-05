@@ -7,10 +7,6 @@ module ethernet_genesys2 (
     (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF TX_AXIS:RX_AXIS, ASSOCIATED_RESET reset, FREQ_HZ 125000000" *)
     input wire clock125,
 
-    (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clock125_90 CLK" *)
-    (* X_INTERFACE_PARAMETER = "FREQ_HZ 125000000" *)
-    input wire clock125_90,
-
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clock200 CLK" *)
     (* X_INTERFACE_PARAMETER = "FREQ_HZ 200000000" *)
     input wire clock200,
@@ -27,7 +23,6 @@ module ethernet_genesys2 (
     input wire tx_axis_tuser,
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TDATA" *)
-    (* X_INTERFACE_PARAMETER = "CLK_DOMAIN clock" *)
     output wire [7:0] rx_axis_tdata,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TVALID" *)
     output wire rx_axis_tvalid,
@@ -38,7 +33,7 @@ module ethernet_genesys2 (
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TUSER" *)
     output wire rx_axis_tuser,
 
-    output wire [15:0]status_vector,
+    output wire [15:0] status_vector,
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:rgmii:1.0 RGMII TD" *)
     output [3:0] rgmii_txd, // Ethernet transmit data (required)
@@ -54,12 +49,16 @@ module ethernet_genesys2 (
     input rgmii_rx_clk // Ethernet receive clock (required)
 );
 
- // 0.078 ns increment
+// Genesys 2 board uses RTL8211E-VL phy, TXDLY off, RXDLY on
+
+// 0.078 ns increment
+`define rgmii_clock_odelay 23
 `define rgmii_clock_idelay 0
-`define rgmii_data_idelay 16
+`define rgmii_data_idelay  25
 
 assign status_vector = 0;
 
+wire rgmii_tx_clk_delay;
 wire rgmii_rx_clk_delay;
 wire [3:0] rgmii_rxd_delay;
 wire rgmii_rx_ctl_delay;
@@ -68,7 +67,7 @@ eth_mac_1g_rgmii_fifo #(
     .TARGET("XILINX"),
     .IODDR_STYLE("IODDR"),
     .CLOCK_INPUT_STYLE("BUFR"),
-    .USE_CLK90("TRUE"),
+    .USE_CLK90("FALSE"),
     .ENABLE_PADDING(1),
     .AXIS_DATA_WIDTH(8),
     .MIN_FRAME_LENGTH(64),
@@ -81,7 +80,7 @@ eth_mac_1g_rgmii_fifo #(
 )
 eth_mac_inst (
     .gtx_clk(clock125),
-    .gtx_clk90(clock125_90),
+    .gtx_clk90(1'b0),
     .gtx_rst(reset),
     .logic_clk(clock125),
     .logic_rst(reset),
@@ -102,7 +101,7 @@ eth_mac_inst (
     .rgmii_rx_ctl(rgmii_rx_ctl_delay),
     .rgmii_rxd(rgmii_rxd_delay),
 
-    .rgmii_tx_clk(rgmii_tx_clk),
+    .rgmii_tx_clk(rgmii_tx_clk_delay),
     .rgmii_tx_ctl(rgmii_tx_ctl),
     .rgmii_txd(rgmii_txd),
 
@@ -188,6 +187,26 @@ rgmii_idelay_ctl (
     .CNTVALUEOUT(),
     .LD(1'b0),
     .LDPIPEEN(1'b0),
+    .REGRST(1'b0)
+);
+
+(* IODELAY_GROUP = "rgmii_idelay_group" *)
+ODELAYE2 #(
+    .ODELAY_TYPE("FIXED"),
+    .ODELAY_VALUE(`rgmii_clock_odelay),
+    .SIGNAL_PATTERN("CLOCK")
+)
+rgmii_odelay_clk (
+    .DATAOUT(rgmii_tx_clk),
+    .C(1'b0),
+    .CE(1'b0),
+    .CINVCTRL(1'b0),
+    .CLKIN(1'b0),
+    .CNTVALUEIN(0),
+    .INC(1'b0),
+    .LD(1'b0),
+    .LDPIPEEN(1'b0),
+    .ODATAIN(rgmii_tx_clk_delay),
     .REGRST(1'b0)
 );
 

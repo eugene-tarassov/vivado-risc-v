@@ -20,21 +20,17 @@ set_property -dict { PACKAGE_PIN AJ11  IOSTANDARD LVCMOS15 } [get_ports { rgmii_
 set_property -dict { PACKAGE_PIN AK10  IOSTANDARD LVCMOS15 } [get_ports { rgmii_td[3] }];
 
 create_clock -period 8.000 -name rgmii_rx_clk [get_ports rgmii_rxc]
-# Note: max (setup) is measured from prev clock edge, min (hold) - from current clock edge
-# Data valid period, relative to current edge, is max-4.0ns .. min
-set_input_delay -add_delay -clock rgmii_rx_clk -max  2.80 [get_ports { rgmii_rd* rgmii_rx_ctl }]
-set_input_delay -add_delay -clock rgmii_rx_clk -min  1.30 [get_ports { rgmii_rd* rgmii_rx_ctl }]
-set_input_delay -add_delay -clock rgmii_rx_clk -max  2.80 -clock_fall [get_ports { rgmii_rd* rgmii_rx_ctl }]
-set_input_delay -add_delay -clock rgmii_rx_clk -min  1.30 -clock_fall [get_ports { rgmii_rd* rgmii_rx_ctl }]
 
-#report_timing -rise_from [get_ports {rgmii_rd* rgmii_rx_ctl}] -delay_type min_max -max_paths 100 -name rgmii_rx_rise  -file rgmii_rx_rise.txt
-#report_timing -fall_from [get_ports {rgmii_rd* rgmii_rx_ctl}] -delay_type min_max -max_paths 100 -name rgmii_rx_fall  -file rgmii_rx_fall.txt
+# Genesys 2 board uses RTL8211E-VL phy, TXDLY off, RXDLY on, 1.8V signaling, HP bank (ODELAY available).
+# Note: max (setup) is measured from prev clock edge, min (hold) - from current clock edge.
+# Data valid period, relative to the current clock edge, is [max-4.0ns .. min].
+# With RXDLY on, the center of data valid period is supposed to be at the clock edge, but it is set at -1.35ns offset.
+# This offset is not required by RGMII specs, but tests show it improves stability on Genesys 2 board.
+# Changing of the constraints require changes of IDELAY_VALUE in ethernet-genesys2.v.
+set_input_delay -add_delay -clock rgmii_rx_clk -max 2.00 [get_ports { rgmii_rd* rgmii_rx_ctl }]
+set_input_delay -add_delay -clock rgmii_rx_clk -min 0.70 [get_ports { rgmii_rd* rgmii_rx_ctl }]
+set_input_delay -add_delay -clock rgmii_rx_clk -max 2.00 -clock_fall [get_ports { rgmii_rd* rgmii_rx_ctl }]
+set_input_delay -add_delay -clock rgmii_rx_clk -min 0.70 -clock_fall [get_ports { rgmii_rd* rgmii_rx_ctl }]
 
-#create_generated_clock -name rgmii_tx_clk -source [get_pins -hier clk_wiz_1/clk_out2] -divide_by 1 [get_ports rgmii_txc]
-#set_output_delay -add_delay -clock rgmii_tx_clk -max  1.40 [get_ports { rgmii_td* rgmii_tx_ctl }]
-#set_output_delay -add_delay -clock rgmii_tx_clk -min -1.40 [get_ports { rgmii_td* rgmii_tx_ctl }]
-#set_output_delay -add_delay -clock rgmii_tx_clk -max  1.40 -clock_fall [get_ports { rgmii_td* rgmii_tx_ctl }]
-#set_output_delay -add_delay -clock rgmii_tx_clk -min -1.40 -clock_fall [get_ports { rgmii_td* rgmii_tx_ctl }]
-
-#report_timing -rise_from [get_ports {rgmii_td* rgmii_tx_ctl}] -delay_type min_max -max_paths 100 -name rgmii_tx_rise  -file rgmii_tx_rise.txt
-#report_timing -fall_from [get_ports {rgmii_td* rgmii_tx_ctl}] -delay_type min_max -max_paths 100 -name rgmii_tx_fall  -file rgmii_tx_fall.txt
+# To see implemented RX timing, run from Vivado Tcl Console:
+# report_timing -from [get_ports {rgmii_rd* rgmii_rx_ctl}] -rise_to rgmii_rx_clk -delay_type min_max -max_paths 10 -name rgmii_rx  -file rgmii_rx.txt

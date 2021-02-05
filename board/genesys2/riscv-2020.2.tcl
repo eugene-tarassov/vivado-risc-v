@@ -417,7 +417,6 @@ proc create_hier_cell_IO { parentCell nameHier } {
   create_bd_pin -dir I -type rst ARESETN
   create_bd_pin -dir I -type clk clock_100MHz
   create_bd_pin -dir I -type clk clock_125MHz
-  create_bd_pin -dir I -type clk clock_125MHz90
   create_bd_pin -dir I -type clk clock_200MHz
   create_bd_pin -dir O -from 11 -to 0 device_temp
   create_bd_pin -dir O eth_mdio_clock
@@ -554,7 +553,6 @@ proc create_hier_cell_IO { parentCell nameHier } {
   connect_bd_net -net UART_interrupt [get_bd_pins UART/interrupt] [get_bd_pins xlconcat_0/In0]
   connect_bd_net -net clock_100MHz [get_bd_pins clock_100MHz] [get_bd_pins SD/clock] [get_bd_pins UART/clock] [get_bd_pins io_axi_m/aclk1] [get_bd_pins io_axi_s/aclk1]
   connect_bd_net -net clock_125MHz [get_bd_pins clock_125MHz] [get_bd_pins Ethernet/clock] [get_bd_pins ethernet_stream_0/clock125] [get_bd_pins io_axi_m/aclk2] [get_bd_pins io_axi_s/aclk2]
-  connect_bd_net -net clock_125MHz90 [get_bd_pins clock_125MHz90] [get_bd_pins ethernet_stream_0/clock125_90]
   connect_bd_net -net clock_200MHz [get_bd_pins clock_200MHz] [get_bd_pins ethernet_stream_0/clock200]
   connect_bd_net -net device_temp [get_bd_pins device_temp] [get_bd_pins XADC/temp_out]
   connect_bd_net -net fan_en [get_bd_pins fan_en] [get_bd_pins XADC/user_temp_alarm_out]
@@ -745,10 +743,7 @@ proc create_root_design { parentCell } {
    CONFIG.CLKOUT3_USED {true} \
    CONFIG.CLKOUT4_REQUESTED_OUT_FREQ {125.000} \
    CONFIG.CLKOUT4_USED {true} \
-   CONFIG.CLKOUT5_REQUESTED_OUT_FREQ {125.000} \
-   CONFIG.CLKOUT5_REQUESTED_PHASE {90.000} \
-   CONFIG.CLKOUT5_USED {true} \
-   CONFIG.NUM_OUT_CLKS {5} \
+   CONFIG.NUM_OUT_CLKS {4} \
    CONFIG.PRIM_SOURCE {No_buffer} \
  ] $clk_wiz_0
 
@@ -792,7 +787,6 @@ proc create_root_design { parentCell } {
   connect_bd_net -net IO_uart_txd [get_bd_ports usb_uart_txd] [get_bd_pins IO/uart_txd]
   connect_bd_net -net clock_100MHz [get_bd_pins IO/clock_100MHz] [get_bd_pins clk_wiz_0/clk_out3]
   connect_bd_net -net clock_125MHz [get_bd_pins IO/clock_125MHz] [get_bd_pins clk_wiz_0/clk_out4]
-  connect_bd_net -net clock_125MHz90 [get_bd_pins IO/clock_125MHz90] [get_bd_pins clk_wiz_0/clk_out5]
   connect_bd_net -net clock_200MHz [get_bd_pins DDR/clock_200MHz] [get_bd_pins IO/clock_200MHz] [get_bd_pins clk_wiz_0/clk_out2]
   connect_bd_net -net clock_ok [get_bd_pins RocketChip/clock_ok] [get_bd_pins RocketChip/io_ok] [get_bd_pins clk_wiz_0/locked]
   connect_bd_net -net device_temp [get_bd_pins DDR/device_temp] [get_bd_pins IO/device_temp]
