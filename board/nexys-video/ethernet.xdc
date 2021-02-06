@@ -21,12 +21,16 @@ set_property -dict { PACKAGE_PIN W11   IOSTANDARD LVCMOS25 SLEW FAST DRIVE 16 } 
 set_property -dict { PACKAGE_PIN Y11   IOSTANDARD LVCMOS25 SLEW FAST DRIVE 16 } [get_ports { rgmii_td[3] }]; #IO_L11P_T1_SRCC_13 Sch=eth_txd[3]
 
 create_clock -period 8.000 -name rgmii_rx_clk [get_ports rgmii_rxc]
-# Note: max (setup) is measured from prev clock edge, min (hold) - from current clock edge
-# Data valid period, relative to current edge, is max-4.0ns .. min
-set_input_delay -add_delay -clock rgmii_rx_clk -max  4.60 [get_ports { rgmii_rd* rgmii_rx_ctl }]
-set_input_delay -add_delay -clock rgmii_rx_clk -min  3.40 [get_ports { rgmii_rd* rgmii_rx_ctl }]
-set_input_delay -add_delay -clock rgmii_rx_clk -max  4.60 -clock_fall [get_ports { rgmii_rd* rgmii_rx_ctl }]
-set_input_delay -add_delay -clock rgmii_rx_clk -min  3.40 -clock_fall [get_ports { rgmii_rd* rgmii_rx_ctl }]
 
-#report_timing -rise_from [get_ports {rgmii_rd* rgmii_rx_ctl}] -delay_type min_max -max_paths 100 -name rgmii_rx_rise  -file rgmii_rx_rise.txt
-#report_timing -fall_from [get_ports {rgmii_rd* rgmii_rx_ctl}] -delay_type min_max -max_paths 100 -name rgmii_rx_fall  -file rgmii_rx_fall.txt
+# Nexys Video board uses RTL8211E-VB phy, TXDLY off, RXDLY off, 2.5V signaling, HR bank (ODELAY not available).
+# Note: max (setup) is measured from prev clock edge, min (hold) - from current clock edge.
+# Data valid period, relative to the current clock edge, is [max-4.0ns .. min].
+# With RXDLY off, the center of data valid period is in the middle between clock edges.
+# Changing of the constraints require changes of IDELAY_VALUE in ethernet-nesys-video.v.
+set_input_delay -add_delay -clock rgmii_rx_clk -max 4.60 [get_ports { rgmii_rd* rgmii_rx_ctl }]
+set_input_delay -add_delay -clock rgmii_rx_clk -min 3.40 [get_ports { rgmii_rd* rgmii_rx_ctl }]
+set_input_delay -add_delay -clock rgmii_rx_clk -max 4.60 -clock_fall [get_ports { rgmii_rd* rgmii_rx_ctl }]
+set_input_delay -add_delay -clock rgmii_rx_clk -min 3.40 -clock_fall [get_ports { rgmii_rd* rgmii_rx_ctl }]
+
+# To see implemented RX timing, run from Vivado Tcl Console:
+# report_timing -from [get_ports {rgmii_rd* rgmii_rx_ctl}] -rise_to rgmii_rx_clk -delay_type min_max -max_paths 10 -name rgmii_rx  -file rgmii_rx.txt

@@ -108,8 +108,6 @@ assign mac_gmii_rx_er = rgmii_rx_ctl_1 ^ rgmii_rx_ctl_2;
 
 reg rgmii_tx_clk_1 = 1'b1;
 reg rgmii_tx_clk_2 = 1'b0;
-reg rgmii_tx_clk_1r = 1'b1;
-reg rgmii_tx_clk_2r = 1'b0;
 reg rgmii_tx_clk_rise = 1'b1;
 reg rgmii_tx_clk_fall = 1'b1;
 
@@ -164,11 +162,6 @@ always @(posedge clk) begin
     end
 end
 
-always @(negedge clk) begin
-    rgmii_tx_clk_1r <= rgmii_tx_clk_1;
-    rgmii_tx_clk_2r <= rgmii_tx_clk_2;
-end
-
 reg [3:0] rgmii_txd_1 = 0;
 reg [3:0] rgmii_txd_2 = 0;
 reg rgmii_tx_ctl_1 = 1'b0;
@@ -221,9 +214,9 @@ oddr #(
     .WIDTH(1)
 )
 clk_oddr_inst (
-    .clk(USE_CLK90 == "TRUE" ? clk90 : clk),
-    .d1(rgmii_tx_clk_1r),
-    .d2(rgmii_tx_clk_2r),
+    .clk(clk),
+    .d1(rgmii_tx_clk_1),
+    .d2(rgmii_tx_clk_2),
     .q(phy_rgmii_tx_clk)
 );
 
@@ -233,7 +226,7 @@ oddr #(
     .WIDTH(5)
 )
 data_oddr_inst (
-    .clk(clk),
+    .clk(USE_CLK90 == "TRUE" ? ~clk90 : clk),
     .d1({rgmii_txd_1, rgmii_tx_ctl_1}),
     .d2({rgmii_txd_2, rgmii_tx_ctl_2}),
     .q({phy_rgmii_txd, phy_rgmii_tx_ctl})

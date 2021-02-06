@@ -27,7 +27,6 @@ module ethernet_nexys_video (
     input wire tx_axis_tuser,
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TDATA" *)
-    (* X_INTERFACE_PARAMETER = "CLK_DOMAIN clock" *)
     output wire [7:0] rx_axis_tdata,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TVALID" *)
     output wire rx_axis_tvalid,
