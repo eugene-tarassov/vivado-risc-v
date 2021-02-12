@@ -113,7 +113,7 @@ JAVA_OPTIONS =
 ifeq ($(BOARD),nexys-video)
   BOARD_PART  ?= digilentinc.com:nexys_video:part0:1.1
   XILINX_PART ?= xc7a200tsbg484-1
-  CFG_DEVICE  ?= SPIx4 -size 256
+  CFG_DEVICE  ?= SPIx4 -size 32
   MEMORY_SIZE ?= 0x20000000
   ETHER_MAC   ?= 00 0a 35 00 00 01
   ETHER_PHY   ?= rgmii
@@ -122,7 +122,7 @@ endif
 ifeq ($(BOARD),genesys2)
   BOARD_PART  ?= digilentinc.com:genesys2:part0:1.1
   XILINX_PART ?= xc7k325tffg900-2
-  CFG_DEVICE  ?= SPIx4 -size 256
+  CFG_DEVICE  ?= SPIx4 -size 32
   MEMORY_SIZE ?= 0x40000000
   ETHER_MAC   ?= 00 0a 35 00 00 02
   ETHER_PHY   ?= rgmii-rxid
@@ -131,10 +131,19 @@ endif
 ifeq ($(BOARD),vc707)
   BOARD_PART  ?= xilinx.com:vc707:part0:1.4
   XILINX_PART ?= xc7vx485tffg1761-2
-  CFG_DEVICE  ?= bpix16 -size 128
+  CFG_DEVICE  ?= BPIx16 -size 128
   MEMORY_SIZE ?= 0x40000000
   ETHER_MAC   ?= 00 0a 35 00 00 00
   ETHER_PHY   ?= sgmii
+endif
+
+ifeq ($(BOARD),vcu1525)
+  BOARD_PART  ?= xilinx.com:vcu1525:part0:1.3
+  XILINX_PART ?= xcvu9p-fsgd2104-2L-e
+  CFG_DEVICE  ?= SPIx4 -size 128
+  MEMORY_SIZE ?= 0x400000000
+  ETHER_MAC   ?= 00 0a 35 00 00 03
+  ETHER_PHY   ?= qsfp
 endif
 
 # valid ROCKET_FREQ values (MHz): 125 100 80 62.5 50 40 31.25 25 20
@@ -147,6 +156,14 @@ ifeq ($(findstring Rocket64,$(CONFIG_SCALA)),)
 else
   CROSS_COMPILE_NO_OS_TOOLS = $(realpath workspace/gcc/riscv/bin)/riscv64-unknown-elf-
   CROSS_COMPILE_NO_OS_FLAGS = -march=rv64im -mabi=lp64
+endif
+
+ifeq ($(shell echo $$(($(MEMORY_SIZE) <= 0x80000000))),1)
+  MEMORY_ADDR_SIZE = 0x80000000 $(MEMORY_SIZE)
+else ifeq ($(shell echo $$(($(MEMORY_SIZE) / 0x100000000))),0)
+  MEMORY_ADDR_SIZE = 0x80000000 0x80000000
+else
+  MEMORY_ADDR_SIZE = 0x0 0x80000000 $(shell echo - | awk '{printf "0x%x", $(MEMORY_SIZE) / 0x100000000 - 1}') 0x80000000
 endif
 
 SBT := java -Xmx4G -Xss8M $(JAVA_OPTIONS) -jar $(realpath rocket-chip/sbt-launch.jar)
@@ -184,7 +201,7 @@ workspace/$(CONFIG)/system.dts: $(FIRRTL_JAR) $(CHISEL_SRC) rocket-chip/bootrom/
 workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir: workspace/$(CONFIG)/system.dts $(wildcard bootrom/*) workspace/gcc/riscv
 	mkdir -p workspace/$(CONFIG)/system-$(BOARD)
 	cat workspace/$(CONFIG)/system.dts bootrom/bootrom.dts >bootrom/system.dts
-	sed -i "s#reg = <0x80000000 0x.*>#reg = <0x80000000 $(MEMORY_SIZE)>#g" bootrom/system.dts
+	sed -i "s#reg = <(0x0 *|)0x80000000 *0x.*>#reg = <$(MEMORY_ADDR_SIZE)>#g" bootrom/system.dts
 	sed -i "s#clock-frequency = <[0-9]*>#clock-frequency = <$(ROCKET_FREQ_KHZ)000>#g" bootrom/system.dts
 	sed -i "s#timebase-frequency = <[0-9]*>#timebase-frequency = <$(ROCKET_FREQ_KHZ)0>#g" bootrom/system.dts
 	sed -i "s#local-mac-address = \[.*\]#local-mac-address = [$(ETHER_MAC)]#g" bootrom/system.dts

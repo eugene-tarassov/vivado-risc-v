@@ -42,14 +42,14 @@ class WithDebugProgBuf(prog_buf_words: Int, imp_break: Boolean) extends Config((
 })
 
 /*
- * WithExtMemSize(0x40000000) = 1GB is max supported by the base config.
+ * WithExtMemSize(0x80000000L) = 2GB is max supported by the base config.
  * Actual memory size depends on the target board.
  * The Makefile changes the size to correct value during build.
  * It also sets right core clock frequency.
  */
 class RocketBaseConfig extends Config(
   new WithBootROMFile("workspace/bootrom.img") ++
-  new WithExtMemSize(0x40000000) ++
+  new WithExtMemSize(0x80000000L) ++
   new WithNExtTopInterrupts(8) ++
   new WithDTS("freechips,rocketchip-vivado", Nil) ++
   new WithDebugSBA ++
@@ -60,7 +60,7 @@ class RocketBaseConfig extends Config(
 
 class RocketWideBusConfig extends Config(
   new WithBootROMFile("workspace/bootrom.img") ++
-  new WithExtMemSize(0x40000000) ++
+  new WithExtMemSize(0x80000000L) ++
   new WithNExtTopInterrupts(8) ++
   new WithDTS("freechips,rocketchip-vivado", Nil) ++
   new WithDebugSBA ++
@@ -115,6 +115,14 @@ class Rocket32s16 extends Config(
 class Rocket64b2 extends Config(
   new WithNBreakpoints(8) ++
   new WithNBigCores(2)    ++
+  new RocketBaseConfig)
+
+/* With up to 256GB memory */
+/* Note: lower 2GB are used for memory mapped IO, so max usable RAM size is 254GB */
+class Rocket64b2m extends Config(
+  new WithNBreakpoints(8) ++
+  new WithNBigCores(2)    ++
+  new WithExtMemSize(0x3f80000000L) ++
   new RocketBaseConfig)
 
 /* With exposed JTAG port */
@@ -229,4 +237,13 @@ class Rocket64z1 extends Config(
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
   new boom.common.WithNMegaBooms(1) ++
+  new RocketWideBusConfig)
+
+/* With up to 256GB memory */
+/* Note: lower 2GB are used for memory mapped IO, so max usable RAM size is 254GB */
+class Rocket64z2m extends Config(
+  new WithInclusiveCache  ++
+  new WithNBreakpoints(8) ++
+  new boom.common.WithNMegaBooms(2) ++
+  new WithExtMemSize(0x3f80000000L) ++
   new RocketWideBusConfig)
