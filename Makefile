@@ -146,9 +146,10 @@ ifeq ($(BOARD),vcu1525)
   ETHER_PHY   ?= qsfp
 endif
 
-# valid ROCKET_FREQ values (MHz): 125 100 80 62.5 50 40 31.25 25 20
-ROCKET_FREQ ?= $(shell awk '$$3 != "" && "$(BOARD)" ~ $$1 && "$(CONFIG_SCALA)" ~ ("^" $$2 "$$") {print $$3; exit}' board/rocket-freq)
-ROCKET_FREQ_KHZ := $(shell echo - | awk '{print $(ROCKET_FREQ) * 1000}')
+# valid ROCKET_FREQ_MHZ values (MHz): 125 100 80 62.5 50 40 31.25 25 20
+ROCKET_FREQ_MHZ ?= $(shell awk '$$3 != "" && "$(BOARD)" ~ $$1 && "$(CONFIG_SCALA)" ~ ("^" $$2 "$$") {print $$3; exit}' board/rocket-freq)
+ROCKET_CLOCK_FREQ := $(shell echo - | awk '{printf("%.0f\n", $(ROCKET_FREQ_MHZ) * 1000000)}')
+ROCKET_TIMEBASE_FREQ := $(shell echo - | awk '{printf("%.0f\n", $(ROCKET_FREQ_MHZ) * 10000)}')
 
 ifeq ($(findstring Rocket64,$(CONFIG_SCALA)),)
   CROSS_COMPILE_NO_OS_TOOLS = $(realpath workspace/gcc/riscv/bin)/riscv32-unknown-elf-
@@ -202,8 +203,8 @@ workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir: workspace/$(CONF
 	mkdir -p workspace/$(CONFIG)/system-$(BOARD)
 	cat workspace/$(CONFIG)/system.dts bootrom/bootrom.dts >bootrom/system.dts
 	sed -i "s#reg = <(0x0 *|)0x80000000 *0x.*>#reg = <$(MEMORY_ADDR_SIZE)>#g" bootrom/system.dts
-	sed -i "s#clock-frequency = <[0-9]*>#clock-frequency = <$(ROCKET_FREQ_KHZ)000>#g" bootrom/system.dts
-	sed -i "s#timebase-frequency = <[0-9]*>#timebase-frequency = <$(ROCKET_FREQ_KHZ)0>#g" bootrom/system.dts
+	sed -i "s#clock-frequency = <[0-9]*>#clock-frequency = <$(ROCKET_CLOCK_FREQ)>#g" bootrom/system.dts
+	sed -i "s#timebase-frequency = <[0-9]*>#timebase-frequency = <$(ROCKET_TIMEBASE_FREQ)>#g" bootrom/system.dts
 	sed -i "s#local-mac-address = \[.*\]#local-mac-address = [$(ETHER_MAC)]#g" bootrom/system.dts
 	sed -i "s#phy-mode = \".*\"#phy-mode = \"$(ETHER_PHY)\"#g" bootrom/system.dts
 	make -C bootrom CROSS_COMPILE="$(CROSS_COMPILE_NO_OS_TOOLS)" CFLAGS="$(CROSS_COMPILE_NO_OS_FLAGS)" clean bootrom.img
@@ -259,7 +260,7 @@ workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl workspa
 	echo "set vivado_board_part $(BOARD_PART)" >>$@
 	echo "set xilinx_part $(XILINX_PART)" >>$@
 	echo "set rocket_module_name $(CONFIG_SCALA)" >>$@
-	echo "set riscv_clock_frequency $(ROCKET_FREQ)" >>$@
+	echo "set riscv_clock_frequency $(ROCKET_FREQ_MHZ)" >>$@
 	echo 'cd [file dirname [file normalize [info script]]]' >>$@
 	echo 'source ../../vivado.tcl' >>$@
 
