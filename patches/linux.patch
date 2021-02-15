@@ -1,8 +1,8 @@
 diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
-index 31481c9fcc2e..003ba9110cfd 100644
+index 596f32637315..aed0f17f94d7 100644
 --- a/drivers/mmc/host/Kconfig
 +++ b/drivers/mmc/host/Kconfig
-@@ -1091,6 +1091,14 @@ config MMC_SDHCI_AM654
+@@ -1092,6 +1092,14 @@ config MMC_SDHCI_AM654
  
  	  If unsure, say N.
  
@@ -61,7 +61,7 @@ index f8f38dcb5f8a..53d1c7b0f0f3 100644
  obj-$(CONFIG_NET_VENDOR_PASEMI) += pasemi/
  obj-$(CONFIG_NET_VENDOR_QLOGIC) += qlogic/
 diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index 28f22e58639c..d130abc8d605 100644
+index 34a2899e69c0..3ddbe17b3bad 100644
 --- a/drivers/tty/serial/Kconfig
 +++ b/drivers/tty/serial/Kconfig
 @@ -556,6 +556,32 @@ config SERIAL_UARTLITE_NR_UARTS
@@ -98,10 +98,10 @@ index 28f22e58639c..d130abc8d605 100644
  	bool
  	depends on SPARC
 diff --git a/drivers/tty/serial/Makefile b/drivers/tty/serial/Makefile
-index caf167f0c10a..07e720cd5eed 100644
+index b85d53f9e9ff..17e50a93b4bb 100644
 --- a/drivers/tty/serial/Makefile
 +++ b/drivers/tty/serial/Makefile
-@@ -55,6 +55,7 @@ obj-$(CONFIG_SERIAL_TXX9) += serial_txx9.o
+@@ -54,6 +54,7 @@ obj-$(CONFIG_SERIAL_TXX9) += serial_txx9.o
  obj-$(CONFIG_SERIAL_VR41XX) += vr41xx_siu.o
  obj-$(CONFIG_SERIAL_ATMEL) += atmel_serial.o
  obj-$(CONFIG_SERIAL_UARTLITE) += uartlite.o
