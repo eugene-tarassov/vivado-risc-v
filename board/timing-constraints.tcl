@@ -15,22 +15,24 @@ if { [llength [get_pins -quiet -hier ethernet_stream_0/clock]] } {
   set eth_clock [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out4]]
 }
 
-set_max_delay -from $eth_clock -to $main_clock -datapath_only 10.0
-set_max_delay -from $main_clock -to $eth_clock -datapath_only 10.0
+if { $eth_clock != "" } {
+  set_max_delay -from $eth_clock -to $main_clock -datapath_only 10.0
+  set_max_delay -from $main_clock -to $eth_clock -datapath_only 10.0
 
-if { [llength [get_ports -quiet eth_mdio_data]] } {
-  set_max_delay -from $eth_clock -to [get_ports {eth_mdio_clock eth_mdio_data eth_mdio_reset}] -datapath_only 40.0
-  set_max_delay -from [get_ports {eth_mdio_data eth_mdio_int}] -to $eth_clock -datapath_only 40.0
-}
+  if { [llength [get_ports -quiet eth_mdio_data]] } {
+    set_max_delay -from $eth_clock -to [get_ports {eth_mdio_clock eth_mdio_data eth_mdio_reset}] -datapath_only 40.0
+    set_max_delay -from [get_ports {eth_mdio_data eth_mdio_int}] -to $eth_clock -datapath_only 40.0
+  }
 
-if { [llength [get_pins -quiet -hier Ethernet/async_resetn]] } {
-  set_max_delay -from $main_clock -through [get_pins -hier Ethernet/async_resetn] -datapath_only 10.0
-  set_max_delay -from $eth_clock -through [get_pins -hier Ethernet/interrupt] -datapath_only 10.0
-}
+  if { [llength [get_pins -quiet -hier Ethernet/async_resetn]] } {
+    set_max_delay -from $main_clock -through [get_pins -hier Ethernet/async_resetn] -datapath_only 10.0
+    set_max_delay -from $eth_clock -through [get_pins -hier Ethernet/interrupt] -datapath_only 10.0
+  }
 
-if { [llength [get_clocks rgmii_rx_clk]] } {
-  set_max_delay -from $eth_clock -to rgmii_rx_clk -datapath_only 7.0
-  set_max_delay -from rgmii_rx_clk -to $eth_clock -datapath_only 7.0
+  if { [llength [get_clocks rgmii_rx_clk]] } {
+    set_max_delay -from $eth_clock -to rgmii_rx_clk -datapath_only 7.0
+    set_max_delay -from rgmii_rx_clk -to $eth_clock -datapath_only 7.0
+  }
 }
 
 #------------------ SD card controller
