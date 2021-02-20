@@ -1,3 +1,15 @@
+diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
+index e0a34eb5ed3b..8a35715461e0 100644
+--- a/arch/riscv/Kconfig
++++ b/arch/riscv/Kconfig
+@@ -223,7 +223,6 @@ config ARCH_RV64I
+ 	select HAVE_FTRACE_MCOUNT_RECORD
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+ 	select HAVE_FUNCTION_TRACER
+-	select SWIOTLB if MMU
+ 
+ endchoice
+ 
 diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
 index 596f32637315..aed0f17f94d7 100644
 --- a/drivers/mmc/host/Kconfig

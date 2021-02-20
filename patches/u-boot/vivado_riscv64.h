@@ -12,7 +12,7 @@
 
 #define CONFIG_SYS_MALLOC_LEN           SZ_8M
 
-#define CONFIG_SYS_BOOTM_LEN            SZ_64M
+#define CONFIG_SYS_BOOTM_LEN            SZ_32M
 
 #define CONFIG_STANDALONE_LOAD_ADDR     0x80200000
 
@@ -27,12 +27,12 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
         "fdt_addr=0x10080\0" \
         "kernel_addr_r=0x81000000\0" \
-        "fdt_addr_r=0x88000000\0" \
-        "scriptaddr=0x88100000\0" \
-        "pxefile_addr_r=0x88200000\0" \
-        "ramdisk_addr_r=0x88300000\0" \
-        "bootm_low=0x90000000\0" \
-        "bootm_size=0x08000000\0" \
+        "fdt_addr_r=0x83000000\0" \
+        "scriptaddr=0x83010000\0" \
+        "pxefile_addr_r=0x83020000\0" \
+        "ramdisk_addr_r=0x83030000\0" \
+        "bootm_low=0x85000000\0" \
+        "bootm_size=0x02000000\0" \
         "initrd_high=no\0" \
         BOOTENV
 

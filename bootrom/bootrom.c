@@ -130,11 +130,6 @@ static FATFS fatfs __attribute__((section(".bss")));
 static int alt_mem __attribute__((section(".bss")));
 static FIL fd __attribute__((section(".bss")));
 
-extern unsigned char _ram[];
-extern unsigned char _ram_end[];
-
-extern unsigned char _ftext[];
-extern unsigned char _etext[];
 extern unsigned char _fbss[];
 extern unsigned char _ebss[];
 

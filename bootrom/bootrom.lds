@@ -4,7 +4,7 @@ ENTRY(_hang)
 MEMORY {
   error_mem (rw)   : ORIGIN = 0x00003000, LENGTH = 0x00001000
   maskrom_mem (rx) : ORIGIN = 0x00010000, LENGTH = 0x00010000
-  memory_mem (rwx) : ORIGIN = 0x80000000, LENGTH = 0x10000000
+  memory_mem (rwx) : ORIGIN = 0x80000000, LENGTH = 0x08000000
 }
 
 PHDRS {
@@ -13,24 +13,19 @@ PHDRS {
 
 SECTIONS {
   PROVIDE(_ram = ORIGIN(memory_mem));
-  PROVIDE(_ram_end = _ram + LENGTH(memory_mem));
 
   .text 0x00010000 : {
-    PROVIDE(_ftext = .);
     *(.text.start)
-    . = _ftext + 0x40;
+    . = 0x0040;
     *(.text.hang)
-    . = _ftext + 0x80;
+    . = 0x0080;
     *(.rodata.dtb)
     *(.text.unlikely .text.unlikely.*)
     *(.text .text.* .gnu.linkonce.t.*)
-    . = ALIGN(8);
-    PROVIDE(_etext = .);
-    *(.eh_frame)
     *(.rodata .rodata.* .gnu.linkonce.r.*)
     *(.srodata .srodata.*)
   } >maskrom_mem  :text
-  ASSERT(SIZEOF(.text) <= 0x10000, "BootROM .text section must be less thab 0x10000 bytes")
+  ASSERT(SIZEOF(.text) <= 0x10000, "BootROM .text section must be less than 0x10000 bytes")
 
   .data (INFO) : {
     /* This section must be empty */
@@ -53,5 +48,6 @@ SECTIONS {
 
   .note (INFO) : {
     *(.note .note.*)
+    *(.eh_frame)
   }
 }
