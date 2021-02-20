@@ -324,4 +324,3 @@ U_BOOT_DRIVER(sdc_priv) = {
 };
 
 #endif /* CONFIG_IS_ENABLED(DM_MMC) */
-

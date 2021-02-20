@@ -190,7 +190,7 @@ $(FIRRTL_JAR): $(FIRRTL_SRC)
 	make -C rocket-chip/firrtl SBT="$(SBT)" build-scala
 	touch $(FIRRTL_JAR)
 
-# Generate default device tree - not including peripheral devices or board specific data 
+# Generate default device tree - not including peripheral devices or board specific data
 workspace/$(CONFIG)/system.dts: $(FIRRTL_JAR) $(CHISEL_SRC) rocket-chip/bootrom/bootrom.img
 	cd rocket-chip && git reset --hard && patch -p1 <../patches/rocket-chip.patch
 	cd generators/gemmini && git reset --hard && patch -p1 <../../patches/gemmini.patch

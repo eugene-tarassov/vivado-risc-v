@@ -95,4 +95,3 @@ make_wrapper -files [get_files riscv.bd] -top
 add_files -norecurse [file normalize vivado-${vivado_board_name}-riscv/${vivado_board_name}-riscv.srcs/sources_1/bd/riscv/hdl/riscv_wrapper.v ]
 set_property top riscv_wrapper $source_fileset
 update_compile_order -fileset $source_fileset
-

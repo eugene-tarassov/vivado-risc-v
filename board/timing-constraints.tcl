@@ -116,6 +116,6 @@ if { [llength [get_pins -quiet -hier mig_7series_0/ui_clk]] } {
   set ddrc_clock [get_clocks -of_objects [get_pins -hier ddr4_0/c0_ddr4_ui_clk]]
   set_max_delay -from $main_clock -through [get_pins -hier ddr4_0/c0_ddr4_aresetn] -datapath_only 10.0
 }
-  
+
 set_max_delay -from $main_clock -to $ddrc_clock -datapath_only 10.0
 set_max_delay -from $ddrc_clock -to $main_clock -datapath_only 10.0

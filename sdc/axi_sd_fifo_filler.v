@@ -112,5 +112,3 @@ always @(posedge clock)
         bus_adr_o <= adr_i;
 
 endmodule
-
-

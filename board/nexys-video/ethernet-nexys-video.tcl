@@ -7,4 +7,3 @@ set files [list \
   [file normalize "../../ethernet/verilog-ethernet/rtl/oddr.v"] \
 ]
 add_files -norecurse -fileset $source_fileset $files
-

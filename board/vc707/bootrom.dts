@@ -15,8 +15,8 @@
     io-bus {
         #address-cells = <1>;
         #size-cells = <1>;
-	compatible = "rocketchip-vivado-io", "simple-bus";
-	ranges;
+        compatible = "rocketchip-vivado-io", "simple-bus";
+        ranges;
 
         uart0: uartlite@60010000 {
             compatible = "xlnx,xps-uartlite-1.00.a";
