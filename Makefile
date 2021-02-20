@@ -110,6 +110,15 @@ CONFIG ?= rocket64b2
 CONFIG_SCALA := $(subst rocket,Rocket,$(CONFIG))
 JAVA_OPTIONS =
 
+ifeq ($(BOARD),nexys-a7-100t)
+  BOARD_PART  ?= digilentinc.com:nexys-a7-100t:part0:1.0
+  XILINX_PART ?= xc7a100tcsg324-1
+  CFG_DEVICE  ?= SPIx4 -size 16
+  MEMORY_SIZE ?= 0x08000000
+  ETHER_MAC   ?= 00 0a 35 00 00 04
+  ETHER_PHY   ?= rmii
+endif
+
 ifeq ($(BOARD),nexys-video)
   BOARD_PART  ?= digilentinc.com:nexys_video:part0:1.1
   XILINX_PART ?= xc7a200tsbg484-1

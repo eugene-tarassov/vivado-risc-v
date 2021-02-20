@@ -112,6 +112,11 @@ class Rocket32s16 extends Config(
 
 /*----------------- 64-bit RocketChip ---------------*/
 
+class Rocket64b1 extends Config(
+  new WithNBreakpoints(8) ++
+  new WithNBigCores(1)    ++
+  new RocketBaseConfig)
+
 class Rocket64b2 extends Config(
   new WithNBreakpoints(8) ++
   new WithNBigCores(2)    ++
