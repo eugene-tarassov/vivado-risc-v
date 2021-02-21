@@ -8,10 +8,6 @@
         stdout-path = "serial0";
     };
 
-    cpus {
-        timebase-frequency = <1000000>;
-    };
-
     io-bus {
         #address-cells = <1>;
         #size-cells = <1>;
