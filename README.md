@@ -20,17 +20,19 @@ Latest Xilinx tools (Ver. 2020.1+) support debugging of RISC-V software over JTA
 ## Hardware
 [Xilinx VC707](https://www.xilinx.com/products/boards-and-kits/ek-v7-vc707-g.html) or
 [Digilent Genesys 2](https://reference.digilentinc.com/reference/programmable-logic/genesys-2/start) or
-[Digilent Nexys Video](https://reference.digilentinc.com/reference/programmable-logic/nexys-video/start) board.
+[Digilent Nexys Video](https://reference.digilentinc.com/reference/programmable-logic/nexys-video/start) or
+[Digilent Nexys A7 100T](https://reference.digilentinc.com/reference/programmable-logic/nexys-a7/start) board.
 
-VC707 allows to prototype more powerful system: 2X cores (4 vs 2),
-2X memory (1GB vs 512MB), 2X CPU clock frequency (100MHz vs 50MHz).
+VC707 allows to prototype more powerful system: up to 8 64-bit RISC-V cores, up to 100MHz clock speed, 1GB RAM.
 
-Nexys Video is several times less expensive, academic discount is avaialble.
+Genesys 2 is as fast as VC707, but has slightly smaller FPGA - up to 4 cores.
 
-Genesys 2 is as fast as VC707, but has slightly smaller FPGA.
+Nexys Video is several times less expensive, academic discount is avaialble. It supports up to 2 cores, up to 50MHz clock speed.
+
+Nexys A7 100T is least expensive supported board. It has small FPGA and only 128MB RAM, barely enough to run Linux on a single core RISC-V at 50MHz.
 
 ## Workstation
-[Ubuntu 20 LTS](https://ubuntu.com/download/desktop) machine is recommended.
+[Ubuntu 20 LTS](https://ubuntu.com/download/desktop) machine with min 32GB RAM is recommended.
 sudo access required.
 
 ## Software
@@ -39,9 +41,9 @@ sudo access required.
 [Vitis 2019.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2019-2.html).
 Vitis installation includes Vivado Design Suite – there is no need to install Vivado separately.
 
-Nexys Video is supported by free version of Vivado. VC707 and Genesys 2 require Vivado license.
+Nexys Video and Nexys A7 100T are supported by free version of Vivado. VC707 and Genesys 2 require Vivado license.
 
-If using Nexys Video or Genesys 2, install [Vivado Board Files for Digilent FPGA Boards](https://github.com/Digilent/vivado-boards).
+If using Nexys Video, Nexys A7 100T or Genesys 2, install [Vivado Board Files for Digilent FPGA Boards](https://github.com/Digilent/vivado-boards).
 
 # Usage
 
@@ -63,8 +65,11 @@ For VC707, use `BOARD=vc707`
 
 For Genesys 2 use `BOARD=genesys2`
 
+For Nexys A7 100T use `BOARD=nexys-a7-100t`
+
 Available CONFIG values:
 * 64-bit big RISC-V cores, Linux capable:
+  * `rocket64b1` - 1 core
   * `rocket64b2` - 2 cores
   * `rocket64b2l2` - 2 cores with 512KB level 2 cache
   * `rocket64b2gem` - 2 cores with 512KB level 2 cache and Gemmini accelerator
@@ -98,10 +103,12 @@ make CONFIG=rocket64b2 BOARD=nexys-video vivado-gui
 - Open the hardware manager and open the target board
 - Select Tools - Add Configuration Memory Device
 - Select the following device:
+  - Nexys A7 100T: Spansion s25fl128sxxxxxx0
   - Nexys Video: Spansion s25fl256xxxxxx0
   - Genesys 2: Spansion s25fl256xxxxxx0
   - VC707: Micron mt28gu01gaax1e
 - Add configuration file:
+  - Nexys A7 100T: workspace/rocket64b1/nexys-a7-100t-riscv.mcs
   - Nexys Video: workspace/rocket64b2/nexys-video-riscv.mcs
   - Genesys 2: workspace/rocket64b2/genesys2-riscv.mcs
   - VC707: workspace/rocket64b2/vc707-riscv.mcs
@@ -213,7 +220,7 @@ which is a collection of Ethernet-related components for gigabit, 10G, and 25G p
 Linux kernel and U-Boot use device tree, which is stored in RISC-V bootrom in FPGA.
 So, same SD card should boot OK on any board or RISC-V configuration.
 
-Nexys Video board can be configured to [load FPGA bitstream from SD card](https://reference.digilentinc.com/reference/programmable-logic/nexys-video/reference-manual#usb_host_and_micro_sd_programming).
+Nexys Video and Nexys A7 boards can be configured to [load FPGA bitstream from SD card](https://reference.digilentinc.com/reference/programmable-logic/nexys-video/reference-manual#usb_host_and_micro_sd_programming).
 
 The device tree contains Ethernet MAC address, which is not unique.
 It might be necessary to rebuild bitstream with different MAC, see Makefile for details.
