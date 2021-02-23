@@ -27,6 +27,7 @@ for DEVICE in `ls /dev/disk/by-path/*-usb-*-scsi-*` ; do
     sudo sync
     sudo partprobe ${DEVICE}
     echo ", +" | sudo sfdisk -N 2 ${DEVICE}
+    sudo partprobe ${DEVICE}
     sudo fsck -f ${DEVICE}2
     sudo resize2fs ${DEVICE}2
     sudo sync

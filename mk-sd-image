@@ -41,6 +41,10 @@ done
 losetup -a | grep `pwd`/ | while IFS=':' read -ra LINE ; do
   sudo losetup -d ${LINE[0]}
 done
+losetup -a | grep `pwd`/ | while IFS=':' read -ra LINE ; do
+  echo "Cannot detach ${LINE[*]}"
+  exit 1
+done
 
 rm -f $SD_IMG
 dd if=/dev/zero of=$SD_IMG bs=1M count=$SD_SIZE
