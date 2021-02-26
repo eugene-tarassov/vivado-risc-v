@@ -119,3 +119,26 @@ if { [llength [get_pins -quiet -hier mig_7series_0/ui_clk]] } {
 
 set_max_delay -from $main_clock -to $ddrc_clock -datapath_only 10.0
 set_max_delay -from $ddrc_clock -to $main_clock -datapath_only 10.0
+
+#------------------ IIC
+
+if { [llength [get_pins -quiet -hier IIC/s_axi_aclk]] } {
+  set iic_clock [get_clocks -of_objects [get_pins -hier IIC/s_axi_aclk]]
+  set_max_delay -datapath_only -from $iic_clock -to [get_ports iic_main_scl_io] 40.0
+  set_max_delay -datapath_only -from $iic_clock -to [get_ports iic_main_sda_io] 40.0
+  set_max_delay -datapath_only -from [get_ports iic_main_scl_io] -to $iic_clock 40.0
+  set_max_delay -datapath_only -from [get_ports iic_main_sda_io] -to $iic_clock 40.0
+}
+
+#------------------ PCIe
+
+if { [llength [get_pins -quiet -hier qdma_0/axi_aclk]] } {
+  set pcie_clock [get_clocks -of_objects [get_pins -hier qdma_0/axi_aclk]]
+  set_max_delay -from $main_clock -to $pcie_clock -datapath_only 10.0
+  set_max_delay -from $ddrc_clock -to $pcie_clock -datapath_only 10.0
+  set_max_delay -from $uart_clock -to $pcie_clock -datapath_only 10.0
+  set_max_delay -from $pcie_clock -to $main_clock -datapath_only 10.0
+  set_max_delay -from $pcie_clock -to $ddrc_clock -datapath_only 10.0
+  set_max_delay -from $pcie_clock -to $uart_clock -datapath_only 10.0
+  set_max_delay -datapath_only -from [get_ports pcie_perstn] -to $pcie_clock 40.0
+}
