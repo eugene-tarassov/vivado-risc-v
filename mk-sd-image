@@ -67,7 +67,7 @@ sudo partprobe ${SD_LOOP}
 
 UUID=68d82fa1-1bb5-435f-a5e3-862176586eec
 sudo mkfs.vfat -F 16 -n BOOT ${SD_LOOP}p1
-sudo mkfs.ext4 -L rootfs -U $UUID ${SD_LOOP}p2
+sudo mkfs.ext4 -E nodiscard -L rootfs -U $UUID ${SD_LOOP}p2
 
 cat >debian-riscv64/extlinux.conf <<EOF
 menu title RISC-V Boot Options.
