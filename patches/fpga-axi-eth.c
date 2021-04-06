@@ -4,6 +4,7 @@
 #include <linux/module.h>
 #include <linux/interrupt.h>
 #include <linux/etherdevice.h>
+#include <linux/ethtool.h>
 #include <linux/of_device.h>
 #include <linux/of_mdio.h>
 #include <linux/of_net.h>
@@ -122,6 +123,11 @@ struct axi_eth_priv {
 
 #define tx_ring_free(p) ((p->tx_out - p->tx_inp - 1) & AXI_ETH_RING_MASK)
 
+#define DRIVER_NAME "riscv-axi-eth"
+#define MDIO_BUS_NAME "axi-eth-mdio"
+
+static u32 axi_eth_debug = 0;
+
 static const struct of_device_id axi_eth_of_match_table[] = {
     { .compatible = "riscv,axi-ethernet-1.0" },
     {},
@@ -215,7 +221,7 @@ static int axi_eth_mdio_register(struct axi_eth_priv * priv) {
 
     mdio_bus->priv = priv;
     mdio_bus->parent = &priv->pdev->dev;
-    mdio_bus->name = "axi-eth-mdio";
+    mdio_bus->name = MDIO_BUS_NAME;
     snprintf(mdio_bus->id, MII_BUS_ID_SIZE, "%s-%d", mdio_bus->name, priv->pdev->id);
 
     mdio_bus->read = axi_eth_mdio_read;
@@ -474,13 +480,25 @@ static int axi_eth_ioctl(struct net_device * net_dev, struct ifreq * ifr, int cm
     return -EOPNOTSUPP;
 }
 
+static void axi_eth_get_drvinfo(struct net_device * dev, struct ethtool_drvinfo * info) {
+    strlcpy(info->driver, DRIVER_NAME, sizeof(info->driver));
+}
 
-static u32 always_on(struct net_device * net_dev) {
-    return 1;
+static u32 axi_eth_get_msglevel(struct net_device * dev) {
+    return axi_eth_debug;
+}
+
+static void axi_eth_set_msglevel(struct net_device * dev, u32 v) {
+    axi_eth_debug = v;
 }
 
 static const struct ethtool_ops axi_eth_ethtool_ops = {
-    .get_link       = always_on,
+    .get_drvinfo    = axi_eth_get_drvinfo,
+    .get_msglevel   = axi_eth_get_msglevel,
+    .set_msglevel   = axi_eth_set_msglevel,
+    .get_link       = ethtool_op_get_link,
+    .get_link_ksettings = phy_ethtool_get_link_ksettings,
+    .set_link_ksettings = phy_ethtool_set_link_ksettings,
     .get_ts_info    = ethtool_op_get_ts_info,
 };
 
@@ -491,7 +509,7 @@ static int axi_eth_dev_init(struct net_device * net_dev) {
     spin_lock_irq(&priv->lock);
 
     priv->regs->int_enable = priv->int_enable = 0;
-    err = request_irq(priv->irq, axi_eth_isr, IRQF_TRIGGER_HIGH, "fpga-axi-eth", net_dev);
+    err = request_irq(priv->irq, axi_eth_isr, IRQF_TRIGGER_HIGH, DRIVER_NAME, net_dev);
     if (err) return err;
 
     priv->rx_inp = priv->regs->rx_inp;
@@ -690,7 +708,7 @@ static int axi_eth_remove(struct platform_device * pdev) {
 
 static struct platform_driver axi_eth_driver = {
     .driver = {
-        .name = "riscv-axi-eth",
+        .name = DRIVER_NAME,
         .of_match_table = axi_eth_of_match_table,
     },
     .probe = axi_eth_probe,
