@@ -26,7 +26,7 @@ module uart (
     input wire async_resetn,
 
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clock CLK" *)
-    (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF M_AXI:S_AXI_LITE, FREQ_HZ 100000000" *)
+    (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF S_AXI_LITE, FREQ_HZ 100000000" *)
     input wire clock,
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 S_AXI_LITE AWADDR" *)
@@ -90,7 +90,7 @@ always @(posedge clock)
 
 // ------ RX/TX
 
-`define fifo_ptr_bits 6
+`define fifo_ptr_bits 4
 
 reg  [7:0] rx_buf [(1<<`fifo_ptr_bits)-1:0];
 reg  [`fifo_ptr_bits-1:0] rx_inp_pos;
@@ -99,24 +99,34 @@ wire [`fifo_ptr_bits-1:0] rx_inp_nxt;
 wire [`fifo_ptr_bits-1:0] rx_out_nxt;
 wire rx_full;
 wire rx_empty;
+wire rx_irq;
 
 assign rx_full = rx_inp_nxt == rx_out_pos;
 assign rx_empty = rx_inp_pos == rx_out_pos;
 assign rx_inp_nxt = rx_inp_pos + 1;
 assign rx_out_nxt = rx_out_pos + 1;
+assign rx_irq = !rx_empty;
 
 reg  [7:0] tx_buf [(1<<`fifo_ptr_bits)-1:0];
 reg  [`fifo_ptr_bits-1:0] tx_inp_pos;
 reg  [`fifo_ptr_bits-1:0] tx_out_pos;
 wire [`fifo_ptr_bits-1:0] tx_inp_nxt;
 wire [`fifo_ptr_bits-1:0] tx_out_nxt;
+wire [`fifo_ptr_bits-1:0] tx_len;
 wire tx_full;
 wire tx_empty;
+wire tx_irq;
+reg tx_stop;
+
+reg [7:0] xon_xoff_inp;
+reg [7:0] xon_xoff_out;
 
 assign tx_full = tx_inp_nxt == tx_out_pos;
 assign tx_empty = tx_inp_pos == tx_out_pos;
 assign tx_inp_nxt = tx_inp_pos + 1;
 assign tx_out_nxt = tx_out_pos + 1;
+assign tx_len = tx_inp_pos - tx_out_pos;
+assign tx_irq = tx_len <= (1 << (`fifo_ptr_bits - 2));
 
 `define STATE_SIZE 4
 `define IDLE  0
@@ -160,17 +170,27 @@ always @(posedge clock) begin
         tx_state <= `IDLE;
         rx_phase <= 0;
         tx_phase <= 0;
+        xon_xoff_out <= 0;
     end else begin
         RTSn <= rx_full;
         if (tx_phase == `PHASE_MAX) begin
             CTS0 <= CTSn;
             case (tx_state)
             `IDLE:
-                if (!tx_empty && CTSn == 0 && CTS0 == 0) begin
-                    TxD <= 0;
-                    tx_state <= `START;
-                    tx_rg <= tx_buf[tx_out_pos];
-                    tx_out_pos <= tx_out_nxt;
+                if (CTSn == 0 && CTS0 == 0) begin
+                  if (xon_xoff_inp != xon_xoff_out) begin
+                      if (xon_xoff_inp != 0) begin
+                          TxD <= 0;
+                          tx_state <= `START;
+                          tx_rg <= xon_xoff_inp;
+                      end
+                      xon_xoff_out <= xon_xoff_inp;
+                  end else if (!tx_empty && !tx_stop) begin
+                      TxD <= 0;
+                      tx_state <= `START;
+                      tx_rg <= tx_buf[tx_out_pos];
+                      tx_out_pos <= tx_out_nxt;
+                  end
                 end
             `START: begin TxD <= tx_rg[0]; tx_state <= `BIT0; end
             `BIT0: begin TxD <= tx_rg[1]; tx_state <= `BIT1; end
@@ -215,8 +235,7 @@ end
 
 // ------ Interrupts
 
-reg irq_enable;
-reg tx_busy;
+reg [1:0] irq_enable;
 
 // ------ AXI Slave Interface
 
@@ -245,10 +264,11 @@ always @(posedge clock) begin
         rx_out_pos <= 0;
         tx_inp_pos <= 0;
         irq_enable <= 0;
-        tx_busy <= 0;
         interrupt <= 0;
+        xon_xoff_inp <= 0;
+        tx_stop <= 0;
     end else begin
-        interrupt <= irq_enable && (!rx_empty || (tx_busy && tx_empty));
+        interrupt <= (irq_enable[0] && rx_irq) || (irq_enable[1] && tx_irq);
         if (s_axi_arready && s_axi_arvalid) begin
             read_addr <= s_axi_araddr;
             rd_req <= 1;
@@ -260,8 +280,8 @@ always @(posedge clock) begin
             if (read_addr[15:4] == 0) begin
                 case (read_addr[3:0])
                 4'h00: if (!rx_empty) begin s_axi_rdata[7:0] <= rx_buf[rx_out_pos]; rx_out_pos <= rx_out_nxt; end
-                4'h08: begin s_axi_rdata[5:0] <= { irq_enable, tx_full, tx_empty, rx_full, !rx_empty }; tx_busy <= !tx_empty; end
-                4'h0c: s_axi_rdata[4] <= irq_enable;
+                4'h08: s_axi_rdata[4:0] <= { !CTSn, tx_full, tx_empty, rx_full, !rx_empty };
+                4'h0c: s_axi_rdata[6:4] <= { tx_stop, irq_enable };
                 endcase
             end
             s_axi_rresp <= 0;
@@ -281,12 +301,20 @@ always @(posedge clock) begin
         end else if (!s_axi_bvalid && wr_req == 2'b11) begin
             if (write_addr[15:4] == 0) begin
                 case (write_addr[3:0])
-                4'h04: if (!tx_full) begin tx_buf[tx_inp_pos] <= write_data[7:0]; tx_inp_pos <= tx_inp_nxt; tx_busy <= 1; end
+                4'h04:
+                    if (write_data[8] != 0) begin
+                        // xon/xoff char
+                        xon_xoff_inp <= write_data[7:0];
+                    end else if (!tx_full) begin
+                        tx_buf[tx_inp_pos] <= write_data[7:0];
+                        tx_inp_pos <= tx_inp_nxt;
+                    end
                 4'h0c:
                     begin
                         if (write_data[0]) begin rx_out_pos <= rx_inp_pos; end
                         if (write_data[1]) begin tx_inp_pos <= tx_out_pos; end
-                        irq_enable <= write_data[4];
+                        irq_enable <= write_data[5:4];
+                        tx_stop <= write_data[6];
                     end
                 endcase
             end

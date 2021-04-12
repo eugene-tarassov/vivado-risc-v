@@ -14,8 +14,8 @@
         compatible = "rocketchip-vivado-io", "simple-bus";
         ranges;
 
-        uart0: uartlite@60010000 {
-            compatible = "xlnx,xps-uartlite-1.00.a";
+        uart0: uart@60010000 {
+            compatible = "riscv,axi-uart-1.0";
             reg = <0x60010000 0x10000>;
             interrupt-parent = <&{/soc/interrupt-controller@c000000}>;
             interrupts = <1>;
