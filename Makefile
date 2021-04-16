@@ -160,12 +160,15 @@ ROCKET_FREQ_MHZ ?= $(shell awk '$$3 != "" && "$(BOARD)" ~ $$1 && "$(CONFIG_SCALA
 ROCKET_CLOCK_FREQ := $(shell echo - | awk '{printf("%.0f\n", $(ROCKET_FREQ_MHZ) * 1000000)}')
 ROCKET_TIMEBASE_FREQ := $(shell echo - | awk '{printf("%.0f\n", $(ROCKET_FREQ_MHZ) * 10000)}')
 
-ifeq ($(findstring Rocket64,$(CONFIG_SCALA)),)
+ifneq ($(findstring Rocket32t,$(CONFIG_SCALA)),)
   CROSS_COMPILE_NO_OS_TOOLS = $(realpath workspace/gcc/riscv/bin)/riscv32-unknown-elf-
-  CROSS_COMPILE_NO_OS_FLAGS = -march=rv32im -mabi=ilp32
+  CROSS_COMPILE_NO_OS_FLAGS = -march=rv32imac -mabi=ilp32 -DFF_FS_EXFAT=0
+else ifneq ($(findstring Rocket32,$(CONFIG_SCALA)),)
+  CROSS_COMPILE_NO_OS_TOOLS = $(realpath workspace/gcc/riscv/bin)/riscv32-unknown-elf-
+  CROSS_COMPILE_NO_OS_FLAGS = -march=rv32imac -mabi=ilp32
 else
   CROSS_COMPILE_NO_OS_TOOLS = $(realpath workspace/gcc/riscv/bin)/riscv64-unknown-elf-
-  CROSS_COMPILE_NO_OS_FLAGS = -march=rv64im -mabi=lp64
+  CROSS_COMPILE_NO_OS_FLAGS = -march=rv64imac -mabi=lp64
 endif
 
 ifeq ($(shell echo $$(($(MEMORY_SIZE) <= 0x80000000))),1)

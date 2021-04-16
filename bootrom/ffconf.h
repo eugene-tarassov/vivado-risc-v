@@ -200,7 +200,9 @@
 /  GET_SECTOR_SIZE command. */
 
 
+#if !defined(FF_FS_EXFAT) || FF_FS_EXFAT
 #define FF_LBA64        1
+#endif
 /* This option switches support for 64-bit LBA. (0:Disable or 1:Enable)
 /  To enable the 64-bit LBA, also exFAT needs to be enabled. (FF_FS_EXFAT == 1) */
 
@@ -227,14 +229,14 @@
 /  Instead of private sector buffer eliminated from the file object, common sector
 /  buffer in the filesystem object (FATFS) is used for the file data transfer. */
 
-
+#ifndef FF_FS_EXFAT
 #define FF_FS_EXFAT     1
+#endif
 /* This option switches support for exFAT filesystem. (0:Disable or 1:Enable)
 /  To enable exFAT, also LFN needs to be enabled. (FF_USE_LFN >= 1)
 /  Note that enabling exFAT discards ANSI C (C89) compatibility. */
 
-
-#define FF_FS_NORTC     0
+#define FF_FS_NORTC     1
 #define FF_NORTC_MON    1
 #define FF_NORTC_MDAY   1
 #define FF_NORTC_YEAR   2021
