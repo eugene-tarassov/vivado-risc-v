@@ -537,12 +537,21 @@ static int download(void) {
     asm volatile ("li  a0, 0"); // Hart No
     asm volatile ("li  a1, %0" :: "n" (BOOTROM_DTB_ADDR)); // Device Tree
     if (alt_mem) {
-        asm volatile ("lui  t0, %0" :: "n" (BOOTROM_MEM_ADDR >> 16));
-        asm volatile ("lui  t1, %0" :: "n" (BOOTROM_MEM_END >> 16));
-        asm volatile ("lui  t2, %0" :: "n" (BOOTROM_MEM_ALT >> 16));
-        asm volatile ("slli t0, t0, 4");
-        asm volatile ("slli t1, t1, 4");
-        asm volatile ("slli t2, t2, 4");
+#if __riscv_xlen <= 32 || (BOOTROM_MEM_END < 0x80000000 && BOOTROM_MEM_ALT < 0x80000000)
+        asm volatile ("li  t0, %0" :: "n" (BOOTROM_MEM_ADDR));
+        asm volatile ("li  t1, %0" :: "n" (BOOTROM_MEM_END));
+        asm volatile ("li  t2, %0" :: "n" (BOOTROM_MEM_ALT));
+#elif BOOTROM_MEM_END < 0x8000000000 && BOOTROM_MEM_ALT < 0x8000000000
+        /* Argument of "li" instruction is 32-bit signed integer, use shift to avoid sign extension */
+        asm volatile ("li  t0, %0" :: "n" (BOOTROM_MEM_ADDR >> 8));
+        asm volatile ("li  t1, %0" :: "n" (BOOTROM_MEM_END >> 8));
+        asm volatile ("li  t2, %0" :: "n" (BOOTROM_MEM_ALT >> 8));
+        asm volatile ("slli t0, t0, 8");
+        asm volatile ("slli t1, t1, 8");
+        asm volatile ("slli t2, t2, 8");
+#else
+#  error "Invalid Boot ROM memory address"
+#endif
 #if __riscv_xlen == 32
         asm volatile ("lw   a5, %0" :: "m" (entry_addr));
         asm volatile ("boot_rom_memcpy:");

@@ -4,7 +4,7 @@ ENTRY(_hang)
 MEMORY {
   error_mem (rw)   : ORIGIN = 0x00003000, LENGTH = 0x00001000
   maskrom_mem (rx) : ORIGIN = 0x00010000, LENGTH = 0x00010000
-  memory_mem (rwx) : ORIGIN = 0x80000000, LENGTH = 0x08000000
+  memory_mem (rwx) : ORIGIN = 0x80000000, LENGTH = 0x00002000
 }
 
 PHDRS {
@@ -44,7 +44,7 @@ SECTIONS {
     . = ALIGN(8);
     PROVIDE(_ebss = .);
   } >memory_mem
-  ASSERT(SIZEOF(.bss) <= 0x8000, "BootROM .bss section must be less thab 0x8000 bytes")
+  ASSERT(SIZEOF(.bss) <= 0x1000, "BootROM .bss section must be less than 0x1000 bytes")
 
   .note (INFO) : {
     *(.note .note.*)
