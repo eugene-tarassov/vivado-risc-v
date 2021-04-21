@@ -27,7 +27,7 @@ struct axi_uart_data {
 };
 
 static int axi_uart_putc(struct udevice *dev, const char ch) {
-    struct axi_uart_data * plat = dev_get_platdata(dev);
+    struct axi_uart_data * plat = dev_get_plat(dev);
     struct axi_uart_regs * regs = plat->regs;
 
     if (in_le32(&regs->status) & SR_TX_FIFO_FULL) return -EAGAIN;
@@ -38,7 +38,7 @@ static int axi_uart_putc(struct udevice *dev, const char ch) {
 }
 
 static int axi_uart_getc(struct udevice *dev) {
-    struct axi_uart_data * plat = dev_get_platdata(dev);
+    struct axi_uart_data * plat = dev_get_plat(dev);
     struct axi_uart_regs * regs = plat->regs;
 
     if (!(in_le32(&regs->status) & SR_RX_FIFO_VALID_DATA)) return -EAGAIN;
@@ -47,7 +47,7 @@ static int axi_uart_getc(struct udevice *dev) {
 }
 
 static int axi_uart_pending(struct udevice *dev, bool input) {
-    struct axi_uart_data * plat = dev_get_platdata(dev);
+    struct axi_uart_data * plat = dev_get_plat(dev);
     struct axi_uart_regs * regs = plat->regs;
 
     if (input) return in_le32(&regs->status) & SR_RX_FIFO_VALID_DATA;
@@ -56,7 +56,7 @@ static int axi_uart_pending(struct udevice *dev, bool input) {
 }
 
 static int axi_uart_probe(struct udevice *dev) {
-    struct axi_uart_data * plat = dev_get_platdata(dev);
+    struct axi_uart_data * plat = dev_get_plat(dev);
     struct axi_uart_regs * regs = plat->regs;
 
     out_le32(&regs->control, ULITE_CONTROL_RST_RX | ULITE_CONTROL_RST_TX);
@@ -64,8 +64,8 @@ static int axi_uart_probe(struct udevice *dev) {
     return 0;
 }
 
-static int axi_uart_ofdata_to_platdata(struct udevice *dev) {
-    struct axi_uart_data * plat = dev_get_platdata(dev);
+static int axi_uart_of_to_plat(struct udevice *dev) {
+    struct axi_uart_data * plat = dev_get_plat(dev);
 
     plat->regs = (struct axi_uart_regs *)devfdt_get_addr(dev);
 
@@ -89,8 +89,8 @@ U_BOOT_DRIVER(serial_axi_uart) = {
     .name   = "axi-uart",
     .id = UCLASS_SERIAL,
     .of_match = axi_uart_ids,
-    .ofdata_to_platdata = axi_uart_ofdata_to_platdata,
-    .platdata_auto_alloc_size = sizeof(struct axi_uart_data),
+    .of_to_plat = axi_uart_of_to_plat,
+    .plat_auto = sizeof(struct axi_uart_data),
     .probe = axi_uart_probe,
     .ops = &axi_uart_ops,
 };

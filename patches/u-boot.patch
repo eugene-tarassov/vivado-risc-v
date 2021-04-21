@@ -1,5 +1,5 @@
 diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index cc87da7e04..6ac22686e2 100644
+index 55eaee2da6..9a30cc0eb4 100644
 --- a/arch/riscv/Kconfig
 +++ b/arch/riscv/Kconfig
 @@ -20,6 +20,9 @@ config TARGET_QEMU_VIRT
@@ -9,14 +9,14 @@ index cc87da7e04..6ac22686e2 100644
 +config TARGET_VIVADO_RISCV64
 +	bool "Support RISC-V in Xilinx Vivado"
 +
- endchoice
+ config TARGET_SIPEED_MAIX
+ 	bool "Support Sipeed Maix Board"
  
- config SYS_ICACHE_OFF
-@@ -53,6 +56,7 @@ source "board/AndesTech/ax25-ae350/Kconfig"
+@@ -56,6 +59,7 @@ source "board/AndesTech/ax25-ae350/Kconfig"
  source "board/emulation/qemu-riscv/Kconfig"
  source "board/microchip/mpfs_icicle/Kconfig"
  source "board/sifive/fu540/Kconfig"
 +source "board/xilinx/vivado_riscv64/Kconfig"
+ source "board/sipeed/maix/Kconfig"
  
  # platform-specific options below
- source "arch/riscv/cpu/ax25/Kconfig"

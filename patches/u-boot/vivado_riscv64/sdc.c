@@ -194,7 +194,7 @@ static int sdc_setup_data_xfer(struct sdc_priv * dev, struct mmc * mmc, struct m
 
 static int sdc_probe(struct udevice * udev) {
     struct sdc_priv * priv = dev_get_priv(udev);
-    struct sdc_plat * plat = dev_get_platdata(udev);
+    struct sdc_plat * plat = dev_get_plat(udev);
     struct mmc_uclass_priv * upriv = dev_get_uclass_priv(udev);
     struct mmc_config * cfg = &plat->cfg;
 
@@ -256,7 +256,7 @@ static int sdc_send_cmd(struct udevice * udev, struct mmc_cmd * cmd, struct mmc_
     if (cmd->resp_type & MMC_RSP_OPCODE) command |= 1 << 4;
 
     if (data && (data->flags & (MMC_DATA_READ | MMC_DATA_WRITE)) && data->blocks) {
-        struct sdc_plat * plat = dev_get_platdata(udev);
+        struct sdc_plat * plat = dev_get_plat(udev);
         if (data->flags & MMC_DATA_READ ) command |= 1 << 5;
         if (data->flags & MMC_DATA_WRITE) command |= 1 << 6;
         if (sdc_setup_data_xfer(dev, &plat->mmc, data) < 0) return -1;
@@ -274,7 +274,7 @@ static int sdc_send_cmd(struct udevice * udev, struct mmc_cmd * cmd, struct mmc_
 }
 
 static int sdc_set_ios(struct udevice * udev) {
-    struct sdc_plat * plat = dev_get_platdata(udev);
+    struct sdc_plat * plat = dev_get_plat(udev);
     struct sdc_priv * dev = dev_get_priv(udev);
     struct mmc * mmc = &plat->mmc;
 
@@ -294,7 +294,7 @@ static int sdc_set_ios(struct udevice * udev) {
 
 #if CONFIG_IS_ENABLED(BLK)
 static int sdc_bind(struct udevice * dev) {
-    struct sdc_plat * plat = dev_get_platdata(dev);
+    struct sdc_plat * plat = dev_get_plat(dev);
     return mmc_bind(dev, &plat->mmc, &plat->cfg);
 }
 #endif
@@ -319,8 +319,8 @@ U_BOOT_DRIVER(sdc_priv) = {
     .bind = sdc_bind,
 #endif
     .probe = sdc_probe,
-    .platdata_auto_alloc_size = sizeof(struct sdc_plat),
-    .priv_auto_alloc_size = sizeof(struct sdc_priv),
+    .plat_auto = sizeof(struct sdc_plat),
+    .priv_auto = sizeof(struct sdc_priv),
 };
 
 #endif /* CONFIG_IS_ENABLED(DM_MMC) */

@@ -15,6 +15,7 @@
 #define CONFIG_SYS_BOOTM_LEN            SZ_32M
 
 #define CONFIG_STANDALONE_LOAD_ADDR     0x80200000
+#define CONFIG_XILINX_OF_BOARD_DTB_ADDR 0x00010080
 
 /* Environment options */
 
