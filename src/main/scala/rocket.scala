@@ -30,8 +30,8 @@ class WithGemmini(mesh_size: Int, bus_bits: Int) extends Config((site, here, up)
     (p: Parameters) => {
       implicit val q = p
       implicit val v = implicitly[ValName]
-      LazyModule(new gemmini.Gemmini(OpcodeSet.custom3,
-        gemmini.GemminiConfigs.defaultConfig.copy(meshRows = mesh_size, meshColumns = mesh_size, dma_buswidth = bus_bits)))
+      LazyModule(new gemmini.Gemmini(gemmini.GemminiConfigs.defaultConfig.copy(
+        meshRows = mesh_size, meshColumns = mesh_size, dma_buswidth = bus_bits)))
     }
   )
   case SystemBusKey => up(SystemBusKey).copy(beatBytes = bus_bits/8)
@@ -180,6 +180,13 @@ class Rocket64m2gem extends Config(
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
   new WithNMedCores(2)    ++
+  new RocketBaseConfig)
+
+class Rocket64b1gem extends Config(
+  new WithGemmini(2, 64)  ++
+  new WithInclusiveCache  ++
+  new WithNBreakpoints(8) ++
+  new WithNBigCores(1)    ++
   new RocketBaseConfig)
 
 class Rocket64b2gem extends Config(

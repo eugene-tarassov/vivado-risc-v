@@ -1,8 +1,8 @@
 diff --git a/src/main/scala/gemmini/GemminiConfigs.scala b/src/main/scala/gemmini/GemminiConfigs.scala
-index fb9026d..5edf7a3 100644
+index 8d6db34..cacfb34 100644
 --- a/src/main/scala/gemmini/GemminiConfigs.scala
 +++ b/src/main/scala/gemmini/GemminiConfigs.scala
-@@ -129,11 +129,11 @@ case class GemminiArrayConfig[T <: Data : Arithmetic, U <: Data, V <: Data](
+@@ -150,11 +150,11 @@ case class GemminiArrayConfig[T <: Data : Arithmetic, U <: Data, V <: Data](
    val ACC_ROWS        = ACC_BANKS * ACC_BANK_ROWS
    val LOG2_ACC_ROWS   = log2Up(ACC_ROWS)
  
@@ -11,8 +11,8 @@ index fb9026d..5edf7a3 100644
    val LOG2_MNK_BYTES              = log2Up(MNK_BYTES)
    val MNK_BYTES_PER_TILE_ROW      = MNK_BYTES * DIM
    val LOG2_MNK_BYTES_PER_TILE_ROW = log2Up(MNK_BYTES_PER_TILE_ROW)
--  val TILE_IDX                    = MNK_BYTES / (DIM / 8)
-+  val TILE_IDX                    = MNK_BYTES / DIM * 8
+-  val TILE_IDX                    = MNK_BYTES / (DIM / cisc_dim)
++  val TILE_IDX                    = MNK_BYTES / DIM * cisc_dim
    val LOG2_TILE_IDX               = log2Up(TILE_IDX)
  
    //--------------------------------------------------------------------------
