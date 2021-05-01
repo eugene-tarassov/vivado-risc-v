@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (C) 2013-2020 Authors
+ * Copyright (C) 2013-2021 Authors
  *
  * This source file may be used and distributed without
  * restriction provided that this copyright statement is not
@@ -33,6 +33,7 @@
 #include <command.h>
 #include <dm/device.h>
 #include <dm/device_compat.h>
+#include <linux/delay.h>
 #include <mmc.h>
 
 /*
