@@ -137,6 +137,15 @@ ifeq ($(BOARD),genesys2)
   ETHER_PHY   ?= rgmii-rxid
 endif
 
+ifeq ($(BOARD),kc705)
+  BOARD_PART  ?= xilinx.com:kc705:part0:1.6
+  XILINX_PART ?= xc7k325tffg900-2
+  CFG_DEVICE  ?= SPIx4 -size 16
+  MEMORY_SIZE ?= 0x40000000
+  ETHER_MAC   ?= 00 0a 35 00 00 05
+  ETHER_PHY   ?= gmii-rxid
+endif
+
 ifeq ($(BOARD),vc707)
   BOARD_PART  ?= xilinx.com:vc707:part0:1.4
   XILINX_PART ?= xc7vx485tffg1761-2
