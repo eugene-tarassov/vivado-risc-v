@@ -932,7 +932,7 @@ proc create_root_design { parentCell } {
   connect_bd_net -net clock_200MHz [get_bd_pins DDR/clock_200MHz] [get_bd_pins IO/clock_200MHz] [get_bd_pins clk_wiz_0/clk_out2]
   connect_bd_net -net clock_ok [get_bd_pins RocketChip/clock_ok] [get_bd_pins clk_wiz_0/locked]
   connect_bd_net -net device_temp [get_bd_pins DDR/device_temp] [get_bd_pins IO/device_temp]
-  connect_bd_net -net fan_en [get_bd_ports fan_en] [get_bd_pins IO/fan_en]
+  connect_bd_net -net fan_en [get_bd_pins IO/fan_en] [get_bd_ports fan_en]
   connect_bd_net -net mem_ok [get_bd_pins DDR/init_calib_complete] [get_bd_pins RocketChip/mem_ok]
   connect_bd_net -net reset_h [get_bd_ports reset] [get_bd_pins DDR/sys_reset] [get_bd_pins IO/sys_reset] [get_bd_pins RocketChip/sys_reset] [get_bd_pins clk_wiz_0/reset]
   connect_bd_net -net sys_clock [get_bd_pins clk_wiz_0/clk_in1] [get_bd_pins sys_diff_clock_buf/IBUF_OUT]
