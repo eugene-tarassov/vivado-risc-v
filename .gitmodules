@@ -1,9 +1,6 @@
 [submodule "rocket-chip"]
 	path = rocket-chip
 	url = https://github.com/ucb-bar/rocket-chip.git
-[submodule "riscv-pk"]
-	path = riscv-pk
-	url = https://github.com/riscv/riscv-pk.git
 [submodule "u-boot"]
 	path = u-boot
 	url = https://github.com/u-boot/u-boot.git
@@ -25,3 +22,6 @@
 [submodule "generators/gemmini"]
 	path = generators/gemmini
 	url = https://github.com/ucb-bar/gemmini
+[submodule "opensbi"]
+	path = opensbi
+	url = https://github.com/riscv/opensbi.git

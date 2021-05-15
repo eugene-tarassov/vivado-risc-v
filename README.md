@@ -5,7 +5,7 @@
 This repository contains FPGA prototype of fully functional [RISC-V](https://riscv.org/) Linux server
 with networking, online Linux package repository and daily package updates.
 It includes scripts and sources to generate RISC-V SoC HDL, Xilinx Vivado project, FPGA bitstream, and bootable SD card.
-The SD card contains [Berkeley Boot Loader (aka RISC-V Proxy Kernel)](https://github.com/riscv/riscv-pk), [U-Boot](https://github.com/u-boot/u-boot), [Linux kernel](https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/) and Debian root FS.
+The SD card contains [RISC-V Open Source Supervisor Binary Interface (OpenSBI)](https://github.com/riscv/opensbi), [U-Boot](https://github.com/u-boot/u-boot), [Linux kernel](https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/) and Debian root FS.
 Linux package repositories and regular updates are provided by [Debian](https://wiki.debian.org/RISC-V).
 Over 90% of packages of the whole Debian collection are available for download.
 
@@ -158,12 +158,12 @@ CONFIG_GPIO_XILINX=y
 
 If necessary, change config, then rebuild Linux kernel and bootloader:
 ```
-make linux bbl
+make linux bootloader
 ./mk-sd-image -r debian-riscv64-boot
 ```
 Copy debian-riscv64-boot/extlinux directory to the SD card.
 
-Note: don't change files in the project submodules: linux-stable, u-boot, riscv-pk or rocket-chip.
+Note: don't change files in the project submodules: linux-stable, u-boot, opensbi or rocket-chip.
 Such changes are lost when the project is rebuilt.
 
 For details on Xilinx drivers, see [Linux Drivers](https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18841873/Linux%2BDrivers).
@@ -227,10 +227,10 @@ It might be necessary to rebuild bitstream with different MAC, see Makefile for 
 
 If not using provided SD card image: the bootrom loads and executes boot.elf file from SD card DOS partition.
 boot.elf is regular executable ELF, it can contain any software suitable for RISC-V RV64 M mode.
-In case of Linux boot, boot.elf contains Berkeley Boot Loader and U-Boot.
+In case of Linux boot, boot.elf contains OpenSBI and U-Boot.
 
 The Makefile creates Vivado project directory, e.g. workspace/rocket64b2/vivado-nexys-video-riscv.
 You can open the project in Vivado GUI to see RISC-V SoC structure, make changes, add peripherals, rebuild the bitstream.
-The SoC occupies about 60% of FPGA, leaving plenty of space for experiments and developing additional hardware.
+The SoC occupies portion of FPGA, leaving plenty of space for experiments and developing additional hardware.
 
 RISC-V SoC in this repo uses BSCAN block to support both RISC-V debugging and FPGA access over same JTAG cable.

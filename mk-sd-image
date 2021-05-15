@@ -23,8 +23,8 @@ make debian-riscv64/initrd debian-riscv64/rootfs.tar.gz
 
 # --- Build BBL and Linux ---
 
-if [ ! -f riscv-pk/build/bbl ] ; then
-  make bbl
+if [ ! -f workspace/boot.elf ] ; then
+  make bootloader
 fi
 if [ ! -f linux-stable/arch/riscv/boot/Image ] ; then
   make linux
@@ -95,7 +95,7 @@ sudo cp ../extlinux.conf extlinux
 sudo cp ../initrd extlinux/initrd-$KERNEL_VER.img
 sudo cp ../../linux-stable/vmlinux extlinux/vmlinux-$KERNEL_VER
 sudo cp ../../linux-stable/arch/riscv/boot/Image extlinux/image-$KERNEL_VER
-sudo cp ../../riscv-pk/build/bbl boot.elf
+sudo cp ../../workspace/boot.elf boot.elf
 popd
 
 sudo chown root:root debian-riscv64/rootfs

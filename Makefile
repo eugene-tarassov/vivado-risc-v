@@ -59,7 +59,7 @@ linux-stable/arch/riscv/boot/Image: linux-patch
 
 # --- build U-Boot ---
 
-u-boot: u-boot/u-boot
+u-boot: u-boot/u-boot-nodtb.bin
 
 U_BOOT_SRC = $(wildcard patches/u-boot/*/*) \
   patches/u-boot/vivado_riscv64_defconfig \
@@ -72,7 +72,7 @@ u-boot-patch: $(U_BOOT_SRC)
 	cp patches/u-boot/vivado_riscv64_defconfig u-boot/configs
 	cp patches/u-boot/vivado_riscv64.h u-boot/include/configs
 
-u-boot/u-boot: u-boot-patch $(U_BOOT_SRC)
+u-boot/u-boot-nodtb.bin: u-boot-patch $(U_BOOT_SRC)
 	make -C u-boot CROSS_COMPILE=$(CROSS_COMPILE_LINUX) vivado_riscv64_config
 	make -C u-boot \
 	  CC=$(CROSS_COMPILE_LINUX)gcc-8 \
@@ -81,26 +81,19 @@ u-boot/u-boot: u-boot-patch $(U_BOOT_SRC)
 	  all
 
 
-# --- build RISC-V Berkeley Boot Loader ---
+# --- build RISC-V Open Source Supervisor Binary Interface (OpenSBI) ---
 
-bbl: riscv-pk/build/bbl
+bootloader: workspace/boot.elf
 
-riscv-pk/build:
-	cd riscv-pk &&\
-	mkdir build &&\
-	cd build &&\
-	  ../configure \
-	  --host=riscv64-linux-gnu \
-	  --with-arch=rv64imafdc \
-	  --with-abi=lp64d \
-	  --with-payload=../../u-boot/u-boot \
-	  --with-mem-start=0x80000000
+workspace/boot.elf: opensbi/build/platform/vivado-risc-v/firmware/fw_payload.elf
+	mkdir -p workspace
+	cp $< $@
 
-riscv-pk-patch: riscv-pk/build patches/riscv-pk-uart.c
-	cp patches/riscv-pk-uart.c riscv-pk/machine/uart.c
-
-riscv-pk/build/bbl: riscv-pk-patch u-boot/u-boot
-	make -C riscv-pk/build mabi='-mabi=lp64d -O0 -g' bbl
+opensbi/build/platform/vivado-risc-v/firmware/fw_payload.elf: $(wildcard patches/opensbi/*) u-boot/u-boot-nodtb.bin
+	mkdir -p opensbi/platform/vivado-risc-v
+	cp -p patches/opensbi/* opensbi/platform/vivado-risc-v
+	make -C opensbi CROSS_COMPILE=$(CROSS_COMPILE_LINUX) PLATFORM=vivado-risc-v \
+	 FW_PAYLOAD_PATH=`realpath u-boot/u-boot-nodtb.bin`
 
 
 # --- generate HDL ---
