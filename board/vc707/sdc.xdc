@@ -6,4 +6,4 @@ set_property -dict { PACKAGE_PIN AU31  IOSTANDARD LVCMOS18  IOB TRUE } [get_port
 set_property -dict { PACKAGE_PIN AV31  IOSTANDARD LVCMOS18  IOB TRUE } [get_ports {sdio_dat[2]}]
 set_property -dict { PACKAGE_PIN AT30  IOSTANDARD LVCMOS18  IOB TRUE } [get_ports {sdio_dat[3]}]
 set_property -dict { PACKAGE_PIN AP32  IOSTANDARD LVCMOS18 } [get_ports {sdio_cd}]
-# Note: card detect does not work on VC707 due to an error in VC707 schematics
+# Note: card detect does not work on VC707 due to error in the VC707 schematics

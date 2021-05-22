@@ -19,13 +19,14 @@ Latest Xilinx tools (Ver. 2020.1+) support debugging of RISC-V software over JTA
 
 ## Hardware
 [Xilinx VC707](https://www.xilinx.com/products/boards-and-kits/ek-v7-vc707-g.html) or
+[Xilinx KC705](https://www.xilinx.com/products/boards-and-kits/ek-k7-kc705-g.html) or
 [Digilent Genesys 2](https://reference.digilentinc.com/reference/programmable-logic/genesys-2/start) or
 [Digilent Nexys Video](https://reference.digilentinc.com/reference/programmable-logic/nexys-video/start) or
 [Digilent Nexys A7 100T](https://reference.digilentinc.com/reference/programmable-logic/nexys-a7/start) board.
 
 VC707 allows to prototype more powerful system: up to 8 64-bit RISC-V cores, up to 100MHz clock speed, 1GB RAM.
 
-Genesys 2 is as fast as VC707, but has slightly smaller FPGA - up to 4 cores.
+KC705 and Genesys 2 are as fast as VC707, but have slightly smaller FPGA - up to 4 cores.
 
 Nexys Video is several times less expensive, academic discount is avaialble. It supports up to 2 cores, up to 50MHz clock speed.
 
@@ -41,7 +42,7 @@ sudo access required.
 [Vitis 2019.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2019-2.html).
 Vitis installation includes Vivado Design Suite – there is no need to install Vivado separately.
 
-Nexys Video and Nexys A7 100T are supported by free version of Vivado. VC707 and Genesys 2 require Vivado license.
+Nexys Video and Nexys A7 100T are supported by free version of Vivado. KC705, VC707 and Genesys 2 require Vivado license.
 
 If using Nexys Video, Nexys A7 100T or Genesys 2, install [Vivado Board Files for Digilent FPGA Boards](https://github.com/Digilent/vivado-boards).
 
@@ -61,6 +62,8 @@ make update-submodules
 source /opt/Xilinx/Vivado/2020.2/settings64.sh
 make CONFIG=rocket64b2 BOARD=nexys-video bitstream
 ```
+For KC705, use `BOARD=kc705`
+
 For VC707, use `BOARD=vc707`
 
 For Genesys 2 use `BOARD=genesys2`
@@ -98,19 +101,21 @@ Make sure to confirm right SD card device - all old data will be erased.
 - Open Vivado
 ```
 source /opt/Xilinx/Vivado/2020.2/settings64.sh
-make CONFIG=rocket64b2 BOARD=nexys-video vivado-gui
+make CONFIG=rocket64b2 BOARD=nexys-video bitstream vivado-gui
 ```
 - Open the hardware manager and open the target board
 - Select Tools - Add Configuration Memory Device
 - Select the following device:
   - Nexys A7 100T: Spansion s25fl128sxxxxxx0
-  - Nexys Video: Spansion s25fl256xxxxxx0
-  - Genesys 2: Spansion s25fl256xxxxxx0
+  - Nexys Video: Spansion s25fl256sxxxxxx0
+  - Genesys 2: Spansion s25fl256sxxxxxx0
+  - KC705: Micron 28f00ap30t
   - VC707: Micron mt28gu01gaax1e
 - Add configuration file:
   - Nexys A7 100T: workspace/rocket64b1/nexys-a7-100t-riscv.mcs
   - Nexys Video: workspace/rocket64b2/nexys-video-riscv.mcs
   - Genesys 2: workspace/rocket64b2/genesys2-riscv.mcs
+  - KC705: workspace/rocket64b2/kc705-riscv.mcs
   - VC707: workspace/rocket64b2/vc707-riscv.mcs
 - Press Ok. Flashing will take a couple of minutes.
 - Right click on the FPGA device - Boot from Configuration Memory Device (or press the program button on the board)

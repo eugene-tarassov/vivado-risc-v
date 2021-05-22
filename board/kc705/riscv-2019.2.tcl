@@ -462,7 +462,6 @@ proc create_hier_cell_IO { parentCell nameHier } {
   create_bd_pin -dir I -type rst ARESETN
   create_bd_pin -dir I -type clk clock_100MHz
   create_bd_pin -dir I -type clk clock_125MHz
-  create_bd_pin -dir I -type clk clock_200MHz
   create_bd_pin -dir O eth_mdio_clock
   create_bd_pin -dir IO eth_mdio_data
   create_bd_pin -dir I eth_mdio_int
@@ -497,7 +496,7 @@ proc create_hier_cell_IO { parentCell nameHier } {
      return 1
    }
     set_property -dict [ list \
-   CONFIG.sdio_card_detect_level {0} \
+   CONFIG.capabilies_reg {0x0001} \
  ] $SD
 
   # Create instance: XADC, and set properties
@@ -583,7 +582,6 @@ proc create_hier_cell_IO { parentCell nameHier } {
   connect_bd_net -net AXI_clock [get_bd_pins ACLK] [get_bd_pins io_axi_m/aclk] [get_bd_pins io_axi_s/aclk] [get_bd_pins XADC/s_axi_aclk]
   connect_bd_net -net clock_100MHz [get_bd_pins clock_100MHz] [get_bd_pins SD/clock] [get_bd_pins io_axi_m/aclk1] [get_bd_pins io_axi_s/aclk1] [get_bd_pins UART/clock]
   connect_bd_net -net clock_125MHz [get_bd_pins clock_125MHz] [get_bd_pins Ethernet/clock] [get_bd_pins ethernet_stream_0/clock125] [get_bd_pins io_axi_m/aclk2] [get_bd_pins io_axi_s/aclk2]
-  connect_bd_net -net clock_200MHz [get_bd_pins clock_200MHz] [get_bd_pins ethernet_stream_0/clock200]
   connect_bd_net -net Ethernet_interrupt [get_bd_pins Ethernet/interrupt] [get_bd_pins xlconcat_0/In2]
   connect_bd_net -net Ethernet_mdio_clock [get_bd_pins eth_mdio_clock] [get_bd_pins Ethernet/mdio_clock]
   connect_bd_net -net Ethernet_mdio_data [get_bd_pins eth_mdio_data] [get_bd_pins Ethernet/mdio_data]
@@ -755,6 +753,7 @@ proc create_root_design { parentCell } {
   set eth_mdio_data [ create_bd_port -dir IO eth_mdio_data ]
   set eth_mdio_int [ create_bd_port -dir I eth_mdio_int ]
   set eth_mdio_reset [ create_bd_port -dir O eth_mdio_reset ]
+  set fan_en [ create_bd_port -dir O fan_en ]
   set reset [ create_bd_port -dir I -type rst reset ]
   set_property -dict [ list \
    CONFIG.POLARITY {ACTIVE_HIGH} \
@@ -820,10 +819,11 @@ proc create_root_design { parentCell } {
   connect_bd_net -net AXI_clock [get_bd_pins DDR/aclk] [get_bd_pins IO/ACLK] [get_bd_pins RocketChip/clock] [get_bd_pins clk_wiz_0/clk_out1]
   connect_bd_net -net clock_100MHz [get_bd_pins IO/clock_100MHz] [get_bd_pins clk_wiz_0/clk_out3]
   connect_bd_net -net clock_125MHz [get_bd_pins IO/clock_125MHz] [get_bd_pins clk_wiz_0/clk_out4]
-  connect_bd_net -net clock_200MHz [get_bd_pins DDR/clock_200MHz] [get_bd_pins IO/clock_200MHz] [get_bd_pins clk_wiz_0/clk_out2]
+  connect_bd_net -net clock_200MHz [get_bd_pins DDR/clock_200MHz] [get_bd_pins clk_wiz_0/clk_out2]
   connect_bd_net -net reset [get_bd_pins DDR/sys_reset] [get_bd_pins RocketChip/sys_reset] [get_bd_pins clk_wiz_0/reset] [get_bd_ports reset]
   connect_bd_net -net sys_clock [get_bd_pins clk_wiz_0/clk_in1] [get_bd_pins util_ds_buf_0/IBUF_OUT]
   connect_bd_net -net device_temp [get_bd_pins DDR/device_temp] [get_bd_pins IO/device_temp]
+  connect_bd_net -net fan_en [get_bd_pins IO/fan_en] [get_bd_ports fan_en]
 
   # Create address segments
   assign_bd_address -offset 0x60000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/SD/S_AXI_LITE/reg0] -force

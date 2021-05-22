@@ -1,0 +1,6 @@
+BOARD_PART  ?= xilinx.com:vcu1525:part0:1.3
+XILINX_PART ?= xcvu9p-fsgd2104-2L-e
+CFG_DEVICE  ?= SPIx4 -size 128
+MEMORY_SIZE ?= 0x400000000
+ETHER_MAC   ?= 00 0a 35 00 00 03
+ETHER_PHY   ?= qsfp

@@ -498,9 +498,9 @@ static int download(void) {
             size_t size = 0x10000;
             if (size > p_filesz - pos) size = (size_t)(p_filesz - pos);
             if (size > p_memsz - pos) size = (size_t)(p_memsz - pos);
-            if (addr + size >= BOOTROM_MEM_ADDR && addr < BOOTROM_MEM_END) {
+            if (addr + size > BOOTROM_MEM_ADDR && addr < BOOTROM_MEM_END) {
                 mem = (uint8_t *)(addr - BOOTROM_MEM_ADDR + BOOTROM_MEM_ALT);
-                if (addr + size >= BOOTROM_MEM_END) size = BOOTROM_MEM_END - addr;
+                if (addr + size > BOOTROM_MEM_END) size = BOOTROM_MEM_END - addr;
                 alt_mem = 1;
             }
             errno = f_read(&fd, mem, size, &rd);
@@ -517,9 +517,9 @@ static int download(void) {
             uint8_t * mem = (void *)addr;
             size_t size = 0x10000;
             if (size > p_memsz - pos) size = (size_t)p_memsz - pos;
-            if (addr + size >= BOOTROM_MEM_ADDR && addr < BOOTROM_MEM_END) {
+            if (addr + size > BOOTROM_MEM_ADDR && addr < BOOTROM_MEM_END) {
                 mem = (uint8_t *)(addr - BOOTROM_MEM_ADDR + BOOTROM_MEM_ALT);
-                if (addr + size >= BOOTROM_MEM_END) size = BOOTROM_MEM_END - addr;
+                if (addr + size > BOOTROM_MEM_END) size = BOOTROM_MEM_END - addr;
                 alt_mem = 1;
             }
             size_t s = size;

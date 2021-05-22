@@ -103,59 +103,7 @@ CONFIG ?= rocket64b2
 CONFIG_SCALA := $(subst rocket,Rocket,$(CONFIG))
 JAVA_OPTIONS =
 
-ifeq ($(BOARD),nexys-a7-100t)
-  BOARD_PART  ?= digilentinc.com:nexys-a7-100t:part0:1.0
-  XILINX_PART ?= xc7a100tcsg324-1
-  CFG_DEVICE  ?= SPIx4 -size 16
-  MEMORY_SIZE ?= 0x08000000
-  ETHER_MAC   ?= 00 0a 35 00 00 04
-  ETHER_PHY   ?= rmii
-endif
-
-ifeq ($(BOARD),nexys-video)
-  BOARD_PART  ?= digilentinc.com:nexys_video:part0:1.1
-  XILINX_PART ?= xc7a200tsbg484-1
-  CFG_DEVICE  ?= SPIx4 -size 32
-  MEMORY_SIZE ?= 0x20000000
-  ETHER_MAC   ?= 00 0a 35 00 00 01
-  ETHER_PHY   ?= rgmii
-endif
-
-ifeq ($(BOARD),genesys2)
-  BOARD_PART  ?= digilentinc.com:genesys2:part0:1.1
-  XILINX_PART ?= xc7k325tffg900-2
-  CFG_DEVICE  ?= SPIx4 -size 32
-  MEMORY_SIZE ?= 0x40000000
-  ETHER_MAC   ?= 00 0a 35 00 00 02
-  ETHER_PHY   ?= rgmii-rxid
-endif
-
-ifeq ($(BOARD),kc705)
-  BOARD_PART  ?= xilinx.com:kc705:part0:1.6
-  XILINX_PART ?= xc7k325tffg900-2
-  CFG_DEVICE  ?= SPIx4 -size 16
-  MEMORY_SIZE ?= 0x40000000
-  ETHER_MAC   ?= 00 0a 35 00 00 05
-  ETHER_PHY   ?= gmii-rxid
-endif
-
-ifeq ($(BOARD),vc707)
-  BOARD_PART  ?= xilinx.com:vc707:part0:1.4
-  XILINX_PART ?= xc7vx485tffg1761-2
-  CFG_DEVICE  ?= BPIx16 -size 128
-  MEMORY_SIZE ?= 0x40000000
-  ETHER_MAC   ?= 00 0a 35 00 00 00
-  ETHER_PHY   ?= sgmii
-endif
-
-ifeq ($(BOARD),vcu1525)
-  BOARD_PART  ?= xilinx.com:vcu1525:part0:1.3
-  XILINX_PART ?= xcvu9p-fsgd2104-2L-e
-  CFG_DEVICE  ?= SPIx4 -size 128
-  MEMORY_SIZE ?= 0x400000000
-  ETHER_MAC   ?= 00 0a 35 00 00 03
-  ETHER_PHY   ?= qsfp
-endif
+include board/$(BOARD)/Makefile.inc
 
 # valid ROCKET_FREQ_MHZ values (MHz): 125 100 80 62.5 50 40 31.25 25 20
 ROCKET_FREQ_MHZ ?= $(shell awk '$$3 != "" && "$(BOARD)" ~ $$1 && "$(CONFIG_SCALA)" ~ ("^" $$2 "$$") {print $$3; exit}' board/rocket-freq)
@@ -271,11 +219,12 @@ rocket-sbt:
 proj_name = $(BOARD)-riscv
 proj_path = workspace/$(CONFIG)/vivado-$(proj_name)
 proj_file = $(proj_path)/$(proj_name).xpr
+proj_time = $(proj_path)/timestamp.txt
 bitstream = $(proj_path)/$(proj_name).runs/impl_1/riscv_wrapper.bit
 mcs_file  = workspace/$(CONFIG)/$(proj_name).mcs
 vivado    = env XILINX_LOCAL_USER_DATA=no vivado -mode batch -nojournal -nolog -notrace -quiet
 
-workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl workspace/$(CONFIG)/system-$(BOARD).v
+workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl
 	echo "set vivado_board_name $(BOARD)" >$@
 	echo "set vivado_board_part $(BOARD_PART)" >>$@
 	echo "set xilinx_part $(XILINX_PART)" >>$@
@@ -286,28 +235,31 @@ workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl workspa
 
 vivado-tcl: workspace/$(CONFIG)/system-$(BOARD).tcl
 
-$(proj_file): workspace/$(CONFIG)/system-$(BOARD).tcl
+$(proj_time): workspace/$(CONFIG)/system-$(BOARD).tcl
 	if [ ! -e $(proj_path) ] ; then $(vivado) -source workspace/$(CONFIG)/system-$(BOARD).tcl ; fi
+	date >$@
 
-vivado-project: $(proj_file)
+vivado-project: $(proj_time)
 
 # --- generate FPGA bitstream ---
 
-$(proj_path)/make-bitstream.tcl: $(proj_file)
-	echo "open_project $(proj_file)" >$@
-	echo "update_compile_order -fileset sources_1" >>$@
-	echo "set_param general.maxThreads 4" >>$@
-	echo "launch_runs impl_1 -to_step write_bitstream -jobs 4" >>$@
-	echo "wait_on_run impl_1" >>$@
-	echo "write_cfgmem -format mcs -interface $(CFG_DEVICE) -loadbit \"up 0x0 $(bitstream)\" -file $(mcs_file) -force" >>$@
-
-$(bitstream): $(proj_path)/make-bitstream.tcl workspace/$(CONFIG)/rocket.vhdl
+$(bitstream): $(proj_time)
+	echo "open_project $(proj_file)" >$(proj_path)/make-bitstream.tcl
+	echo "update_compile_order -fileset sources_1" >>$(proj_path)/make-bitstream.tcl
+	echo "set_param general.maxThreads 4" >>$(proj_path)/make-bitstream.tcl
+	echo "launch_runs impl_1 -to_step write_bitstream -jobs 4" >>$(proj_path)/make-bitstream.tcl
+	echo "wait_on_run impl_1" >>$(proj_path)/make-bitstream.tcl
 	$(vivado) -source $(proj_path)/make-bitstream.tcl
 	if find $(proj_path) -name "*.log" -exec cat {} \; | grep 'ERROR: ' ; then exit 1 ; fi
 
-bitstream: $(bitstream)
+$(mcs_file): $(bitstream)
+	echo "open_project $(proj_file)" >$(proj_path)/make-mcs.tcl
+	echo "write_cfgmem -format mcs -interface $(CFG_DEVICE) -loadbit \"up 0x0 $(bitstream)\" -file $(mcs_file) -force" >>$(proj_path)/make-mcs.tcl
+	$(vivado) -source $(proj_path)/make-mcs.tcl
+
+bitstream: $(bitstream) $(mcs_file)
 
 # --- launch Vivado GUI ---
 
-vivado-gui: $(proj_file)
-	vivado $(proj_file) &
+vivado-gui: $(proj_time)
+	vivado $(proj_file)
