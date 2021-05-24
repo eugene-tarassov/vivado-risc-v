@@ -36,6 +36,7 @@ set files [list \
  [file normalize "../../ethernet/ethernet.v"] \
  [file normalize "../../vhdl-wrapper/src/net/largest/riscv/vhdl/bscan2jtag.vhdl"] \
  [file normalize "../../board/${vivado_board_name}/ethernet-${vivado_board_name}.v"] \
+ [file normalize "../../board/fan-control.v"] \
 ]
 add_files -norecurse -fileset $source_fileset $files
 

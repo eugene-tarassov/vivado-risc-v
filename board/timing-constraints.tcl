@@ -45,7 +45,7 @@ if { $eth_clock != "" } {
 #------------------ SD card controller
 
 if { [llength [get_ports -quiet sdio_dat*]] } {
-  set sdio_clock [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out3]]
+  set sdio_clock [get_clocks -of_objects [get_pins -hier SD/clock]]
 
   set_max_delay -from $sdio_clock -to $main_clock -datapath_only 12.0
   set_max_delay -from $main_clock -to $sdio_clock -datapath_only 12.0
@@ -67,6 +67,14 @@ if { [llength [get_ports -quiet sdio_dat*]] } {
   set_max_delay -from $sdio_clock -through [get_pins -hier SD/interrupt] -datapath_only 10.0
 }
 
+#------------------ Fan controller
+
+if { [llength [get_pins -hier FanControl/clock]] } {
+  set fan_ctrl_clock [get_clocks -of_objects [get_pins -hier FanControl/clock]]
+  set_max_delay -from $fan_ctrl_clock -to [get_ports fan_en] -datapath_only 100.0
+  set_max_delay -from $main_clock -through [get_pins -hier FanControl/async_resetn] -datapath_only 10.0
+}
+
 #------------------ IIC controller
 
 if { [llength [get_pins -quiet -hier IIC/s_axi_aclk]] } {
@@ -76,9 +84,8 @@ if { [llength [get_pins -quiet -hier IIC/s_axi_aclk]] } {
 
 #------------------ UART
 
-set uart_clock [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out3]]
-
 if { [llength [get_ports -quiet usb_uart_*]] } {
+  set uart_clock [get_clocks -of_objects [get_pins -hier UART/clock]]
   set_max_delay -datapath_only -from $uart_clock -to [get_ports usb_uart_txd] 100.0
   set_max_delay -datapath_only -from [get_ports usb_uart_rxd] -to $uart_clock 100.0
   set_max_delay -datapath_only -from $main_clock -through [get_pins -hier UART/async_resetn] 100.0
@@ -86,6 +93,7 @@ if { [llength [get_ports -quiet usb_uart_*]] } {
 }
 
 if { [llength [get_ports -quiet rs232_uart_*]] } {
+  set uart_clock [get_clocks -of_objects [get_pins -hier UART/clock]]
   set_max_delay -datapath_only -from $uart_clock -to [get_ports rs232_uart_rtsn] 100.0
   set_max_delay -datapath_only -from $uart_clock -to [get_ports rs232_uart_txd] 100.0
   set_max_delay -datapath_only -from [get_ports rs232_uart_ctsn] -to $uart_clock 100.0

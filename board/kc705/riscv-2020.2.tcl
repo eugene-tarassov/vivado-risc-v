@@ -40,7 +40,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following
 # module references:
-# $rocket_module_name, synchronizer, ethernet, sdc_controller, uart, ethernet_kc705
+# $rocket_module_name, synchronizer, ethernet, fan_control, sdc_controller, uart, ethernet_kc705
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -133,7 +133,6 @@ if { $bCheckIPs == 1 } {
    set list_check_ips "\
 xilinx.com:ip:clk_wiz:6.0\
 xilinx.com:ip:util_ds_buf:2.1\
-xilinx.com:ip:util_vector_logic:2.0\
 xilinx.com:ip:smartconnect:1.0\
 xilinx.com:ip:mig_7series:4.2\
 xilinx.com:ip:xadc_wiz:3.3\
@@ -169,6 +168,7 @@ ethernet\
 sdc_controller\
 uart\
 ethernet_kc705\
+fan_control\
 "
 
    set list_mods_missing ""
@@ -541,6 +541,17 @@ proc create_hier_cell_IO { parentCell nameHier } {
      return 1
    }
 
+  # Create instance: FanControl, and set properties
+  set block_name fan_control
+  set block_cell_name FanControl
+  if { [catch {set FanControl [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $FanControl eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+
   # Create instance: io_axi_m, and set properties
   set io_axi_m [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 io_axi_m ]
   set_property -dict [ list \
@@ -578,8 +589,10 @@ proc create_hier_cell_IO { parentCell nameHier } {
   connect_bd_intf_net -intf_net sd_axi_m [get_bd_intf_pins SD/M_AXI] [get_bd_intf_pins io_axi_m/S00_AXI]
 
   # Create port connections
-  connect_bd_net -net AXI_clock [get_bd_pins ACLK] [get_bd_pins XADC/s_axi_aclk] [get_bd_pins io_axi_m/aclk] [get_bd_pins io_axi_s/aclk]
-  connect_bd_net -net AXI_reset [get_bd_pins ARESETN] [get_bd_pins Ethernet/async_resetn] [get_bd_pins SD/async_resetn] [get_bd_pins UART/async_resetn] [get_bd_pins XADC/s_axi_aresetn] [get_bd_pins io_axi_m/aresetn] [get_bd_pins io_axi_s/aresetn]
+  connect_bd_net -net AXI_reset [get_bd_pins ARESETN] [get_bd_pins Ethernet/async_resetn] [get_bd_pins FanControl/async_resetn] [get_bd_pins SD/async_resetn] [get_bd_pins UART/async_resetn] [get_bd_pins io_axi_m/aresetn] [get_bd_pins io_axi_s/aresetn]
+  connect_bd_net -net AXI_clock [get_bd_pins ACLK] [get_bd_pins io_axi_m/aclk] [get_bd_pins io_axi_s/aclk]
+  connect_bd_net -net clock_100MHz [get_bd_pins clock_100MHz] [get_bd_pins FanControl/clock] [get_bd_pins SD/clock] [get_bd_pins UART/clock] [get_bd_pins XADC/s_axi_aclk] [get_bd_pins io_axi_m/aclk1] [get_bd_pins io_axi_s/aclk1]
+  connect_bd_net -net clock_125MHz [get_bd_pins clock_125MHz] [get_bd_pins Ethernet/clock] [get_bd_pins ethernet_stream_0/clock125] [get_bd_pins io_axi_m/aclk2] [get_bd_pins io_axi_s/aclk2]
   connect_bd_net -net Ethernet_interrupt [get_bd_pins Ethernet/interrupt] [get_bd_pins xlconcat_0/In2]
   connect_bd_net -net Ethernet_mdio_clock [get_bd_pins eth_mdio_clock] [get_bd_pins Ethernet/mdio_clock]
   connect_bd_net -net Ethernet_mdio_data [get_bd_pins eth_mdio_data] [get_bd_pins Ethernet/mdio_data]
@@ -593,10 +606,10 @@ proc create_hier_cell_IO { parentCell nameHier } {
   connect_bd_net -net SD_sdio_cmd [get_bd_pins sdio_cmd] [get_bd_pins SD/sdio_cmd]
   connect_bd_net -net SD_sdio_dat [get_bd_pins sdio_dat] [get_bd_pins SD/sdio_dat]
   connect_bd_net -net UART_interrupt [get_bd_pins UART/interrupt] [get_bd_pins xlconcat_0/In0]
-  connect_bd_net -net clock_100MHz [get_bd_pins clock_100MHz] [get_bd_pins SD/clock] [get_bd_pins UART/clock] [get_bd_pins io_axi_m/aclk1] [get_bd_pins io_axi_s/aclk1]
-  connect_bd_net -net clock_125MHz [get_bd_pins clock_125MHz] [get_bd_pins Ethernet/clock] [get_bd_pins ethernet_stream_0/clock125] [get_bd_pins io_axi_m/aclk2] [get_bd_pins io_axi_s/aclk2]
-  connect_bd_net -net device_temp [get_bd_pins device_temp] [get_bd_pins XADC/temp_out]
-  connect_bd_net -net fan_en [get_bd_pins fan_en] [get_bd_pins XADC/user_temp_alarm_out]
+  connect_bd_net -net temp_alarm [get_bd_pins XADC/user_temp_alarm_out] [get_bd_pins FanControl/alarm]
+  connect_bd_net -net device_temp [get_bd_pins device_temp] [get_bd_pins XADC/temp_out] [get_bd_pins FanControl/device_temp]
+  connect_bd_net -net FanControl_resetn [get_bd_pins FanControl/resetn] [get_bd_pins XADC/s_axi_aresetn]
+  connect_bd_net -net fan_pwm [get_bd_pins fan_en] [get_bd_pins FanControl/fan_pwm]
   connect_bd_net -net interrupts [get_bd_pins interrupts] [get_bd_pins xlconcat_0/dout]
 
   # Restore current instance
