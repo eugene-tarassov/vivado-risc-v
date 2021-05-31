@@ -213,6 +213,24 @@ class Rocket64b8 extends Config(
   new WithNBigCores(8)    ++
   new RocketBaseConfig)
 
+class Rocket64b16m extends Config(
+  new WithNBreakpoints(4) ++
+  new WithNBigCores(16)   ++
+  new WithExtMemSize(0x3f80000000L) ++
+  new RocketBaseConfig)
+
+class Rocket64b24m extends Config(
+  new WithNBreakpoints(4) ++
+  new WithNBigCores(24)   ++
+  new WithExtMemSize(0x3f80000000L) ++
+  new RocketBaseConfig)
+
+class Rocket64b32m extends Config(
+  new WithNBreakpoints(4) ++
+  new WithNBigCores(32)   ++
+  new WithExtMemSize(0x3f80000000L) ++
+  new RocketBaseConfig)
+
 /* Without slave port - for use in HDL simulation */
 class Rocket64b2s extends Config(
   new WithNBigCores(2)    ++

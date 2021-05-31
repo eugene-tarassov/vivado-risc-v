@@ -17,7 +17,8 @@
 #include <sbi_utils/timer/fdt_timer.h>
 #include <sbi_utils/ipi/fdt_ipi.h>
 
-#define MAX_HART_CNT 8
+/* Linux kernel can support up to 32 HARTs */
+#define MAX_HART_CNT 32
 
 #define SR_RX_FIFO_VALID_DATA   (1 << 0) /* data in receive FIFO */
 #define SR_RX_FIFO_FULL         (1 << 1) /* receive FIFO full    */

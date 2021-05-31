@@ -105,7 +105,7 @@ JAVA_OPTIONS =
 
 include board/$(BOARD)/Makefile.inc
 
-# valid ROCKET_FREQ_MHZ values (MHz): 125 100 80 62.5 50 40 31.25 25 20
+# valid ROCKET_FREQ_MHZ values (MHz): 160 125 100 80 62.5 50 40 31.25 25 20
 ROCKET_FREQ_MHZ ?= $(shell awk '$$3 != "" && "$(BOARD)" ~ $$1 && "$(CONFIG_SCALA)" ~ ("^" $$2 "$$") {print $$3; exit}' board/rocket-freq)
 ROCKET_CLOCK_FREQ := $(shell echo - | awk '{printf("%.0f\n", $(ROCKET_FREQ_MHZ) * 1000000)}')
 ROCKET_TIMEBASE_FREQ := $(shell echo - | awk '{printf("%.0f\n", $(ROCKET_FREQ_MHZ) * 10000)}')
@@ -132,7 +132,7 @@ else
   MEMORY_ADDR_RANGE32 = 0x80000000 0x80000000
 endif
 
-SBT := java -Xmx4G -Xss8M $(JAVA_OPTIONS) -jar $(realpath rocket-chip/sbt-launch.jar)
+SBT := java -Xmx8G -Xss8M $(JAVA_OPTIONS) -jar $(realpath rocket-chip/sbt-launch.jar)
 
 CHISEL_SRC_DIRS = \
   src/main \
