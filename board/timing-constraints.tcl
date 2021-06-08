@@ -126,9 +126,8 @@ if { $tck_pin != "" } {
 if { [llength [get_pins -quiet -hier mig_7series_0/ui_clk]] } {
   # DDR3
   set ddrc_clock [get_clocks -of_objects [get_pins -hier mig_7series_0/ui_clk]]
-  # Workaround for what appears to be incorrect constraint in MIG
-  set_max_delay -from $main_clock -to [get_clocks { clk_pll_i* }] -datapath_only 8.0
-  set_max_delay -from $main_clock -through [get_pins -hier mig_7series_0/aresetn] -datapath_only 10.0
+  set_max_delay -from $main_clock -through [get_pins -hier mem_axi_reset_sync/dinp] -datapath_only 10.0
+  set_false_path -through [get_pins -hier mig_7series_0/sys_rst]
 } else {
   # DDR4
   set ddrc_clock [get_clocks -of_objects [get_pins -hier ddr4_0/c0_ddr4_ui_clk]]

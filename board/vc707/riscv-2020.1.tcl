@@ -164,10 +164,11 @@ set bCheckModules 1
 if { $bCheckModules == 1 } {
    set list_check_mods "\
 $rocket_module_name\
+synchronizer\
+mem_reset_control\
 ethernet\
 sdc_controller\
 uart\
-synchronizer\
 ethernet_vc707\
 "
 
@@ -563,8 +564,8 @@ proc create_hier_cell_IO { parentCell nameHier } {
   create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 sgmii_mgt_clk
 
   # Create pins
-  create_bd_pin -dir I -type clk ACLK
-  create_bd_pin -dir I -type rst ARESETN
+  create_bd_pin -dir I -type clk axi_clock
+  create_bd_pin -dir I -type rst axi_reset
   create_bd_pin -dir I -type clk clock_100MHz
   create_bd_pin -dir I -type clk clock_200MHz
   create_bd_pin -dir O -from 7 -to 0 interrupts
@@ -679,8 +680,8 @@ proc create_hier_cell_IO { parentCell nameHier } {
 
   # Create port connections
   connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins EthernetVC707/sys_reset]
-  connect_bd_net -net AXI_reset [get_bd_pins ARESETN] [get_bd_pins Ethernet/async_resetn] [get_bd_pins SD/async_resetn] [get_bd_pins UART/async_resetn] [get_bd_pins io_axi_m/aresetn] [get_bd_pins io_axi_s/aresetn] [get_bd_pins XADC/s_axi_aresetn]
-  connect_bd_net -net AXI_clock [get_bd_pins ACLK] [get_bd_pins io_axi_m/aclk] [get_bd_pins io_axi_s/aclk] [get_bd_pins XADC/s_axi_aclk]
+  connect_bd_net -net AXI_reset [get_bd_pins axi_reset] [get_bd_pins Ethernet/async_resetn] [get_bd_pins SD/async_resetn] [get_bd_pins UART/async_resetn] [get_bd_pins io_axi_m/aresetn] [get_bd_pins io_axi_s/aresetn] [get_bd_pins XADC/s_axi_aresetn]
+  connect_bd_net -net AXI_clock [get_bd_pins axi_clock] [get_bd_pins io_axi_m/aclk] [get_bd_pins io_axi_s/aclk] [get_bd_pins XADC/s_axi_aclk]
   connect_bd_net -net clock_200MHz [get_bd_pins clock_200MHz] [get_bd_pins EthernetVC707/clock_200Mhz]
   connect_bd_net -net clock_100MHz [get_bd_pins clock_100MHz] [get_bd_pins SD/clock] [get_bd_pins io_axi_s/aclk1] [get_bd_pins io_axi_m/aclk1] [get_bd_pins UART/clock]
   connect_bd_net -net interrupts [get_bd_pins interrupts] [get_bd_pins xlconcat_0/dout]
@@ -747,10 +748,11 @@ proc create_hier_cell_DDR { parentCell nameHier } {
 
 
   # Create pins
-  create_bd_pin -dir I -type clk aclk
-  create_bd_pin -dir I -type rst aresetn
-  create_bd_pin -dir I clock_200MHz
-  create_bd_pin -dir O init_calib_complete
+  create_bd_pin -dir I -type clk axi_clock
+  create_bd_pin -dir I -type rst axi_reset
+  create_bd_pin -dir I -type clk clock_200MHz
+  create_bd_pin -dir I clock_ok
+  create_bd_pin -dir O mem_ok
   create_bd_pin -dir I -from 11 -to 0 device_temp
   create_bd_pin -dir I -type rst sys_reset
 
@@ -760,6 +762,17 @@ proc create_hier_cell_DDR { parentCell nameHier } {
    CONFIG.NUM_CLKS {2} \
    CONFIG.NUM_SI {1} \
  ] $axi_smc_1
+
+  # Create instance: mem_reset_control_0, and set properties
+  set block_name mem_reset_control
+  set block_cell_name mem_reset_control_0
+  if { [catch {set mem_reset_control_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $mem_reset_control_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
 
   # Create instance: mig_7series_0, and set properties
   set mig_7series_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:mig_7series:4.2 mig_7series_0 ]
@@ -774,17 +787,17 @@ proc create_hier_cell_DDR { parentCell nameHier } {
   set_property -dict [ list \
    CONFIG.BOARD_MIG_PARAM {Custom} \
    CONFIG.MIG_DONT_TOUCH_PARAM {Custom} \
-   CONFIG.RESET_BOARD_INTERFACE {reset} \
+   CONFIG.RESET_BOARD_INTERFACE {Custom} \
    CONFIG.XML_INPUT_FILE {mig_a.prj} \
  ] $mig_7series_0
 
-  # Create instance: synchronizer_2, and set properties
+  # Create instance: mem_axi_reset_sync, and set properties
   set block_name synchronizer
-  set block_cell_name synchronizer_2
-  if { [catch {set synchronizer_2 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+  set block_cell_name mem_axi_reset_sync
+  if { [catch {set mem_axi_reset_sync [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
      catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
-   } elseif { $synchronizer_2 eq "" } {
+   } elseif { $mem_axi_reset_sync eq "" } {
      catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    }
@@ -795,14 +808,18 @@ proc create_hier_cell_DDR { parentCell nameHier } {
   connect_bd_intf_net -intf_net mig_7series_0_DDR3 [get_bd_intf_pins DDR3_0] [get_bd_intf_pins mig_7series_0/DDR3]
 
   # Create port connections
-  connect_bd_net -net AXI_reset [get_bd_pins aresetn] [get_bd_pins axi_smc_1/aresetn] [get_bd_pins synchronizer_2/dinp]
-  connect_bd_net -net AXI_clock [get_bd_pins aclk] [get_bd_pins axi_smc_1/aclk]
-  connect_bd_net -net clock_200MHz [get_bd_pins clock_200MHz] [get_bd_pins mig_7series_0/sys_clk_i]
-  connect_bd_net -net mig_7series_0_init_calib_complete [get_bd_pins init_calib_complete] [get_bd_pins mig_7series_0/init_calib_complete]
-  connect_bd_net -net mig_7series_0_ui_clk [get_bd_pins axi_smc_1/aclk1] [get_bd_pins mig_7series_0/ui_clk] [get_bd_pins synchronizer_2/clock]
-  connect_bd_net -net mig_7series_0_aresetn [get_bd_pins mig_7series_0/aresetn] [get_bd_pins synchronizer_2/dout]
-  connect_bd_net -net device_temp [get_bd_pins mig_7series_0/device_temp_i] [get_bd_pins device_temp]
-  connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins mig_7series_0/sys_rst]
+  connect_bd_net -net AXI_reset [get_bd_pins axi_reset] [get_bd_pins axi_smc_1/aresetn] [get_bd_pins mem_axi_reset_sync/dinp]
+  connect_bd_net -net AXI_clock [get_bd_pins axi_clock] [get_bd_pins axi_smc_1/aclk]
+  connect_bd_net -net clock_200MHz [get_bd_pins clock_200MHz] [get_bd_pins mem_reset_control_0/clock] [get_bd_pins mig_7series_0/sys_clk_i]
+  connect_bd_net -net clock_ok [get_bd_pins clock_ok] [get_bd_pins mem_reset_control_0/clock_ok]
+  connect_bd_net -net mem_ok [get_bd_pins mem_ok] [get_bd_pins mem_reset_control_0/mem_ok]
+  connect_bd_net -net mem_reset [get_bd_pins mem_reset_control_0/mem_reset] [get_bd_pins mig_7series_0/sys_rst]
+  connect_bd_net -net mem_aresetn [get_bd_pins mig_7series_0/aresetn] [get_bd_pins mem_axi_reset_sync/dout]
+  connect_bd_net -net mem_init_calib_complete [get_bd_pins mem_reset_control_0/calib_complete] [get_bd_pins mig_7series_0/init_calib_complete]
+  connect_bd_net -net mem_mmcm_locked [get_bd_pins mem_reset_control_0/mmcm_locked] [get_bd_pins mig_7series_0/mmcm_locked]
+  connect_bd_net -net mem_ui_clk [get_bd_pins axi_smc_1/aclk1] [get_bd_pins mig_7series_0/ui_clk] [get_bd_pins mem_axi_reset_sync/clock]
+  connect_bd_net -net device_temp [get_bd_pins device_temp] [get_bd_pins mig_7series_0/device_temp_i]
+  connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins mem_reset_control_0/sys_reset]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -898,8 +915,9 @@ proc create_root_design { parentCell } {
    CONFIG.MMCM_CLKIN2_PERIOD {10.0} \
    CONFIG.NUM_OUT_CLKS {3} \
    CONFIG.PRIM_SOURCE {No_buffer} \
-   CONFIG.RESET_BOARD_INTERFACE {reset} \
-   CONFIG.USE_BOARD_FLOW {true} \
+   CONFIG.RESET_BOARD_INTERFACE {Custom} \
+   CONFIG.USE_PHASE_ALIGNMENT {false} \
+   CONFIG.USE_RESET {false} \
  ] $clk_wiz_0
 
   # Create instance: sys_diff_clock_buf, and set properties
@@ -916,15 +934,15 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net sys_diff_clock [get_bd_intf_ports sys_diff_clock] [get_bd_intf_pins sys_diff_clock_buf/CLK_IN_D]
 
   # Create port connections
-  connect_bd_net -net mem_ok [get_bd_pins DDR/init_calib_complete] [get_bd_pins RocketChip/mem_ok]
+  connect_bd_net -net clock_ok [get_bd_pins DDR/clock_ok] [get_bd_pins RocketChip/clock_ok] [get_bd_pins clk_wiz_0/locked]
+  connect_bd_net -net mem_ok [get_bd_pins DDR/mem_ok] [get_bd_pins RocketChip/mem_ok]
   connect_bd_net -net IO_interrupts [get_bd_pins IO/interrupts] [get_bd_pins RocketChip/interrupts]
   connect_bd_net -net IO_mmcm_locked [get_bd_pins IO/mmcm_locked] [get_bd_pins RocketChip/io_ok]
-  connect_bd_net -net clock_ok [get_bd_pins RocketChip/clock_ok] [get_bd_pins clk_wiz_0/locked]
-  connect_bd_net -net AXI_clock [get_bd_pins DDR/aclk] [get_bd_pins IO/ACLK] [get_bd_pins RocketChip/clock] [get_bd_pins clk_wiz_0/clk_out1]
+  connect_bd_net -net AXI_clock [get_bd_pins DDR/axi_clock] [get_bd_pins IO/axi_clock] [get_bd_pins RocketChip/clock] [get_bd_pins clk_wiz_0/clk_out1]
   connect_bd_net -net clock_100MHz [get_bd_pins IO/clock_100MHz] [get_bd_pins clk_wiz_0/clk_out3]
   connect_bd_net -net clock_200MHz [get_bd_pins DDR/clock_200MHz] [get_bd_pins IO/clock_200MHz] [get_bd_pins clk_wiz_0/clk_out2]
-  connect_bd_net -net reset_h [get_bd_ports reset] [get_bd_pins DDR/sys_reset] [get_bd_pins IO/sys_reset] [get_bd_pins RocketChip/sys_reset] [get_bd_pins clk_wiz_0/reset]
-  connect_bd_net -net AXI_reset [get_bd_pins DDR/aresetn] [get_bd_pins IO/ARESETN] [get_bd_pins RocketChip/aresetn]
+  connect_bd_net -net sys_reset [get_bd_ports reset] [get_bd_pins DDR/sys_reset] [get_bd_pins IO/sys_reset] [get_bd_pins RocketChip/sys_reset]
+  connect_bd_net -net AXI_reset [get_bd_pins DDR/axi_reset] [get_bd_pins IO/axi_reset] [get_bd_pins RocketChip/aresetn]
   connect_bd_net -net IO_sdio_cd [get_bd_ports sdio_cd] [get_bd_pins IO/sdio_cd]
   connect_bd_net -net IO_sdio_clk [get_bd_ports sdio_clk] [get_bd_pins IO/sdio_clk]
   connect_bd_net -net IO_sdio_cmd [get_bd_ports sdio_cmd] [get_bd_pins IO/sdio_cmd]

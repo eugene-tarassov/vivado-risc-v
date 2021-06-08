@@ -164,11 +164,12 @@ if { $bCheckModules == 1 } {
    set list_check_mods "\
 $rocket_module_name\
 synchronizer\
+mem_reset_control\
+fan_control\
 ethernet\
 sdc_controller\
-uart\
 ethernet_kc705\
-fan_control\
+uart\
 "
 
    set list_mods_missing ""
@@ -458,8 +459,8 @@ proc create_hier_cell_IO { parentCell nameHier } {
   create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:uart_rtl:1.0 uart
 
   # Create pins
-  create_bd_pin -dir I -type clk ACLK
-  create_bd_pin -dir I -type rst ARESETN
+  create_bd_pin -dir I -type clk axi_clock
+  create_bd_pin -dir I -type rst axi_reset
   create_bd_pin -dir I -type clk clock_100MHz
   create_bd_pin -dir I -type clk clock_125MHz
   create_bd_pin -dir O eth_mdio_clock
@@ -502,19 +503,19 @@ proc create_hier_cell_IO { parentCell nameHier } {
   # Create instance: XADC, and set properties
   set XADC [ create_bd_cell -type ip -vlnv xilinx.com:ip:xadc_wiz:3.3 XADC ]
   set_property -dict [ list \
-    CONFIG.ADC_OFFSET_AND_GAIN_CALIBRATION {true} \
-    CONFIG.ADC_OFFSET_CALIBRATION {true} \
-    CONFIG.CHANNEL_ENABLE_VBRAM {true} \
-    CONFIG.CHANNEL_ENABLE_VCCAUX {true} \
-    CONFIG.CHANNEL_ENABLE_VCCINT {true} \
-    CONFIG.CHANNEL_ENABLE_VP_VN {true} \
-    CONFIG.ENABLE_TEMP_BUS {true} \
-    CONFIG.SENSOR_OFFSET_AND_GAIN_CALIBRATION {true} \
-    CONFIG.SENSOR_OFFSET_CALIBRATION {true} \
-    CONFIG.SEQUENCER_MODE {Continuous} \
-    CONFIG.TEMPERATURE_ALARM_RESET {50} \
-    CONFIG.TEMPERATURE_ALARM_TRIGGER {60} \
-    CONFIG.XADC_STARUP_SELECTION {channel_sequencer} \
+   CONFIG.ADC_OFFSET_AND_GAIN_CALIBRATION {true} \
+   CONFIG.ADC_OFFSET_CALIBRATION {true} \
+   CONFIG.CHANNEL_ENABLE_VBRAM {true} \
+   CONFIG.CHANNEL_ENABLE_VCCAUX {true} \
+   CONFIG.CHANNEL_ENABLE_VCCINT {true} \
+   CONFIG.CHANNEL_ENABLE_VP_VN {true} \
+   CONFIG.ENABLE_TEMP_BUS {true} \
+   CONFIG.SENSOR_OFFSET_AND_GAIN_CALIBRATION {true} \
+   CONFIG.SENSOR_OFFSET_CALIBRATION {true} \
+   CONFIG.SEQUENCER_MODE {Continuous} \
+   CONFIG.TEMPERATURE_ALARM_RESET {50} \
+   CONFIG.TEMPERATURE_ALARM_TRIGGER {60} \
+   CONFIG.XADC_STARUP_SELECTION {channel_sequencer} \
     CONFIG.VCCINT_ALARM {false} \
     CONFIG.VCCAUX_ALARM {false} \
  ] $XADC
@@ -589,8 +590,8 @@ proc create_hier_cell_IO { parentCell nameHier } {
   connect_bd_intf_net -intf_net io_axi_s_M03_AXI [get_bd_intf_pins XADC/s_axi_lite] [get_bd_intf_pins io_axi_s/M03_AXI]
 
   # Create port connections
-  connect_bd_net -net AXI_reset [get_bd_pins ARESETN] [get_bd_pins Ethernet/async_resetn] [get_bd_pins FanControl/async_resetn] [get_bd_pins SD/async_resetn] [get_bd_pins UART/async_resetn] [get_bd_pins io_axi_m/aresetn] [get_bd_pins io_axi_s/aresetn]
-  connect_bd_net -net AXI_clock [get_bd_pins ACLK] [get_bd_pins io_axi_m/aclk] [get_bd_pins io_axi_s/aclk]
+  connect_bd_net -net AXI_reset [get_bd_pins axi_reset] [get_bd_pins Ethernet/async_resetn] [get_bd_pins FanControl/async_resetn] [get_bd_pins SD/async_resetn] [get_bd_pins UART/async_resetn] [get_bd_pins io_axi_m/aresetn] [get_bd_pins io_axi_s/aresetn]
+  connect_bd_net -net AXI_clock [get_bd_pins axi_clock] [get_bd_pins io_axi_m/aclk] [get_bd_pins io_axi_s/aclk]
   connect_bd_net -net clock_100MHz [get_bd_pins clock_100MHz] [get_bd_pins FanControl/clock] [get_bd_pins SD/clock] [get_bd_pins UART/clock] [get_bd_pins XADC/s_axi_aclk] [get_bd_pins io_axi_m/aclk1] [get_bd_pins io_axi_s/aclk1]
   connect_bd_net -net clock_125MHz [get_bd_pins clock_125MHz] [get_bd_pins Ethernet/clock] [get_bd_pins ethernet_stream_0/clock125] [get_bd_pins io_axi_m/aclk2] [get_bd_pins io_axi_s/aclk2]
   connect_bd_net -net Ethernet_interrupt [get_bd_pins Ethernet/interrupt] [get_bd_pins xlconcat_0/In2]
@@ -657,10 +658,11 @@ proc create_hier_cell_DDR { parentCell nameHier } {
 
 
   # Create pins
-  create_bd_pin -dir I -type clk aclk
-  create_bd_pin -dir I -type rst aresetn
+  create_bd_pin -dir I -type clk axi_clock
+  create_bd_pin -dir I -type rst axi_reset
   create_bd_pin -dir I -type clk clock_200MHz
-  create_bd_pin -dir O init_calib_complete
+  create_bd_pin -dir I clock_ok
+  create_bd_pin -dir O mem_ok
   create_bd_pin -dir I -from 11 -to 0 device_temp
   create_bd_pin -dir I -type rst sys_reset
 
@@ -670,6 +672,17 @@ proc create_hier_cell_DDR { parentCell nameHier } {
    CONFIG.NUM_CLKS {2} \
    CONFIG.NUM_SI {1} \
  ] $axi_smc_1
+
+  # Create instance: mem_reset_control_0, and set properties
+  set block_name mem_reset_control
+  set block_cell_name mem_reset_control_0
+  if { [catch {set mem_reset_control_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $mem_reset_control_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
 
   # Create instance: mig_7series_0, and set properties
   set mig_7series_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:mig_7series:4.2 mig_7series_0 ]
@@ -688,13 +701,13 @@ proc create_hier_cell_DDR { parentCell nameHier } {
    CONFIG.XML_INPUT_FILE {mig_a.prj} \
  ] $mig_7series_0
 
-  # Create instance: synchronizer_2, and set properties
+  # Create instance: mem_axi_reset_sync, and set properties
   set block_name synchronizer
-  set block_cell_name synchronizer_2
-  if { [catch {set synchronizer_2 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+  set block_cell_name mem_axi_reset_sync
+  if { [catch {set mem_axi_reset_sync [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
      catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
-   } elseif { $synchronizer_2 eq "" } {
+   } elseif { $mem_axi_reset_sync eq "" } {
      catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    }
@@ -705,14 +718,18 @@ proc create_hier_cell_DDR { parentCell nameHier } {
   connect_bd_intf_net -intf_net mig_7series_0_DDR3 [get_bd_intf_pins ddr3_sdram] [get_bd_intf_pins mig_7series_0/DDR3]
 
   # Create port connections
-  connect_bd_net -net AXI_reset [get_bd_pins aresetn] [get_bd_pins axi_smc_1/aresetn] [get_bd_pins synchronizer_2/dinp]
-  connect_bd_net -net AXI_clock [get_bd_pins aclk] [get_bd_pins axi_smc_1/aclk]
-  connect_bd_net -net clock_200MHz [get_bd_pins clock_200MHz] [get_bd_pins mig_7series_0/sys_clk_i]
-  connect_bd_net -net mig_7series_0_init_calib_complete [get_bd_pins init_calib_complete] [get_bd_pins mig_7series_0/init_calib_complete]
-  connect_bd_net -net mig_7series_0_ui_clk [get_bd_pins axi_smc_1/aclk1] [get_bd_pins mig_7series_0/ui_clk] [get_bd_pins synchronizer_2/clock]
-  connect_bd_net -net mig_7series_0_aresetn [get_bd_pins mig_7series_0/aresetn] [get_bd_pins synchronizer_2/dout]
-  connect_bd_net -net device_temp [get_bd_pins mig_7series_0/device_temp_i] [get_bd_pins device_temp]
-  connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins mig_7series_0/sys_rst]
+  connect_bd_net -net AXI_reset [get_bd_pins axi_reset] [get_bd_pins axi_smc_1/aresetn] [get_bd_pins mem_axi_reset_sync/dinp]
+  connect_bd_net -net AXI_clock [get_bd_pins axi_clock] [get_bd_pins axi_smc_1/aclk]
+  connect_bd_net -net clock_200MHz [get_bd_pins clock_200MHz] [get_bd_pins mem_reset_control_0/clock] [get_bd_pins mig_7series_0/sys_clk_i]
+  connect_bd_net -net clock_ok [get_bd_pins clock_ok] [get_bd_pins mem_reset_control_0/clock_ok]
+  connect_bd_net -net mem_ok [get_bd_pins mem_ok] [get_bd_pins mem_reset_control_0/mem_ok]
+  connect_bd_net -net mem_reset [get_bd_pins mem_reset_control_0/mem_reset] [get_bd_pins mig_7series_0/sys_rst]
+  connect_bd_net -net mem_aresetn [get_bd_pins mig_7series_0/aresetn] [get_bd_pins mem_axi_reset_sync/dout]
+  connect_bd_net -net mem_init_calib_complete [get_bd_pins mem_reset_control_0/calib_complete] [get_bd_pins mig_7series_0/init_calib_complete]
+  connect_bd_net -net mem_mmcm_locked [get_bd_pins mem_reset_control_0/mmcm_locked] [get_bd_pins mig_7series_0/mmcm_locked]
+  connect_bd_net -net mem_ui_clk [get_bd_pins axi_smc_1/aclk1] [get_bd_pins mig_7series_0/ui_clk] [get_bd_pins mem_axi_reset_sync/clock]
+  connect_bd_net -net device_temp [get_bd_pins device_temp] [get_bd_pins mig_7series_0/device_temp_i]
+  connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins mem_reset_control_0/sys_reset]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -798,6 +815,8 @@ proc create_root_design { parentCell } {
    CONFIG.CLKOUT4_USED {true} \
    CONFIG.NUM_OUT_CLKS {4} \
    CONFIG.PRIM_SOURCE {No_buffer} \
+   CONFIG.USE_PHASE_ALIGNMENT {false} \
+   CONFIG.USE_RESET {false} \
  ] $clk_wiz_0
 
   # Create instance: util_ds_buf_0, and set properties
@@ -817,26 +836,26 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net sys_diff_clock [get_bd_intf_ports sys_diff_clock] [get_bd_intf_pins util_ds_buf_0/CLK_IN_D]
 
   # Create port connections
-  connect_bd_net -net clock_ok [get_bd_pins RocketChip/clock_ok] [get_bd_pins clk_wiz_0/locked] [get_bd_pins RocketChip/io_ok]
-  connect_bd_net -net mem_ok [get_bd_ports LED0] [get_bd_pins DDR/init_calib_complete] [get_bd_pins RocketChip/mem_ok]
+  connect_bd_net -net AXI_clock [get_bd_pins DDR/axi_clock] [get_bd_pins IO/axi_clock] [get_bd_pins RocketChip/clock] [get_bd_pins clk_wiz_0/clk_out1]
+  connect_bd_net -net AXI_reset [get_bd_pins DDR/axi_reset] [get_bd_pins IO/axi_reset] [get_bd_pins RocketChip/aresetn]
   connect_bd_net -net IO_eth_mdio_clock [get_bd_ports eth_mdio_clock] [get_bd_pins IO/eth_mdio_clock]
   connect_bd_net -net IO_eth_mdio_data [get_bd_ports eth_mdio_data] [get_bd_pins IO/eth_mdio_data]
   connect_bd_net -net IO_eth_mdio_int [get_bd_ports eth_mdio_int] [get_bd_pins IO/eth_mdio_int]
   connect_bd_net -net IO_eth_mdio_reset [get_bd_ports eth_mdio_reset] [get_bd_pins IO/eth_mdio_reset]
   connect_bd_net -net IO_interrupts [get_bd_pins IO/interrupts] [get_bd_pins RocketChip/interrupts]
+  connect_bd_net -net IO_sdio_cd [get_bd_ports sdio_cd] [get_bd_pins IO/sdio_cd]
   connect_bd_net -net IO_sdio_clk [get_bd_ports sdio_clk] [get_bd_pins IO/sdio_clk]
   connect_bd_net -net IO_sdio_cmd [get_bd_ports sdio_cmd] [get_bd_pins IO/sdio_cmd]
   connect_bd_net -net IO_sdio_dat [get_bd_ports sdio_dat] [get_bd_pins IO/sdio_dat]
-  connect_bd_net -net IO_sdio_cd [get_bd_ports sdio_cd] [get_bd_pins IO/sdio_cd]
-  connect_bd_net -net AXI_reset [get_bd_pins DDR/aresetn] [get_bd_pins IO/ARESETN] [get_bd_pins RocketChip/aresetn]
-  connect_bd_net -net AXI_clock [get_bd_pins DDR/aclk] [get_bd_pins IO/ACLK] [get_bd_pins RocketChip/clock] [get_bd_pins clk_wiz_0/clk_out1]
   connect_bd_net -net clock_100MHz [get_bd_pins IO/clock_100MHz] [get_bd_pins clk_wiz_0/clk_out3]
   connect_bd_net -net clock_125MHz [get_bd_pins IO/clock_125MHz] [get_bd_pins clk_wiz_0/clk_out4]
   connect_bd_net -net clock_200MHz [get_bd_pins DDR/clock_200MHz] [get_bd_pins clk_wiz_0/clk_out2]
-  connect_bd_net -net reset [get_bd_pins DDR/sys_reset] [get_bd_pins RocketChip/sys_reset] [get_bd_pins clk_wiz_0/reset] [get_bd_ports reset]
-  connect_bd_net -net sys_clock [get_bd_pins clk_wiz_0/clk_in1] [get_bd_pins util_ds_buf_0/IBUF_OUT]
+  connect_bd_net -net clock_ok [get_bd_pins DDR/clock_ok] [get_bd_pins RocketChip/clock_ok] [get_bd_pins RocketChip/io_ok] [get_bd_pins clk_wiz_0/locked]
   connect_bd_net -net device_temp [get_bd_pins DDR/device_temp] [get_bd_pins IO/device_temp]
-  connect_bd_net -net fan_en [get_bd_pins IO/fan_en] [get_bd_ports fan_en]
+  connect_bd_net -net fan_en [get_bd_ports fan_en] [get_bd_pins IO/fan_en]
+  connect_bd_net -net mem_ok [get_bd_ports LED0] [get_bd_pins DDR/mem_ok] [get_bd_pins RocketChip/mem_ok]
+  connect_bd_net -net reset [get_bd_ports reset] [get_bd_pins DDR/sys_reset] [get_bd_pins RocketChip/sys_reset]
+  connect_bd_net -net sys_clock [get_bd_pins clk_wiz_0/clk_in1] [get_bd_pins util_ds_buf_0/IBUF_OUT]
 
   # Create address segments
   assign_bd_address -offset 0x60000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/SD/S_AXI_LITE/reg0] -force

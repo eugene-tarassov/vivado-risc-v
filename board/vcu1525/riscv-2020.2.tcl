@@ -246,7 +246,7 @@ proc create_hier_cell_IO { parentCell nameHier } {
 
   # Create pins
   create_bd_pin -dir I -type clk axi_clock
-  create_bd_pin -dir I -type rst axi_resetn
+  create_bd_pin -dir I -type rst axi_reset
   create_bd_pin -dir I -type clk clock100MHz
   create_bd_pin -dir O -from 7 -to 0 interrupts
   create_bd_pin -dir I -type rst pcie_perstn
@@ -363,7 +363,7 @@ proc create_hier_cell_IO { parentCell nameHier } {
 
   # Create port connections
   connect_bd_net -net DDR_clock [get_bd_pins sdram_clock] [get_bd_pins smartconnect_0/aclk1]
-  connect_bd_net -net RocketChip_aresetn [get_bd_pins axi_resetn] [get_bd_pins UART/async_resetn] [get_bd_pins smartconnect_0/aresetn] [get_bd_pins smartconnect_2/aresetn]
+  connect_bd_net -net RocketChip_aresetn [get_bd_pins axi_reset] [get_bd_pins UART/async_resetn] [get_bd_pins smartconnect_0/aresetn] [get_bd_pins smartconnect_2/aresetn]
   connect_bd_net -net RocketChip_clock [get_bd_pins axi_clock] [get_bd_pins smartconnect_0/aclk2] [get_bd_pins smartconnect_2/aclk1]
   connect_bd_net -net axi_iic_0_iic2intc_irpt [get_bd_pins IIC/iic2intc_irpt] [get_bd_pins xlconcat_0/In3]
   connect_bd_net -net clock100MHz [get_bd_pins clock100MHz] [get_bd_pins UART/clock] [get_bd_pins smartconnect_0/aclk3]
@@ -431,7 +431,7 @@ proc create_hier_cell_DDR { parentCell nameHier } {
 
   # Create pins
   create_bd_pin -dir I axi_clock
-  create_bd_pin -dir I axi_resetn
+  create_bd_pin -dir I axi_reset
   create_bd_pin -dir O -type clk c0_ddr4_ui_clk
   create_bd_pin -dir O c0_init_calib_complete
   create_bd_pin -dir I -type rst sys_reset
@@ -470,7 +470,7 @@ proc create_hier_cell_DDR { parentCell nameHier } {
   connect_bd_intf_net -intf_net smartconnect_1_M00_AXI [get_bd_intf_pins ddr4_0/C0_DDR4_S_AXI] [get_bd_intf_pins smartconnect_1/M00_AXI]
 
   # Create port connections
-  connect_bd_net -net RocketChip_aresetn [get_bd_pins axi_resetn] [get_bd_pins smartconnect_1/aresetn] [get_bd_pins synchronizer_0/dinp]
+  connect_bd_net -net RocketChip_aresetn [get_bd_pins axi_reset] [get_bd_pins smartconnect_1/aresetn] [get_bd_pins synchronizer_0/dinp]
   connect_bd_net -net axi_clock [get_bd_pins axi_clock] [get_bd_pins smartconnect_1/aclk]
   connect_bd_net -net ddr4_0_c0_ddr4_ui_clk [get_bd_pins c0_ddr4_ui_clk] [get_bd_pins ddr4_0/c0_ddr4_ui_clk] [get_bd_pins smartconnect_1/aclk1] [get_bd_pins synchronizer_0/clock]
   connect_bd_net -net ddr4_0_c0_init_calib_complete [get_bd_pins c0_init_calib_complete] [get_bd_pins ddr4_0/c0_init_calib_complete]
@@ -587,7 +587,7 @@ proc create_root_design { parentCell } {
 
   # Create port connections
   connect_bd_net -net DDR_clock [get_bd_pins DDR/c0_ddr4_ui_clk] [get_bd_pins IO/sdram_clock] [get_bd_pins clk_wiz_0/clk_in1]
-  connect_bd_net -net RocketChip_aresetn [get_bd_pins DDR/axi_resetn] [get_bd_pins IO/axi_resetn] [get_bd_pins RocketChip/aresetn]
+  connect_bd_net -net RocketChip_aresetn [get_bd_pins DDR/axi_reset] [get_bd_pins IO/axi_reset] [get_bd_pins RocketChip/aresetn]
   connect_bd_net -net RocketChip_clock [get_bd_pins DDR/axi_clock] [get_bd_pins IO/axi_clock] [get_bd_pins RocketChip/clock] [get_bd_pins clk_wiz_0/clk_out1]
   connect_bd_net -net clk_wiz_0_locked [get_bd_pins RocketChip/clock_ok] [get_bd_pins clk_wiz_0/locked]
   connect_bd_net -net clock100MHz_1 [get_bd_pins IO/clock100MHz] [get_bd_pins clk_wiz_0/clk_out3]
