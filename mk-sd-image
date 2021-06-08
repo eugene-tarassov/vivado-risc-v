@@ -104,14 +104,22 @@ sudo chmod 755 debian-riscv64/rootfs
 echo
 echo "Boot partition:"
 df debian-riscv64/boot
+ls -l debian-riscv64/boot
 echo
 echo "Root partition:"
 df debian-riscv64/rootfs
 ls -l debian-riscv64/rootfs
+echo
 
 if [ ! -z "$RSYNC_BOOT" ] ; then
   rsync -r --delete debian-riscv64/boot/ $RSYNC_BOOT
 fi
+
+# According to docs, don't need to run sync before umount.
+# umount will complete all pending writes before it actually unmounts the filesystem.
+# In reality, without sync, VFAT filesystem sometimes gets corrupted after umount.
+# Must be a Linux bug.
+sync
 
 sudo umount ${SD_LOOP}p1
 sudo umount ${SD_LOOP}p2
