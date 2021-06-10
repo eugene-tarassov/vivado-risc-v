@@ -3,10 +3,20 @@
 set -e
 cd `dirname $0`
 
-while getopts r: name ; do
+SD_SIZE=1500
+SD_IMG=debian-riscv64/debian-riscv64.sd.img
+RSYNC_BOOT=
+
+while getopts r:s:i: name ; do
   case $name in
   r)
     RSYNC_BOOT=$OPTARG
+    ;;
+  s)
+    SD_SIZE=$OPTARG
+    ;;
+  i)
+    SD_IMG=$OPTARG
     ;;
   esac
 done
@@ -31,9 +41,6 @@ if [ ! -f linux-stable/arch/riscv/boot/Image ] ; then
 fi
 
 # --- build SD card image ---
-
-SD_SIZE=1500
-SD_IMG=debian-riscv64/debian-riscv64.sd.img
 
 mount -l | grep `pwd`/ | while IFS=' ' read -ra LINE ; do
   sudo umount ${LINE[0]}
