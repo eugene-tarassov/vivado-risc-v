@@ -736,7 +736,7 @@ proc create_root_design { parentCell } {
    CONFIG.CLKOUT5_USED {true} \
    CONFIG.NUM_OUT_CLKS {5} \
    CONFIG.PRIM_SOURCE {No_buffer} \
-   CONFIG.USE_PHASE_ALIGNMENT {false} \
+   CONFIG.USE_PHASE_ALIGNMENT {true} \
    CONFIG.USE_RESET {false} \
  ] $clk_wiz_0
 
