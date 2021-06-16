@@ -243,11 +243,15 @@ vivado-project: $(proj_time)
 
 # --- generate FPGA bitstream ---
 
+# Multi-threading appears broken in Vivado.
+# It causes intermittent failures.
+MAX_THREADS ?= 1
+
 $(bitstream): $(proj_time)
 	echo "open_project $(proj_file)" >$(proj_path)/make-bitstream.tcl
 	echo "update_compile_order -fileset sources_1" >>$(proj_path)/make-bitstream.tcl
-	echo "set_param general.maxThreads 4" >>$(proj_path)/make-bitstream.tcl
-	echo "launch_runs impl_1 -to_step write_bitstream -jobs 4" >>$(proj_path)/make-bitstream.tcl
+	echo "set_param general.maxThreads $(MAX_THREADS)" >>$(proj_path)/make-bitstream.tcl
+	echo "launch_runs impl_1 -to_step write_bitstream -jobs $(MAX_THREADS)" >>$(proj_path)/make-bitstream.tcl
 	echo "wait_on_run impl_1" >>$(proj_path)/make-bitstream.tcl
 	$(vivado) -source $(proj_path)/make-bitstream.tcl
 	if find $(proj_path) -name "*.log" -exec cat {} \; | grep 'ERROR: ' ; then exit 1 ; fi
