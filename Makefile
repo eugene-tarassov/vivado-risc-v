@@ -46,7 +46,7 @@ linux: linux-stable/arch/riscv/boot/Image
 CROSS_COMPILE_LINUX = /usr/bin/riscv64-linux-gnu-
 
 linux-patch: patches/linux.patch patches/fpga-axi-sdc.c patches/fpga-axi-eth.c patches/linux.config
-	cd linux-stable && git reset --hard && patch -p1 <../patches/linux.patch
+	cd linux-stable && ( git apply -R --check ../patches/linux.patch 2>/dev/null || git apply ../patches/linux.patch )
 	cp patches/fpga-axi-eth.c  linux-stable/drivers/net/ethernet
 	cp patches/fpga-axi-sdc.c  linux-stable/drivers/mmc/host
 	cp patches/fpga-axi-uart.c linux-stable/drivers/tty/serial
@@ -67,7 +67,7 @@ U_BOOT_SRC = $(wildcard patches/u-boot/*/*) \
   patches/u-boot.patch
 
 u-boot-patch: $(U_BOOT_SRC)
-	cd u-boot && git reset --hard && patch -p1 <../patches/u-boot.patch
+	cd u-boot && ( git apply -R --check ../patches/u-boot.patch 2>/dev/null || git apply ../patches/u-boot.patch )
 	cp -r patches/u-boot/vivado_riscv64 u-boot/board/xilinx
 	cp patches/u-boot/vivado_riscv64_defconfig u-boot/configs
 	cp patches/u-boot/vivado_riscv64.h u-boot/include/configs
@@ -154,8 +154,8 @@ $(FIRRTL_JAR): $(FIRRTL_SRC)
 
 # Generate default device tree - not including peripheral devices or board specific data
 workspace/$(CONFIG)/system.dts: $(FIRRTL_JAR) $(CHISEL_SRC) rocket-chip/bootrom/bootrom.img
-	cd rocket-chip && git reset --hard && patch -p1 <../patches/rocket-chip.patch
-	cd generators/gemmini && git reset --hard && patch -p1 <../../patches/gemmini.patch
+	cd rocket-chip && ( git apply -R --check ../patches/rocket-chip.patch 2>/dev/null || git apply ../patches/rocket-chip.patch )
+	cd generators/gemmini && ( git apply -R --check ../../patches/gemmini.patch 2>/dev/null || git apply ../../patches/gemmini.patch )
 	mkdir -p workspace/$(CONFIG)/tmp
 	cp rocket-chip/bootrom/bootrom.img workspace/bootrom.img
 	$(SBT) "runMain freechips.rocketchip.system.Generator -td workspace/$(CONFIG)/tmp -T Vivado.RocketSystem -C Vivado.$(CONFIG_SCALA)"
