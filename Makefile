@@ -143,17 +143,10 @@ CHISEL_SRC_DIRS = \
   generators/testchipip/src/main
 
 CHISEL_SRC := $(foreach path, $(CHISEL_SRC_DIRS), $(shell test -d $(path) && find $(path) -iname "*.scala"))
-
-FIRRTL_SRC := $(shell test -d rocket-chip/firrtl/src/main && find rocket-chip/firrtl/src/main -iname "*.scala")
-FIRRTL_JAR = rocket-chip/firrtl/utils/bin/firrtl.jar
-FIRRTL = java -Xmx12G -Xss8M $(JAVA_OPTIONS) -cp $(FIRRTL_JAR):target/scala-2.12/classes:rocket-chip/rocketchip.jar firrtl.stage.FirrtlMain
-
-$(FIRRTL_JAR): $(FIRRTL_SRC)
-	make -C rocket-chip/firrtl SBT="$(SBT)" build-scala
-	touch $(FIRRTL_JAR)
+FIRRTL = java -Xmx12G -Xss8M $(JAVA_OPTIONS) -cp target/scala-2.12/classes:rocket-chip/rocketchip.jar firrtl.stage.FirrtlMain
 
 # Generate default device tree - not including peripheral devices or board specific data
-workspace/$(CONFIG)/system.dts: $(FIRRTL_JAR) $(CHISEL_SRC) rocket-chip/bootrom/bootrom.img
+workspace/$(CONFIG)/system.dts: $(CHISEL_SRC) rocket-chip/bootrom/bootrom.img
 	cd rocket-chip && ( git apply -R --check ../patches/rocket-chip.patch 2>/dev/null || git apply ../patches/rocket-chip.patch )
 	cd generators/gemmini && ( git apply -R --check ../../patches/gemmini.patch 2>/dev/null || git apply ../../patches/gemmini.patch )
 	mkdir -p workspace/$(CONFIG)/tmp
