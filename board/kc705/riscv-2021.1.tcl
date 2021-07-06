@@ -20,12 +20,12 @@ set script_folder [_tcl::get_script_folder]
 ################################################################
 # Check if script is running in correct Vivado version.
 ################################################################
-set scripts_vivado_version 2019.2
+set scripts_vivado_version 2021.1
 set current_vivado_version [version -short]
 
 if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
    puts ""
-   catch {common::send_msg_id "BD_TCL-041" "ERROR" "This script was generated using Vivado <$scripts_vivado_version> and is being run in <$current_vivado_version> of Vivado. Please run the script in Vivado <$scripts_vivado_version> then open the design in Vivado <$current_vivado_version>. Upgrade the design by running \"Tools => Report => Report IP Status...\", then run write_bd_tcl to create an updated script."}
+   catch {common::send_gid_msg -ssname BD::TCL -id 2041 -severity "ERROR" "This script was generated using Vivado <$scripts_vivado_version> and is being run in <$current_vivado_version> of Vivado. Please run the script in Vivado <$scripts_vivado_version> then open the design in Vivado <$current_vivado_version>. Upgrade the design by running \"Tools => Report => Report IP Status...\", then run write_bd_tcl to create an updated script."}
 
    return 1
 }
@@ -84,10 +84,10 @@ if { ${design_name} eq "" } {
    #    4): Current design opened AND is empty AND names diff; design_name exists in project.
 
    if { $cur_design ne $design_name } {
-      common::send_msg_id "BD_TCL-001" "INFO" "Changing value of <design_name> from <$design_name> to <$cur_design> since current design is empty."
+      common::send_gid_msg -ssname BD::TCL -id 2001 -severity "INFO" "Changing value of <design_name> from <$design_name> to <$cur_design> since current design is empty."
       set design_name [get_property NAME $cur_design]
    }
-   common::send_msg_id "BD_TCL-002" "INFO" "Constructing design in IPI design <$cur_design>..."
+   common::send_gid_msg -ssname BD::TCL -id 2002 -severity "INFO" "Constructing design in IPI design <$cur_design>..."
 
 } elseif { ${cur_design} ne "" && $list_cells ne "" && $cur_design eq $design_name } {
    # USE CASES:
@@ -108,19 +108,19 @@ if { ${design_name} eq "" } {
    #    8) No opened design, design_name not in project.
    #    9) Current opened design, has components, but diff names, design_name not in project.
 
-   common::send_msg_id "BD_TCL-003" "INFO" "Currently there is no design <$design_name> in project, so creating one..."
+   common::send_gid_msg -ssname BD::TCL -id 2003 -severity "INFO" "Currently there is no design <$design_name> in project, so creating one..."
 
    create_bd_design $design_name
 
-   common::send_msg_id "BD_TCL-004" "INFO" "Making design <$design_name> as current_bd_design."
+   common::send_gid_msg -ssname BD::TCL -id 2004 -severity "INFO" "Making design <$design_name> as current_bd_design."
    current_bd_design $design_name
 
 }
 
-common::send_msg_id "BD_TCL-005" "INFO" "Currently the variable <design_name> is equal to \"$design_name\"."
+common::send_gid_msg -ssname BD::TCL -id 2005 -severity "INFO" "Currently the variable <design_name> is equal to \"$design_name\"."
 
 if { $nRet != 0 } {
-   catch {common::send_msg_id "BD_TCL-006" "ERROR" $errMsg}
+   catch {common::send_gid_msg -ssname BD::TCL -id 2006 -severity "ERROR" $errMsg}
    return $nRet
 }
 
@@ -132,7 +132,7 @@ set bCheckIPs 1
 if { $bCheckIPs == 1 } {
    set list_check_ips "\
 xilinx.com:ip:clk_wiz:6.0\
-xilinx.com:ip:util_ds_buf:2.1\
+xilinx.com:ip:util_ds_buf:2.2\
 xilinx.com:ip:smartconnect:1.0\
 xilinx.com:ip:mig_7series:4.2\
 xilinx.com:ip:xadc_wiz:3.3\
@@ -140,7 +140,7 @@ xilinx.com:ip:xlconcat:2.1\
 "
 
    set list_ips_missing ""
-   common::send_msg_id "BD_TCL-011" "INFO" "Checking if the following IPs exist in the project's IP catalog: $list_check_ips ."
+   common::send_gid_msg -ssname BD::TCL -id 2011 -severity "INFO" "Checking if the following IPs exist in the project's IP catalog: $list_check_ips ."
 
    foreach ip_vlnv $list_check_ips {
       set ip_obj [get_ipdefs -all $ip_vlnv]
@@ -150,7 +150,7 @@ xilinx.com:ip:xlconcat:2.1\
    }
 
    if { $list_ips_missing ne "" } {
-      catch {common::send_msg_id "BD_TCL-012" "ERROR" "The following IPs are not found in the IP Catalog:\n  $list_ips_missing\n\nResolution: Please add the repository containing the IP(s) to the project." }
+      catch {common::send_gid_msg -ssname BD::TCL -id 2012 -severity "ERROR" "The following IPs are not found in the IP Catalog:\n  $list_ips_missing\n\nResolution: Please add the repository containing the IP(s) to the project." }
       set bCheckIPsPassed 0
    }
 
@@ -165,15 +165,15 @@ if { $bCheckModules == 1 } {
 $rocket_module_name\
 synchronizer\
 mem_reset_control\
-fan_control\
 ethernet\
+fan_control\
 sdc_controller\
-ethernet_kc705\
 uart\
+ethernet_kc705\
 "
 
    set list_mods_missing ""
-   common::send_msg_id "BD_TCL-020" "INFO" "Checking if the following modules exist in the project's sources: $list_check_mods ."
+   common::send_gid_msg -ssname BD::TCL -id 2020 -severity "INFO" "Checking if the following modules exist in the project's sources: $list_check_mods ."
 
    foreach mod_vlnv $list_check_mods {
       if { [can_resolve_reference $mod_vlnv] == 0 } {
@@ -182,14 +182,14 @@ uart\
    }
 
    if { $list_mods_missing ne "" } {
-      catch {common::send_msg_id "BD_TCL-021" "ERROR" "The following module(s) are not found in the project: $list_mods_missing" }
-      common::send_msg_id "BD_TCL-022" "INFO" "Please add source files for the missing module(s) above."
+      catch {common::send_gid_msg -ssname BD::TCL -id 2021 -severity "ERROR" "The following module(s) are not found in the project: $list_mods_missing" }
+      common::send_gid_msg -ssname BD::TCL -id 2022 -severity "INFO" "Please add source files for the missing module(s) above."
       set bCheckIPsPassed 0
    }
 }
 
 if { $bCheckIPsPassed != 1 } {
-  common::send_msg_id "BD_TCL-023" "WARNING" "Will not continue with creation of design due to the error(s) above."
+  common::send_gid_msg -ssname BD::TCL -id 2023 -severity "WARNING" "Will not continue with creation of design due to the error(s) above."
   return 3
 }
 
@@ -424,21 +424,21 @@ proc create_hier_cell_IO { parentCell nameHier } {
   variable script_folder
 
   if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_msg_id "BD_TCL-092" "ERROR" "create_hier_cell_IO() - Empty argument(s)!"}
+     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_IO() - Empty argument(s)!"}
      return
   }
 
   # Get object for parentCell
   set parentObj [get_bd_cells $parentCell]
   if { $parentObj == "" } {
-     catch {common::send_msg_id "BD_TCL-090" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
      return
   }
 
   # Make sure parentObj is hier blk
   set parentType [get_property TYPE $parentObj]
   if { $parentType ne "hier" } {
-     catch {common::send_msg_id "BD_TCL-091" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
      return
   }
 
@@ -453,81 +453,40 @@ proc create_hier_cell_IO { parentCell nameHier } {
   current_bd_instance $hier_obj
 
   # Create interface pins
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M00_AXI
   create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:gmii_rtl:1.0 GMII
+
+  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:aximm_rtl:1.0 M00_AXI
+
   create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
+
   create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:uart_rtl:1.0 uart
+
 
   # Create pins
   create_bd_pin -dir I -type clk axi_clock
   create_bd_pin -dir I -type rst axi_reset
   create_bd_pin -dir I -type clk clock_100MHz
   create_bd_pin -dir I -type clk clock_125MHz
+  create_bd_pin -dir O -from 11 -to 0 device_temp
   create_bd_pin -dir O eth_mdio_clock
   create_bd_pin -dir IO eth_mdio_data
   create_bd_pin -dir I eth_mdio_int
   create_bd_pin -dir O eth_mdio_reset
+  create_bd_pin -dir O fan_en
   create_bd_pin -dir O -from 7 -to 0 interrupts
   create_bd_pin -dir I sdio_cd
   create_bd_pin -dir O sdio_clk
   create_bd_pin -dir IO sdio_cmd
   create_bd_pin -dir IO -from 3 -to 0 sdio_dat
-  create_bd_pin -dir O -from 11 -to 0 device_temp
-  create_bd_pin -dir O fan_en
 
   # Create instance: Ethernet, and set properties
   set block_name ethernet
   set block_cell_name Ethernet
   if { [catch {set Ethernet [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_msg_id "BD_TCL-095" "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    } elseif { $Ethernet eq "" } {
-     catch {common::send_msg_id "BD_TCL-096" "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-
-  # Create instance: SD, and set properties
-  set block_name sdc_controller
-  set block_cell_name SD
-  if { [catch {set SD [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_msg_id "BD_TCL-095" "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $SD eq "" } {
-     catch {common::send_msg_id "BD_TCL-096" "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-    set_property -dict [ list \
-   CONFIG.capabilies_reg {0x0001} \
- ] $SD
-
-  # Create instance: XADC, and set properties
-  set XADC [ create_bd_cell -type ip -vlnv xilinx.com:ip:xadc_wiz:3.3 XADC ]
-  set_property -dict [ list \
-    CONFIG.ADC_OFFSET_AND_GAIN_CALIBRATION {true} \
-    CONFIG.ADC_OFFSET_CALIBRATION {true} \
-    CONFIG.CHANNEL_ENABLE_VBRAM {true} \
-    CONFIG.CHANNEL_ENABLE_VCCAUX {true} \
-    CONFIG.CHANNEL_ENABLE_VCCINT {true} \
-    CONFIG.CHANNEL_ENABLE_VP_VN {true} \
-    CONFIG.ENABLE_TEMP_BUS {true} \
-    CONFIG.SENSOR_OFFSET_AND_GAIN_CALIBRATION {true} \
-    CONFIG.SENSOR_OFFSET_CALIBRATION {true} \
-    CONFIG.SEQUENCER_MODE {Continuous} \
-    CONFIG.TEMPERATURE_ALARM_RESET {50} \
-    CONFIG.TEMPERATURE_ALARM_TRIGGER {60} \
-    CONFIG.XADC_STARUP_SELECTION {channel_sequencer} \
-    CONFIG.VCCINT_ALARM {false} \
-    CONFIG.VCCAUX_ALARM {false} \
- ] $XADC
-
-  # Create instance: ethernet_stream_0, and set properties
-  set block_name ethernet_kc705
-  set block_cell_name ethernet_stream_0
-  if { [catch {set ethernet_stream_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_msg_id "BD_TCL-095" "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $ethernet_stream_0 eq "" } {
-     catch {common::send_msg_id "BD_TCL-096" "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    }
 
@@ -535,10 +494,66 @@ proc create_hier_cell_IO { parentCell nameHier } {
   set block_name fan_control
   set block_cell_name FanControl
   if { [catch {set FanControl [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_msg_id "BD_TCL-095" "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    } elseif { $FanControl eq "" } {
-     catch {common::send_msg_id "BD_TCL-096" "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+
+  # Create instance: SD, and set properties
+  set block_name sdc_controller
+  set block_cell_name SD
+  if { [catch {set SD [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $SD eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+    set_property -dict [ list \
+   CONFIG.capabilies_reg {0x0001} \
+ ] $SD
+
+  # Create instance: UART, and set properties
+  set block_name uart
+  set block_cell_name UART
+  if { [catch {set UART [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $UART eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+
+  # Create instance: XADC, and set properties
+  set XADC [ create_bd_cell -type ip -vlnv xilinx.com:ip:xadc_wiz:3.3 XADC ]
+  set_property -dict [ list \
+   CONFIG.ADC_OFFSET_AND_GAIN_CALIBRATION {true} \
+   CONFIG.ADC_OFFSET_CALIBRATION {true} \
+   CONFIG.CHANNEL_ENABLE_VBRAM {true} \
+   CONFIG.CHANNEL_ENABLE_VCCAUX {true} \
+   CONFIG.CHANNEL_ENABLE_VCCINT {true} \
+   CONFIG.CHANNEL_ENABLE_VP_VN {true} \
+   CONFIG.ENABLE_TEMP_BUS {true} \
+   CONFIG.SENSOR_OFFSET_AND_GAIN_CALIBRATION {true} \
+   CONFIG.SENSOR_OFFSET_CALIBRATION {true} \
+   CONFIG.SEQUENCER_MODE {Continuous} \
+   CONFIG.TEMPERATURE_ALARM_RESET {50} \
+   CONFIG.TEMPERATURE_ALARM_TRIGGER {60} \
+   CONFIG.VCCAUX_ALARM {false} \
+   CONFIG.VCCINT_ALARM {false} \
+   CONFIG.XADC_STARUP_SELECTION {channel_sequencer} \
+ ] $XADC
+
+  # Create instance: ethernet_stream_0, and set properties
+  set block_name ethernet_kc705
+  set block_cell_name ethernet_stream_0
+  if { [catch {set ethernet_stream_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $ethernet_stream_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    }
 
@@ -558,17 +573,6 @@ proc create_hier_cell_IO { parentCell nameHier } {
    CONFIG.NUM_SI {1} \
  ] $io_axi_s
 
-  # Create instance: UART, and set properties
-  set block_name uart
-  set block_cell_name UART
-  if { [catch {set UART [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_msg_id "BD_TCL-095" "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $UART eq "" } {
-     catch {common::send_msg_id "BD_TCL-096" "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-
   # Create instance: xlconcat_0, and set properties
   set xlconcat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_0 ]
   set_property -dict [ list \
@@ -576,24 +580,22 @@ proc create_hier_cell_IO { parentCell nameHier } {
  ] $xlconcat_0
 
   # Create interface connections
-  connect_bd_intf_net -intf_net UART_RS232 [get_bd_intf_pins uart] [get_bd_intf_pins UART/RS232]
   connect_bd_intf_net -intf_net Ethernet_GMII [get_bd_intf_pins GMII] [get_bd_intf_pins ethernet_stream_0/GMII]
   connect_bd_intf_net -intf_net Ethernet_TX_AXIS [get_bd_intf_pins Ethernet/TX_AXIS] [get_bd_intf_pins ethernet_stream_0/TX_AXIS]
   connect_bd_intf_net -intf_net S01_AXI_1 [get_bd_intf_pins Ethernet/M_AXI] [get_bd_intf_pins io_axi_m/S01_AXI]
+  connect_bd_intf_net -intf_net UART_RS232 [get_bd_intf_pins uart] [get_bd_intf_pins UART/RS232]
   connect_bd_intf_net -intf_net ethernet_stream_0_RX_AXIS [get_bd_intf_pins Ethernet/RX_AXIS] [get_bd_intf_pins ethernet_stream_0/RX_AXIS]
   connect_bd_intf_net -intf_net io_axi_m [get_bd_intf_pins M00_AXI] [get_bd_intf_pins io_axi_m/M00_AXI]
   connect_bd_intf_net -intf_net io_axi_s [get_bd_intf_pins S00_AXI] [get_bd_intf_pins io_axi_s/S00_AXI]
-  connect_bd_intf_net -intf_net sd_axi_m [get_bd_intf_pins SD/M_AXI] [get_bd_intf_pins io_axi_m/S00_AXI]
-  connect_bd_intf_net -intf_net io_axi_s_M00_AXI [get_bd_intf_pins io_axi_s/M00_AXI] [get_bd_intf_pins UART/S_AXI_LITE]
+  connect_bd_intf_net -intf_net io_axi_s_M00_AXI [get_bd_intf_pins UART/S_AXI_LITE] [get_bd_intf_pins io_axi_s/M00_AXI]
   connect_bd_intf_net -intf_net io_axi_s_M01_AXI [get_bd_intf_pins SD/S_AXI_LITE] [get_bd_intf_pins io_axi_s/M01_AXI]
   connect_bd_intf_net -intf_net io_axi_s_M02_AXI [get_bd_intf_pins Ethernet/S_AXI_LITE] [get_bd_intf_pins io_axi_s/M02_AXI]
   connect_bd_intf_net -intf_net io_axi_s_M03_AXI [get_bd_intf_pins XADC/s_axi_lite] [get_bd_intf_pins io_axi_s/M03_AXI]
+  connect_bd_intf_net -intf_net sd_axi_m [get_bd_intf_pins SD/M_AXI] [get_bd_intf_pins io_axi_m/S00_AXI]
 
   # Create port connections
-  connect_bd_net -net AXI_reset [get_bd_pins axi_reset] [get_bd_pins Ethernet/async_resetn] [get_bd_pins FanControl/async_resetn] [get_bd_pins SD/async_resetn] [get_bd_pins UART/async_resetn] [get_bd_pins io_axi_m/aresetn] [get_bd_pins io_axi_s/aresetn]
   connect_bd_net -net AXI_clock [get_bd_pins axi_clock] [get_bd_pins io_axi_m/aclk] [get_bd_pins io_axi_s/aclk]
-  connect_bd_net -net clock_100MHz [get_bd_pins clock_100MHz] [get_bd_pins FanControl/clock] [get_bd_pins SD/clock] [get_bd_pins UART/clock] [get_bd_pins XADC/s_axi_aclk] [get_bd_pins io_axi_m/aclk1] [get_bd_pins io_axi_s/aclk1]
-  connect_bd_net -net clock_125MHz [get_bd_pins clock_125MHz] [get_bd_pins Ethernet/clock] [get_bd_pins ethernet_stream_0/clock125] [get_bd_pins io_axi_m/aclk2] [get_bd_pins io_axi_s/aclk2]
+  connect_bd_net -net AXI_reset [get_bd_pins axi_reset] [get_bd_pins Ethernet/async_resetn] [get_bd_pins FanControl/async_resetn] [get_bd_pins SD/async_resetn] [get_bd_pins UART/async_resetn] [get_bd_pins io_axi_m/aresetn] [get_bd_pins io_axi_s/aresetn]
   connect_bd_net -net Ethernet_interrupt [get_bd_pins Ethernet/interrupt] [get_bd_pins xlconcat_0/In2]
   connect_bd_net -net Ethernet_mdio_clock [get_bd_pins eth_mdio_clock] [get_bd_pins Ethernet/mdio_clock]
   connect_bd_net -net Ethernet_mdio_data [get_bd_pins eth_mdio_data] [get_bd_pins Ethernet/mdio_data]
@@ -601,17 +603,19 @@ proc create_hier_cell_IO { parentCell nameHier } {
   connect_bd_net -net Ethernet_mdio_reset [get_bd_pins eth_mdio_reset] [get_bd_pins Ethernet/mdio_reset]
   connect_bd_net -net Ethernet_reset [get_bd_pins Ethernet/reset] [get_bd_pins ethernet_stream_0/reset]
   connect_bd_net -net Ethernet_status [get_bd_pins Ethernet/status_vector] [get_bd_pins ethernet_stream_0/status_vector]
+  connect_bd_net -net FanControl_resetn [get_bd_pins FanControl/resetn] [get_bd_pins XADC/s_axi_aresetn]
   connect_bd_net -net SD_interrupt [get_bd_pins SD/interrupt] [get_bd_pins xlconcat_0/In1]
   connect_bd_net -net SD_sdio_cd [get_bd_pins sdio_cd] [get_bd_pins SD/sdio_cd]
   connect_bd_net -net SD_sdio_clk [get_bd_pins sdio_clk] [get_bd_pins SD/sdio_clk]
   connect_bd_net -net SD_sdio_cmd [get_bd_pins sdio_cmd] [get_bd_pins SD/sdio_cmd]
   connect_bd_net -net SD_sdio_dat [get_bd_pins sdio_dat] [get_bd_pins SD/sdio_dat]
   connect_bd_net -net UART_interrupt [get_bd_pins UART/interrupt] [get_bd_pins xlconcat_0/In0]
-  connect_bd_net -net temp_alarm [get_bd_pins XADC/user_temp_alarm_out] [get_bd_pins FanControl/alarm]
-  connect_bd_net -net device_temp [get_bd_pins device_temp] [get_bd_pins XADC/temp_out] [get_bd_pins FanControl/device_temp]
-  connect_bd_net -net FanControl_resetn [get_bd_pins FanControl/resetn] [get_bd_pins XADC/s_axi_aresetn]
+  connect_bd_net -net clock_100MHz [get_bd_pins clock_100MHz] [get_bd_pins FanControl/clock] [get_bd_pins SD/clock] [get_bd_pins UART/clock] [get_bd_pins XADC/s_axi_aclk] [get_bd_pins io_axi_m/aclk1] [get_bd_pins io_axi_s/aclk1]
+  connect_bd_net -net clock_125MHz [get_bd_pins clock_125MHz] [get_bd_pins Ethernet/clock] [get_bd_pins ethernet_stream_0/clock125] [get_bd_pins io_axi_m/aclk2] [get_bd_pins io_axi_s/aclk2]
+  connect_bd_net -net device_temp [get_bd_pins device_temp] [get_bd_pins FanControl/device_temp] [get_bd_pins XADC/temp_out]
   connect_bd_net -net fan_pwm [get_bd_pins fan_en] [get_bd_pins FanControl/fan_pwm]
   connect_bd_net -net interrupts [get_bd_pins interrupts] [get_bd_pins xlconcat_0/dout]
+  connect_bd_net -net temp_alarm [get_bd_pins FanControl/alarm] [get_bd_pins XADC/user_temp_alarm_out]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -623,21 +627,21 @@ proc create_hier_cell_DDR { parentCell nameHier } {
   variable script_folder
 
   if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_msg_id "BD_TCL-092" "ERROR" "create_hier_cell_DDR() - Empty argument(s)!"}
+     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_DDR() - Empty argument(s)!"}
      return
   }
 
   # Get object for parentCell
   set parentObj [get_bd_cells $parentCell]
   if { $parentObj == "" } {
-     catch {common::send_msg_id "BD_TCL-090" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
      return
   }
 
   # Make sure parentObj is hier blk
   set parentType [get_property TYPE $parentObj]
   if { $parentType ne "hier" } {
-     catch {common::send_msg_id "BD_TCL-091" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
      return
   }
 
@@ -662,8 +666,8 @@ proc create_hier_cell_DDR { parentCell nameHier } {
   create_bd_pin -dir I -type rst axi_reset
   create_bd_pin -dir I -type clk clock_200MHz
   create_bd_pin -dir I clock_ok
-  create_bd_pin -dir O mem_ok
   create_bd_pin -dir I -from 11 -to 0 device_temp
+  create_bd_pin -dir O mem_ok
   create_bd_pin -dir I -type rst sys_reset
 
   # Create instance: axi_smc_1, and set properties
@@ -673,14 +677,25 @@ proc create_hier_cell_DDR { parentCell nameHier } {
    CONFIG.NUM_SI {1} \
  ] $axi_smc_1
 
+  # Create instance: mem_axi_reset_sync, and set properties
+  set block_name synchronizer
+  set block_cell_name mem_axi_reset_sync
+  if { [catch {set mem_axi_reset_sync [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $mem_axi_reset_sync eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+
   # Create instance: mem_reset_control_0, and set properties
   set block_name mem_reset_control
   set block_cell_name mem_reset_control_0
   if { [catch {set mem_reset_control_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_msg_id "BD_TCL-095" "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    } elseif { $mem_reset_control_0 eq "" } {
-     catch {common::send_msg_id "BD_TCL-096" "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    }
 
@@ -701,34 +716,23 @@ proc create_hier_cell_DDR { parentCell nameHier } {
    CONFIG.XML_INPUT_FILE {mig_a.prj} \
  ] $mig_7series_0
 
-  # Create instance: mem_axi_reset_sync, and set properties
-  set block_name synchronizer
-  set block_cell_name mem_axi_reset_sync
-  if { [catch {set mem_axi_reset_sync [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_msg_id "BD_TCL-095" "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $mem_axi_reset_sync eq "" } {
-     catch {common::send_msg_id "BD_TCL-096" "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-
   # Create interface connections
-  connect_bd_intf_net -intf_net axi_smc_1_M00_AXI [get_bd_intf_pins axi_smc_1/M00_AXI] [get_bd_intf_pins mig_7series_0/S_AXI]
   connect_bd_intf_net -intf_net MEM_AXI4 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins axi_smc_1/S00_AXI]
+  connect_bd_intf_net -intf_net axi_smc_1_M00_AXI [get_bd_intf_pins axi_smc_1/M00_AXI] [get_bd_intf_pins mig_7series_0/S_AXI]
   connect_bd_intf_net -intf_net mig_7series_0_DDR3 [get_bd_intf_pins ddr3_sdram] [get_bd_intf_pins mig_7series_0/DDR3]
 
   # Create port connections
-  connect_bd_net -net AXI_reset [get_bd_pins axi_reset] [get_bd_pins axi_smc_1/aresetn] [get_bd_pins mem_axi_reset_sync/dinp]
   connect_bd_net -net AXI_clock [get_bd_pins axi_clock] [get_bd_pins axi_smc_1/aclk]
+  connect_bd_net -net AXI_reset [get_bd_pins axi_reset] [get_bd_pins axi_smc_1/aresetn] [get_bd_pins mem_axi_reset_sync/dinp]
   connect_bd_net -net clock_200MHz [get_bd_pins clock_200MHz] [get_bd_pins mem_reset_control_0/clock] [get_bd_pins mig_7series_0/sys_clk_i]
   connect_bd_net -net clock_ok [get_bd_pins clock_ok] [get_bd_pins mem_reset_control_0/clock_ok]
-  connect_bd_net -net mem_ok [get_bd_pins mem_ok] [get_bd_pins mem_reset_control_0/mem_ok]
-  connect_bd_net -net mem_reset [get_bd_pins mem_reset_control_0/mem_reset] [get_bd_pins mig_7series_0/sys_rst]
-  connect_bd_net -net mem_aresetn [get_bd_pins mig_7series_0/aresetn] [get_bd_pins mem_axi_reset_sync/dout]
+  connect_bd_net -net device_temp [get_bd_pins device_temp] [get_bd_pins mig_7series_0/device_temp_i]
+  connect_bd_net -net mem_aresetn [get_bd_pins mem_axi_reset_sync/dout] [get_bd_pins mig_7series_0/aresetn]
   connect_bd_net -net mem_init_calib_complete [get_bd_pins mem_reset_control_0/calib_complete] [get_bd_pins mig_7series_0/init_calib_complete]
   connect_bd_net -net mem_mmcm_locked [get_bd_pins mem_reset_control_0/mmcm_locked] [get_bd_pins mig_7series_0/mmcm_locked]
-  connect_bd_net -net mem_ui_clk [get_bd_pins axi_smc_1/aclk1] [get_bd_pins mig_7series_0/ui_clk] [get_bd_pins mem_axi_reset_sync/clock]
-  connect_bd_net -net device_temp [get_bd_pins device_temp] [get_bd_pins mig_7series_0/device_temp_i]
+  connect_bd_net -net mem_ok [get_bd_pins mem_ok] [get_bd_pins mem_reset_control_0/mem_ok]
+  connect_bd_net -net mem_reset [get_bd_pins mem_reset_control_0/mem_reset] [get_bd_pins mig_7series_0/sys_rst]
+  connect_bd_net -net mem_ui_clk [get_bd_pins axi_smc_1/aclk1] [get_bd_pins mem_axi_reset_sync/clock] [get_bd_pins mig_7series_0/ui_clk]
   connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins mem_reset_control_0/sys_reset]
 
   # Restore current instance
@@ -750,14 +754,14 @@ proc create_root_design { parentCell } {
   # Get object for parentCell
   set parentObj [get_bd_cells $parentCell]
   if { $parentObj == "" } {
-     catch {common::send_msg_id "BD_TCL-090" "ERROR" "Unable to find parent cell <$parentCell>!"}
+     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
      return
   }
 
   # Make sure parentObj is hier blk
   set parentType [get_property TYPE $parentObj]
   if { $parentType ne "hier" } {
-     catch {common::send_msg_id "BD_TCL-091" "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
      return
   }
 
@@ -769,13 +773,17 @@ proc create_root_design { parentCell } {
 
 
   # Create interface ports
-  set rs232_uart [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:uart_rtl:1.0 rs232_uart ]
   set ddr3_sdram [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:ddrx_rtl:1.0 ddr3_sdram ]
+
   set gmii [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:gmii_rtl:1.0 gmii ]
+
+  set rs232_uart [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:uart_rtl:1.0 rs232_uart ]
+
   set sys_diff_clock [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 sys_diff_clock ]
   set_property -dict [ list \
    CONFIG.FREQ_HZ {200000000} \
    ] $sys_diff_clock
+
 
   # Create ports
   set LED0 [ create_bd_port -dir O LED0 ]
@@ -820,16 +828,16 @@ proc create_root_design { parentCell } {
  ] $clk_wiz_0
 
   # Create instance: util_ds_buf_0, and set properties
-  set util_ds_buf_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:2.1 util_ds_buf_0 ]
+  set util_ds_buf_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:2.2 util_ds_buf_0 ]
   set_property -dict [ list \
    CONFIG.DIFF_CLK_IN_BOARD_INTERFACE {sys_diff_clock} \
    CONFIG.USE_BOARD_FLOW {true} \
  ] $util_ds_buf_0
 
   # Create interface connections
-  connect_bd_intf_net -intf_net IO_UART [get_bd_intf_ports rs232_uart] [get_bd_intf_pins IO/uart]
   connect_bd_intf_net -intf_net DDR_ddr3_sdram [get_bd_intf_ports ddr3_sdram] [get_bd_intf_pins DDR/ddr3_sdram]
   connect_bd_intf_net -intf_net IO_GMII [get_bd_intf_ports gmii] [get_bd_intf_pins IO/GMII]
+  connect_bd_intf_net -intf_net IO_UART [get_bd_intf_ports rs232_uart] [get_bd_intf_pins IO/uart]
   connect_bd_intf_net -intf_net MEM_AXI4 [get_bd_intf_pins DDR/S00_AXI] [get_bd_intf_pins RocketChip/MEM_AXI4]
   connect_bd_intf_net -intf_net io_axi_m [get_bd_intf_pins IO/M00_AXI] [get_bd_intf_pins RocketChip/DMA_AXI4]
   connect_bd_intf_net -intf_net io_axi_s [get_bd_intf_pins IO/S00_AXI] [get_bd_intf_pins RocketChip/IO_AXI4]
@@ -861,7 +869,7 @@ proc create_root_design { parentCell } {
   assign_bd_address -offset 0x60000000 -range 0x00010000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/SD/S_AXI_LITE/reg0] -force
   assign_bd_address -offset 0x60010000 -range 0x00010000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/UART/S_AXI_LITE/reg0] -force
   assign_bd_address -offset 0x60020000 -range 0x00010000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/Ethernet/S_AXI_LITE/reg0] -force
-  assign_bd_address -offset 0x60030000 -range 0x00010000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/XADC/s_axi_lite/reg0] -force
+  assign_bd_address -offset 0x60030000 -range 0x00010000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/XADC/s_axi_lite/Reg] -force
   assign_bd_address -offset 0x80000000 -range 0x40000000 -target_address_space [get_bd_addr_spaces RocketChip/MEM_AXI4] [get_bd_addr_segs DDR/mig_7series_0/memmap/memaddr] -force
   assign_bd_address -offset 0x00000000 -range 0x000100000000 -target_address_space [get_bd_addr_spaces IO/Ethernet/M_AXI] [get_bd_addr_segs RocketChip/DMA_AXI4/reg0] -force
   assign_bd_address -offset 0x00000000 -range 0x000100000000 -target_address_space [get_bd_addr_spaces IO/SD/M_AXI] [get_bd_addr_segs RocketChip/DMA_AXI4/reg0] -force
