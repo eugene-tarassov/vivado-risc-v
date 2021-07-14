@@ -1,11 +1,11 @@
 diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index d9522fc35ca5..e8c07b4eea4d 100644
+index 4f116be9152f..64c0073f9cd9 100644
 --- a/arch/riscv/Kconfig
 +++ b/arch/riscv/Kconfig
 @@ -232,7 +232,6 @@ config ARCH_RV64I
- 	select HAVE_FTRACE_MCOUNT_RECORD
+ 	select HAVE_FTRACE_MCOUNT_RECORD if !XIP_KERNEL
  	select HAVE_FUNCTION_GRAPH_TRACER
- 	select HAVE_FUNCTION_TRACER
+ 	select HAVE_FUNCTION_TRACER if !XIP_KERNEL
 -	select SWIOTLB if MMU
  
  endchoice
