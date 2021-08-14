@@ -1,10 +1,10 @@
 diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 55eaee2da6..9a30cc0eb4 100644
+index b3d7fd84ce..136643c532 100644
 --- a/arch/riscv/Kconfig
 +++ b/arch/riscv/Kconfig
-@@ -20,6 +20,9 @@ config TARGET_QEMU_VIRT
- config TARGET_SIFIVE_FU540
- 	bool "Support SiFive FU540 Board"
+@@ -23,6 +23,9 @@ config TARGET_SIFIVE_UNLEASHED
+ config TARGET_SIFIVE_UNMATCHED
+ 	bool "Support SiFive Unmatched Board"
  
 +config TARGET_VIVADO_RISCV64
 +	bool "Support RISC-V in Xilinx Vivado"
@@ -12,11 +12,11 @@ index 55eaee2da6..9a30cc0eb4 100644
  config TARGET_SIPEED_MAIX
  	bool "Support Sipeed Maix Board"
  
-@@ -56,6 +59,7 @@ source "board/AndesTech/ax25-ae350/Kconfig"
+@@ -58,6 +61,7 @@ config SPL_SYS_DCACHE_OFF
+ source "board/AndesTech/ax25-ae350/Kconfig"
  source "board/emulation/qemu-riscv/Kconfig"
  source "board/microchip/mpfs_icicle/Kconfig"
- source "board/sifive/fu540/Kconfig"
 +source "board/xilinx/vivado_riscv64/Kconfig"
+ source "board/sifive/unleashed/Kconfig"
+ source "board/sifive/unmatched/Kconfig"
  source "board/sipeed/maix/Kconfig"
- 
- # platform-specific options below
