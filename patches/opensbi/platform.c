@@ -71,7 +71,7 @@ static int console_init(void) {
             int noff = fdt_path_offset(fdt, prop);
             if (noff >= 0 && fdt_match_node(fdt, noff, console_match) != NULL) {
                 unsigned long reg_addr = 0, reg_size = 0;
-                if (fdt_get_node_addr_size(fdt, noff, &reg_addr, &reg_size) >= 0 && reg_addr != 0) {
+                if (fdt_get_node_addr_size(fdt, noff, 0, &reg_addr, &reg_size) >= 0 && reg_addr != 0) {
                     regs = (struct axi_uart_regs *)reg_addr;
                     sbi_console_set_device(&console_ops);
                     return 0;
