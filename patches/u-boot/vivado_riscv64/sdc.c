@@ -31,7 +31,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <command.h>
-#include <dm/device.h>
+#include <dm.h>
 #include <dm/device_compat.h>
 #include <linux/delay.h>
 #include <mmc.h>
@@ -103,7 +103,7 @@ struct sdc_regs {
 
 struct sdc_priv {
     struct sdc_regs * regs;
-    int clk_freq;
+    u32 clk_freq;
     int acmd;
 };
 
@@ -199,8 +199,14 @@ static int sdc_probe(struct udevice * udev) {
     struct mmc_uclass_priv * upriv = dev_get_uclass_priv(udev);
     struct mmc_config * cfg = &plat->cfg;
 
-    priv->regs = (struct sdc_regs *)0x60000000;
-    priv->clk_freq = 100000000;
+    fdt_addr_t addr = dev_read_addr(udev);
+    if (addr == FDT_ADDR_T_NONE) {
+        dev_err(udev, "failed to parse device address\n");
+        return -EINVAL;
+    }
+    priv->regs = (struct sdc_regs *)addr;
+
+    priv->clk_freq = dev_read_u32_default(udev, "clock", 100000000);
 
     int error = mmc_of_parse(udev, cfg);
     if (error < 0) {

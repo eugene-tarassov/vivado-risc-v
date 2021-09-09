@@ -26,7 +26,7 @@ struct axi_uart_data {
     struct axi_uart_regs * regs;
 };
 
-static int axi_uart_putc(struct udevice *dev, const char ch) {
+static int axi_uart_putc(struct udevice * dev, const char ch) {
     struct axi_uart_data * plat = dev_get_plat(dev);
     struct axi_uart_regs * regs = plat->regs;
 
@@ -37,7 +37,7 @@ static int axi_uart_putc(struct udevice *dev, const char ch) {
     return 0;
 }
 
-static int axi_uart_getc(struct udevice *dev) {
+static int axi_uart_getc(struct udevice * dev) {
     struct axi_uart_data * plat = dev_get_plat(dev);
     struct axi_uart_regs * regs = plat->regs;
 
@@ -46,7 +46,7 @@ static int axi_uart_getc(struct udevice *dev) {
     return in_le32(&regs->rx_fifo) & 0xff;
 }
 
-static int axi_uart_pending(struct udevice *dev, bool input) {
+static int axi_uart_pending(struct udevice * dev, bool input) {
     struct axi_uart_data * plat = dev_get_plat(dev);
     struct axi_uart_regs * regs = plat->regs;
 
@@ -55,7 +55,7 @@ static int axi_uart_pending(struct udevice *dev, bool input) {
     return !(in_le32(&regs->status) & SR_TX_FIFO_EMPTY);
 }
 
-static int axi_uart_probe(struct udevice *dev) {
+static int axi_uart_probe(struct udevice * dev) {
     struct axi_uart_data * plat = dev_get_plat(dev);
     struct axi_uart_regs * regs = plat->regs;
 
@@ -64,10 +64,10 @@ static int axi_uart_probe(struct udevice *dev) {
     return 0;
 }
 
-static int axi_uart_of_to_plat(struct udevice *dev) {
+static int axi_uart_of_to_plat(struct udevice * dev) {
     struct axi_uart_data * plat = dev_get_plat(dev);
 
-    plat->regs = (struct axi_uart_regs *)devfdt_get_addr(dev);
+    plat->regs = (struct axi_uart_regs *)dev_read_addr(dev);
 
     return 0;
 }
