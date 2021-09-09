@@ -227,12 +227,12 @@ proc write_mig_file_riscv_mig_7series_0_0 { str_mig_prj_filepath } {
    puts $mig_prj_file {  </FPGADevice>}
    puts $mig_prj_file {  <Controller number="0">}
    puts $mig_prj_file {    <MemoryDevice>DDR2_SDRAM/Components/MT47H64M16HR-25E</MemoryDevice>}
-   puts $mig_prj_file {    <TimePeriod>3333</TimePeriod>}
+   puts $mig_prj_file {    <TimePeriod>4000</TimePeriod>}
    puts $mig_prj_file {    <VccAuxIO>1.8V</VccAuxIO>}
    puts $mig_prj_file {    <PHYRatio>4:1</PHYRatio>}
-   puts $mig_prj_file {    <InputClkFreq>200.02</InputClkFreq>}
+   puts $mig_prj_file {    <InputClkFreq>200</InputClkFreq>}
    puts $mig_prj_file {    <UIExtraClocks>0</UIExtraClocks>}
-   puts $mig_prj_file {    <MMCM_VCO>1200</MMCM_VCO>}
+   puts $mig_prj_file {    <MMCM_VCO>1000</MMCM_VCO>}
    puts $mig_prj_file {    <MMCMClkOut0>1</MMCMClkOut0>}
    puts $mig_prj_file {    <MMCMClkOut1>1</MMCMClkOut1>}
    puts $mig_prj_file {    <MMCMClkOut2>1</MMCMClkOut2>}
