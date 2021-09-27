@@ -1,14 +1,14 @@
 vc707         Rocket.*gem       25.0
 vc707         Rocket.*l2w?      62.5
-vc707         Rocket64x.*       50.0
-vc707         Rocket64[yz].*    40.0
+vc707         Rocket64x1        50.0
+vc707         Rocket64[xyz].*   40.0
 vc707         Rocket.*b[4-9].*  80.0
 vc707         Rocket.*          100.0
 
 (genesys2|kc705)    Rocket.*gem       25.0
 (genesys2|kc705)    Rocket.*l2w?      62.5
-(genesys2|kc705)    Rocket64x.*       50.0
-(genesys2|kc705)    Rocket64[yz].*    40.0
+(genesys2|kc705)    Rocket64x1        50.0
+(genesys2|kc705)    Rocket64[xyz].*   40.0
 (genesys2|kc705)    Rocket.*b[4-9].*  80.0
 (genesys2|kc705)    Rocket.*          100.0
 
