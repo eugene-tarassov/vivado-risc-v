@@ -1,8 +1,8 @@
 diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 3c3647ac33cb..924c8d99c36e 100644
+index 4f7b70ae7c31..907e88fe3790 100644
 --- a/arch/riscv/Kconfig
 +++ b/arch/riscv/Kconfig
-@@ -236,7 +236,6 @@ config ARCH_RV64I
+@@ -239,7 +239,6 @@ config ARCH_RV64I
  	select HAVE_FTRACE_MCOUNT_RECORD if !XIP_KERNEL
  	select HAVE_FUNCTION_GRAPH_TRACER
  	select HAVE_FUNCTION_TRACER if !XIP_KERNEL
@@ -11,7 +11,7 @@ index 3c3647ac33cb..924c8d99c36e 100644
  endchoice
  
 diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
-index a4d4c757eea0..ee702302a83e 100644
+index 71313961cc54..687f2ac1d373 100644
 --- a/drivers/mmc/host/Kconfig
 +++ b/drivers/mmc/host/Kconfig
 @@ -1081,6 +1081,14 @@ config MMC_SDHCI_AM654
@@ -73,7 +73,7 @@ index cb3f9084a21b..d0832402daa8 100644
  obj-$(CONFIG_NET_VENDOR_PASEMI) += pasemi/
  obj-$(CONFIG_NET_VENDOR_QLOGIC) += qlogic/
 diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index 682f9171c82c..dbb2988bb6c8 100644
+index 24282ad99d85..91dc9790a5bb 100644
 --- a/drivers/tty/serial/Kconfig
 +++ b/drivers/tty/serial/Kconfig
 @@ -536,6 +536,32 @@ config SERIAL_UARTLITE_NR_UARTS
