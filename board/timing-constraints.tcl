@@ -28,18 +28,6 @@ if { $eth_clock != "" } {
     set_max_delay -from $main_clock -through [get_pins -hier Ethernet/async_resetn] -datapath_only 10.0
     set_max_delay -from $eth_clock -through [get_pins -hier Ethernet/interrupt] -datapath_only 10.0
   }
-
-  if { [llength [get_clocks rgmii_rx_clk]] } {
-    set_max_delay -from $eth_clock -to rgmii_rx_clk -datapath_only 7.0
-    set_max_delay -from rgmii_rx_clk -to $eth_clock -datapath_only 7.0
-  }
-
-  if { [llength [get_clocks gmii_rx_clk]] } {
-    set_max_delay -from $eth_clock -to gmii_rx_clk -datapath_only 7.0
-    set_max_delay -from gmii_rx_clk -to $eth_clock -datapath_only 7.0
-    set_max_delay -from $eth_clock -to gmii_tx_clk -datapath_only 7.0
-    set_max_delay -from gmii_tx_clk -to $eth_clock -datapath_only 7.0
-  }
 }
 
 #------------------ SD card controller

@@ -59,7 +59,7 @@ module ethernet_kc705 (
 
 // KC705 board uses Marvell Alaska 88E1111 PHY
 
-assign status_vector = 0;
+assign status_vector[15:9] = 0;
 
 eth_mac_1g_gmii_fifo #(
     .TARGET("XILINX"),
@@ -103,14 +103,15 @@ eth_mac_inst (
     .gmii_tx_en(gmii_tx_en),
     .gmii_tx_er(gmii_tx_er),
 
-    .tx_fifo_overflow(),
-    .tx_fifo_bad_frame(),
-    .tx_fifo_good_frame(),
-    .rx_error_bad_frame(),
-    .rx_error_bad_fcs(),
-    .rx_fifo_overflow(),
-    .rx_fifo_bad_frame(),
-    .rx_fifo_good_frame(),
+    .tx_fifo_overflow(status_vector[0]),
+    .tx_fifo_bad_frame(status_vector[1]),
+    .tx_fifo_good_frame(status_vector[2]),
+    .tx_error_underflow(status_vector[3]),
+    .rx_error_bad_frame(status_vector[4]),
+    .rx_error_bad_fcs(status_vector[5]),
+    .rx_fifo_overflow(status_vector[6]),
+    .rx_fifo_bad_frame(status_vector[7]),
+    .rx_fifo_good_frame(status_vector[8]),
 
     .ifg_delay(12)
 );

@@ -28,15 +28,15 @@
 #define AXI_ETH_RING_SIZE (AXI_ETH_RING_MASK + 1)
 
 struct eth_regs {
-    volatile uint32_t net_status;
     volatile uint32_t mac_status;
+    volatile uint32_t nic_status;
     volatile uint32_t int_enable;
     volatile uint32_t int_status;
     volatile uint32_t rx_inp;
     volatile uint32_t rx_out;
     volatile uint32_t tx_inp;
     volatile uint32_t tx_out;
-    volatile uint32_t mac_control;
+    volatile uint32_t nic_control;
     volatile uint32_t mdio_tx;
     volatile uint32_t mdio_rx;
     volatile uint32_t capability;
@@ -49,43 +49,43 @@ struct eth_pkt_regs {
     volatile uint32_t status;
 };
 
-#define NET_STATUS_LINK_OK      (1 << 0)
-#define NET_STATUS_LINK_SYNC    (1 << 1)
-#define NET_STATUS_RUDI_C       (1 << 2)
-#define NET_STATUS_RUDI_I       (1 << 3)
-#define NET_STATUS_RUDI_ERR     (1 << 4)
-#define NET_STATUS_RXDISPERR    (1 << 5)
-#define NET_STATUS_RXNOTINTABLE (1 << 6)
-#define NET_STATUS_PHY_LINK_OK  (1 << 7)
-#define NET_STATUS_SPEED_100    (1 << 10)
-#define NET_STATUS_SPEED_1000   (1 << 11)
-#define NET_STATUS_DUPLEX       (1 << 12)
-#define NET_STATUS_REMOTE_FAULT (1 << 13)
-#define NET_STATUS_PAUSE_SYM    (1 << 14)
-#define NET_STATUS_PAUSE_ASYM   (1 << 15)
+#define MAC_STATUS_LINK_OK      (1 << 0)
+#define MAC_STATUS_LINK_SYNC    (1 << 1)
+#define MAC_STATUS_RUDI_C       (1 << 2)
+#define MAC_STATUS_RUDI_I       (1 << 3)
+#define MAC_STATUS_RUDI_ERR     (1 << 4)
+#define MAC_STATUS_RXDISPERR    (1 << 5)
+#define MAC_STATUS_RXNOTINTABLE (1 << 6)
+#define MAC_STATUS_PHY_LINK_OK  (1 << 7)
+#define MAC_STATUS_SPEED_100    (1 << 10)
+#define MAC_STATUS_SPEED_1000   (1 << 11)
+#define MAC_STATUS_DUPLEX       (1 << 12)
+#define MAC_STATUS_REMOTE_FAULT (1 << 13)
+#define MAC_STATUS_PAUSE_SYM    (1 << 14)
+#define MAC_STATUS_PAUSE_ASYM   (1 << 15)
 
-#define MAC_STATUS_RX_BUSY      (1 << 0)
-#define MAC_STATUS_TX_BUSY      (1 << 1)
-#define MAC_STATUS_AXI_WR_CYC   (1 << 2)
-#define MAC_STATUS_AXI_WR_ERR   (1 << 3)
-#define MAC_STATUS_AXI_RD_CYC   (1 << 4)
-#define MAC_STATUS_AXI_RD_ERR   (1 << 5)
+#define NIC_STATUS_RX_BUSY      (1 << 0)
+#define NIC_STATUS_TX_BUSY      (1 << 1)
+#define NIC_STATUS_AXI_WR_CYC   (1 << 2)
+#define NIC_STATUS_AXI_WR_ERR   (1 << 3)
+#define NIC_STATUS_AXI_RD_CYC   (1 << 4)
+#define NIC_STATUS_AXI_RD_ERR   (1 << 5)
 
 #define INT_STATUS_RX           (1 << 16)
 #define INT_STATUS_TX           (1 << 17)
 #define INT_STATUS_MDIO         (1 << 18)
 #define INT_STATUS_PHY          (1 << 19)
 
-#define MAC_CONTROL_EN_RX       (1 << 0)
-#define MAC_CONTROL_EN_TX       (1 << 1)
-#define MAC_CONTROL_MDIO_RESET  (1 << 2)
+#define NIC_CONTROL_EN_RX       (1 << 0)
+#define NIC_CONTROL_EN_TX       (1 << 1)
+#define NIC_CONTROL_MDIO_RESET  (1 << 2)
 
 #define MDIO_RESET_DELAY        10
 #define MDIO_POLL_DELAY         4
 
-#define MAC_CAPABILITY_BURST    0x000f
-#define MAC_CAPABILITY_RING     0x00f0
-#define MAC_CAPABILITY_MDIO     0x0100
+#define NIC_CAPABILITY_BURST    0x000f
+#define NIC_CAPABILITY_RING     0x00f0
+#define NIC_CAPABILITY_MDIO     0x0100
 
 struct axi_eth_ring_item {
     struct sk_buff * skb;
@@ -190,7 +190,7 @@ static int axi_eth_mdio_reset(struct mii_bus * bus) {
     struct axi_eth_priv * priv = bus->priv;
     unsigned timeout = 0;
 
-    priv->regs->mac_control |= MAC_CONTROL_MDIO_RESET;
+    priv->regs->nic_control |= NIC_CONTROL_MDIO_RESET;
     for (timeout = 0; timeout < 1000; timeout++) {
         int rd = axi_eth_mdio_read(bus, 0, 2);
         if (rd == 0xffff) break;
@@ -198,7 +198,7 @@ static int axi_eth_mdio_reset(struct mii_bus * bus) {
     }
     udelay(MDIO_RESET_DELAY);
 
-    priv->regs->mac_control &= ~MAC_CONTROL_MDIO_RESET;
+    priv->regs->nic_control &= ~NIC_CONTROL_MDIO_RESET;
     for (timeout = 0; timeout < 1000; timeout++) {
         int rd = axi_eth_mdio_read(bus, 0, 2);
         if (rd > 0 && rd < 0xffff) break;
@@ -394,9 +394,9 @@ static int axi_eth_change_mtu(struct net_device * net_dev, int new_mtu) {
         spin_lock_irq(&priv->lock);
 
         /* Disable RX */
-        priv->regs->mac_control &= ~MAC_CONTROL_EN_RX;
+        priv->regs->nic_control &= ~NIC_CONTROL_EN_RX;
         /* Wait active RX to finish */
-        while (priv->regs->mac_status & 1) {}
+        while (priv->regs->nic_status & 1) {}
         /* Dispose RX buffers - too small for new MTU */
         while (priv->rx_inp != priv->rx_out) {
             struct axi_eth_ring_item * i = priv->rx_ring + priv->rx_out;
@@ -411,7 +411,7 @@ static int axi_eth_change_mtu(struct net_device * net_dev, int new_mtu) {
         priv->regs->rx_out = priv->rx_out;
         axi_eth_add_rx_buffers(net_dev);
         /* Enable RX */
-        priv->regs->mac_control |= MAC_CONTROL_EN_RX;
+        priv->regs->nic_control |= NIC_CONTROL_EN_RX;
 
         spin_unlock_irq(&priv->lock);
     }
@@ -461,20 +461,22 @@ static int axi_eth_ioctl(struct net_device * net_dev, struct ifreq * ifr, int cm
     struct axi_eth_priv * priv = netdev_priv(net_dev);
     int err = 0;
 
-    switch (cmd) {
-    case SIOCGMIIPHY:
-    case SIOCGMIIREG:
-        if (cmd == SIOCGMIIPHY) {
-            if (priv->phy_dev == NULL) return -EAGAIN;
-            data->phy_id = priv->phy_dev->mdio.addr;
-        }
-        err = axi_eth_mdio_read(priv->mdio_bus, data->phy_id, data->reg_num);
-        if (err < 0) return err;
-        data->val_out = (__u16)err;
-        return 0;
+    if (priv->mdio_bus != NULL) {
+        switch (cmd) {
+        case SIOCGMIIPHY:
+        case SIOCGMIIREG:
+            if (cmd == SIOCGMIIPHY) {
+                if (priv->phy_dev == NULL) return -EAGAIN;
+                data->phy_id = priv->phy_dev->mdio.addr;
+            }
+            err = axi_eth_mdio_read(priv->mdio_bus, data->phy_id, data->reg_num);
+            if (err < 0) return err;
+            data->val_out = (__u16)err;
+            return 0;
 
-    case SIOCSMIIREG:
-        return axi_eth_mdio_write(priv->mdio_bus, data->phy_id, data->reg_num, data->val_in);
+        case SIOCSMIIREG:
+            return axi_eth_mdio_write(priv->mdio_bus, data->phy_id, data->reg_num, data->val_in);
+        }
     }
 
     return -EOPNOTSUPP;
@@ -533,9 +535,9 @@ static int axi_eth_dev_close(struct net_device * net_dev) {
     priv->regs->int_enable = 0;
 
     /* Disable RX, TX */
-    priv->regs->mac_control = 0;
+    priv->regs->nic_control = 0;
     /* Wait active RX, TX to finish */
-    while (priv->regs->mac_status & 3) {}
+    while (priv->regs->nic_status & 3) {}
 
     while (priv->rx_inp != priv->rx_out) {
         struct axi_eth_ring_item * i = priv->rx_ring + priv->rx_out;
@@ -595,7 +597,7 @@ static int axi_eth_dev_open(struct net_device * net_dev) {
     priv->regs->int_enable = priv->int_enable = INT_STATUS_RX | INT_STATUS_TX;
 
     /* Enable RX, TX, clear MDIO reset */
-    priv->regs->mac_control = MAC_CONTROL_EN_RX | MAC_CONTROL_EN_TX;
+    priv->regs->nic_control = NIC_CONTROL_EN_RX | NIC_CONTROL_EN_TX;
 
     spin_unlock_irq(&priv->lock);
 
@@ -669,7 +671,7 @@ static int axi_eth_probe(struct platform_device * pdev) {
         goto out;
     }
 
-    if (priv->regs->capability & MAC_CAPABILITY_MDIO) {
+    if (priv->regs->capability & NIC_CAPABILITY_MDIO) {
         err = axi_eth_mdio_register(priv);
         if (err) {
             printk(KERN_ERR "AXI-ETH: Can't register MDIO bus\n");

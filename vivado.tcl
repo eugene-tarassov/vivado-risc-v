@@ -26,22 +26,12 @@ set files [list \
  [file normalize "../../sdc/sd_data_master.v"] \
  [file normalize "../../sdc/sd_data_serial_host.v"] \
  [file normalize "../../sdc/sd_data_xfer_trig.v"] \
- [file normalize "../../ethernet/verilog-ethernet/lib/axis/rtl/axis_adapter.v"] \
- [file normalize "../../ethernet/verilog-ethernet/lib/axis/rtl/axis_async_fifo.v"] \
- [file normalize "../../ethernet/verilog-ethernet/lib/axis/rtl/axis_async_fifo_adapter.v"] \
- [file normalize "../../ethernet/verilog-ethernet/rtl/axis_gmii_rx.v"] \
- [file normalize "../../ethernet/verilog-ethernet/rtl/axis_gmii_tx.v"] \
- [file normalize "../../ethernet/verilog-ethernet/rtl/eth_mac_1g.v"] \
- [file normalize "../../ethernet/verilog-ethernet/rtl/lfsr.v"] \
- [file normalize "../../ethernet/ethernet.v"] \
  [file normalize "../../vhdl-wrapper/src/net/largest/riscv/vhdl/bscan2jtag.vhdl"] \
  [file normalize "../../board/${vivado_board_name}/ethernet-${vivado_board_name}.v"] \
  [file normalize "../../board/mem-reset-control.v"] \
  [file normalize "../../board/fan-control.v"] \
 ]
 add_files -norecurse -fileset $source_fileset $files
-
-source ../../board/${vivado_board_name}/ethernet-${vivado_board_name}.tcl
 
 # Create 'constrs_1' fileset (if not found)
 if {[string equal [get_filesets -quiet constrs_1] ""]} {
@@ -55,10 +45,11 @@ set files [list \
  [file normalize ../../board/${vivado_board_name}/top.xdc] \
  [file normalize ../../board/${vivado_board_name}/sdc.xdc] \
  [file normalize ../../board/${vivado_board_name}/uart.xdc] \
- [file normalize ../../board/${vivado_board_name}/ethernet.xdc] \
  [file normalize ../../board/timing-constraints.tcl] \
 ]
 add_files -norecurse -fileset $constraint_fileset $files
+
+source ../../board/${vivado_board_name}/ethernet-${vivado_board_name}.tcl
 
 # Set file properties
 

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2020 Eugene Tarassov
+Copyright (c) 2020-2021 Eugene Tarassov
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,12 @@ THE SOFTWARE.
 
 */
 
-module ethernet #(parameter burst_size_bits = 4) (
+module ethernet #(
+    parameter burst_size = 16,
+    parameter dma_word_bits = 32,
+    parameter axis_word_bits = 8,
+    parameter enable_mdio = 1
+) (
     input wire async_resetn,
 
     (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 reset RST" *)
@@ -68,7 +73,7 @@ module ethernet #(parameter burst_size_bits = 4) (
     input wire s_axi_rready,
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI AWADDR" *)
-    (* X_INTERFACE_PARAMETER = "CLK_DOMAIN clock, ID_WIDTH 0, PROTOCOL AXI4, DATA_WIDTH 32" *)
+    (* X_INTERFACE_PARAMETER = "CLK_DOMAIN clock, ID_WIDTH 0, PROTOCOL AXI4" *)
     output reg  [31:0] m_axi_awaddr,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI AWLEN" *)
     output reg  [7:0] m_axi_awlen,
@@ -77,9 +82,9 @@ module ethernet #(parameter burst_size_bits = 4) (
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI AWREADY" *)
     input wire m_axi_awready,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI WDATA" *)
-    output wire [31:0] m_axi_wdata,
+    output wire [dma_word_bits-1:0] m_axi_wdata,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI WSTRB" *)
-    output reg [3:0] m_axi_wstrb,
+    output wire [dma_word_bits/8-1:0] m_axi_wstrb,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI WLAST" *)
     output reg  m_axi_wlast,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI WVALID" *)
@@ -101,7 +106,7 @@ module ethernet #(parameter burst_size_bits = 4) (
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI ARREADY" *)
     input wire m_axi_arready,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI RDATA" *)
-    input wire [31:0] m_axi_rdata,
+    input wire [dma_word_bits-1:0] m_axi_rdata,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI RLAST" *)
     input wire m_axi_rlast,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI RRESP" *)
@@ -119,7 +124,9 @@ module ethernet #(parameter burst_size_bits = 4) (
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 TX_AXIS TDATA" *)
     (* X_INTERFACE_PARAMETER = "CLK_DOMAIN clock" *)
-    output wire [7:0] tx_axis_tdata,
+    output wire [axis_word_bits-1:0] tx_axis_tdata,
+    (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 TX_AXIS TKEEP" *)
+    output wire [axis_word_bits/8-1:0] tx_axis_tkeep,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 TX_AXIS TVALID" *)
     output wire tx_axis_tvalid,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 TX_AXIS TREADY" *)
@@ -131,7 +138,9 @@ module ethernet #(parameter burst_size_bits = 4) (
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TDATA" *)
     (* X_INTERFACE_PARAMETER = "CLK_DOMAIN clock" *)
-    input wire [7:0] rx_axis_tdata,
+    input wire [axis_word_bits-1:0] rx_axis_tdata,
+    (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TKEEP" *)
+    input wire [axis_word_bits/8-1:0] rx_axis_tkeep,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TVALID" *)
     input wire rx_axis_tvalid,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TREADY" *)
@@ -150,6 +159,8 @@ module ethernet #(parameter burst_size_bits = 4) (
 
 );
 
+`default_nettype none
+
 (* ASYNC_REG="true" *)
 reg  [2:0] reset_sync;
 assign reset = reset_sync[2];
@@ -157,33 +168,16 @@ assign reset = reset_sync[2];
 always @(posedge clock)
     reset_sync <= {reset_sync[1:0], !async_resetn};
 
-wire pcspma_status_link_status              = status_vector[0];
-wire pcspma_status_link_synchronization     = status_vector[1];
-wire pcspma_status_rudi_c                   = status_vector[2];
-wire pcspma_status_rudi_i                   = status_vector[3];
-wire pcspma_status_rudi_invalid             = status_vector[4];
-wire pcspma_status_rxdisperr                = status_vector[5];
-wire pcspma_status_rxnotintable             = status_vector[6];
-wire pcspma_status_phy_link_status          = status_vector[7];
-wire [1:0] pcspma_status_remote_fault_encdg = status_vector[9:8];
-wire [1:0] pcspma_status_speed              = status_vector[11:10];
-wire pcspma_status_duplex                   = status_vector[12];
-wire pcspma_status_remote_fault             = status_vector[13];
-wire [1:0] pcspma_status_pause              = status_vector[15:14];
+`define burst_size_log2 $clog2(burst_size)
 
-wire mdio_i;
-reg mdio_o;
-reg mdio_t;
-IOBUF mdio(.O(mdio_i), .IO(mdio_data), .I(mdio_o), .T(mdio_t));
+`define dma_word_bytes (dma_word_bits / 8)
+`define dma_word_log2 $clog2(`dma_word_bytes)
 
-reg  [2:0] mdio_int_sync;
-wire mdio_phy_int = mdio_int_sync[2];
+`define axis_word_bytes (axis_word_bits / 8)
+`define axis_word_log2 $clog2(`axis_word_bytes)
 
-always @(posedge clock)
-    mdio_int_sync <= {mdio_int_sync[1:0], mdio_int};
-
-reg mdio_reset_reg;
-assign mdio_reset = !mdio_reset_reg;
+`define pkt_addr_bits_range 31:0
+`define pkt_size_bits_range 13:0
 
 // ------ AXI LITE Slave Interface
 
@@ -199,19 +193,19 @@ assign s_axi_wready = !wr_req[1] && !s_axi_bvalid;
 
 `define pkt_ptr_bits 4
 `define pkt_ptr_max ((1 << `pkt_ptr_bits) - 1)
-`define min_burst (1 << (burst_size_bits - 1))
+`define min_burst (1 << (`burst_size_log2 - 1))
 
 reg [`pkt_ptr_bits-1:0] rx_pkt_inp;
 reg [`pkt_ptr_bits-1:0] rx_pkt_out;
-reg [31:0] rx_addr[`pkt_ptr_max:0];
-reg [13:0] rx_size[`pkt_ptr_max:0];
-reg [13:0] rx_done[`pkt_ptr_max:0];
+reg [`pkt_addr_bits_range] rx_addr[`pkt_ptr_max:0];
+reg [`pkt_size_bits_range] rx_size[`pkt_ptr_max:0];
+reg [`pkt_size_bits_range] rx_done[`pkt_ptr_max:0];
 reg [1:0] rx_status[`pkt_ptr_max:0];
 
 reg [`pkt_ptr_bits-1:0] tx_pkt_inp;
 reg [`pkt_ptr_bits-1:0] tx_pkt_out;
-reg [31:0] tx_addr[`pkt_ptr_max:0];
-reg [13:0] tx_size[`pkt_ptr_max:0];
+reg [`pkt_addr_bits_range] tx_addr[`pkt_ptr_max:0];
+reg [`pkt_size_bits_range] tx_size[`pkt_ptr_max:0];
 
 reg rx_enable;
 reg tx_enable;
@@ -230,15 +224,13 @@ reg tx_int;
 reg [31:0] int_enable;
 wire [31:0] int_status;
 
-reg [31:0] mdio_tx;
-reg [31:0] mdio_rx;
 reg mdio_start;
-reg mdio_stop;
 reg mdio_done;
-reg [5:0] mdio_cnt;
-reg [5:0] mdio_cnt_rx;
-reg [4:0] mdio_div;
-wire mdio_txrx_int = !(mdio_start || mdio_done);
+reg [31:0] mdio_tx = 0;
+reg [31:0] mdio_rx = 0;
+wire mdio_phy_int;
+wire mdio_txrx_int;
+reg mdio_reset_reg;
 
 reg m_axi_rd_cyc;
 reg m_axi_rd_err;
@@ -294,7 +286,7 @@ always @(posedge clock) begin
                 10'h020: s_axi_rdata <= { mdio_reset_reg, tx_enable, rx_enable };
                 10'h024: s_axi_rdata <= mdio_tx;
                 10'h028: s_axi_rdata <= mdio_rx;
-                10'h02c: begin s_axi_rdata[8] <= 1; s_axi_rdata[7:4] <= `pkt_ptr_bits; s_axi_rdata[3:0] <= burst_size_bits; end
+                10'h02c: begin s_axi_rdata[8] <= enable_mdio; s_axi_rdata[7:4] <= `pkt_ptr_bits; s_axi_rdata[3:0] <= `burst_size_log2; end
                 endcase
             end else if (read_addr[11:10] == 2) begin
                 case (read_addr[3:0])
@@ -329,9 +321,11 @@ always @(posedge clock) begin
                 10'h008: int_enable <= write_data;
                 10'h00c: begin rx_int <= write_data[16]; tx_int <= write_data[17]; end
                 10'h010: rx_pkt_inp <= write_data;
+                10'h014: if (!rx_enable) rx_pkt_out <= write_data;
                 10'h018: tx_pkt_inp <= write_data;
+                10'h01c: if (!tx_enable) tx_pkt_out <= write_data;
                 10'h020: begin rx_enable <= write_data[0]; tx_enable <= write_data[1]; mdio_reset_reg <= write_data[2]; end
-                10'h024: begin mdio_tx <= write_data; mdio_start <= 1; end
+                10'h024: if (enable_mdio) begin mdio_tx <= write_data; mdio_start <= 1; end
                 endcase
             end else if (write_addr[11:10] == 2) begin
                 case (write_addr[3:0])
@@ -370,39 +364,37 @@ end
 
 // ------ AXI Master Interface, TX
 
-reg  [31:0] tx_burst_buf [(1 << burst_size_bits) - 1 : 0];
-reg  [burst_size_bits-1:0] tx_burst_inp;
-reg  [burst_size_bits-1:0] tx_burst_out;
-reg  [1:0] tx_axis_byte;
+reg  [dma_word_bits-1:0] tx_burst_buf [(1 << `burst_size_log2) - 1 : 0];
+reg  [dma_word_bits-1:0] tx_burst_head;
+reg  [`burst_size_log2-1:0] tx_burst_inp;
+reg  [`burst_size_log2-1:0] tx_burst_out;
+reg  tx_burst_tail;
 
-wire [burst_size_bits-1:0] tx_burst_inp_next;
-wire [burst_size_bits-1:0] tx_burst_out_next;
-wire [burst_size_bits-1:0] tx_burst_free_len;
-wire [burst_size_bits-1:0] tx_burst_arlen;
-wire [burst_size_bits-1:0] tx_burst_arlen4k;
-wire [31:0] tx_burst_araddr;
+wire [`burst_size_log2-1:0] tx_burst_inp_next = tx_burst_inp + 1;
+wire [`burst_size_log2-1:0] tx_burst_out_next = tx_burst_out + 1;
+wire [`burst_size_log2-1:0] tx_burst_free_len = tx_burst_out - tx_burst_inp_next;
 
-reg  [31:0] tx_pkt_addr;
-reg  [13:0] tx_pkt_size;
-reg  [13:0] tx_pkt_offs;
-reg  [13:0] tx_word_left;
+reg  [`pkt_addr_bits_range] tx_pkt_addr;
+reg  [`pkt_size_bits_range] tx_pkt_size;
+reg  [`pkt_size_bits_range] tx_pkt_offs;
+reg  [`pkt_size_bits_range] tx_word_left;
+reg  [`dma_word_log2-1:0] tx_axis_byte_offs;
 
-assign m_axi_rready = m_axi_rd_cyc;
-assign tx_burst_inp_next = tx_burst_inp + 1;
-assign tx_burst_out_next = tx_burst_out + 1;
-assign tx_burst_free_len = tx_burst_out - tx_burst_inp_next;
-assign tx_axis_tuser = 0;
-assign tx_axis_tdata = tx_burst_buf[tx_burst_out][tx_axis_byte*8+:8];
-assign tx_axis_tvalid = tx_burst_inp != tx_burst_out;
-assign tx_axis_tlast = tx_m_axi_stop &&
-                    (tx_burst_out_next == tx_burst_inp) &&
-                    (tx_axis_byte == (tx_pkt_addr[1:0] + tx_pkt_size[1:0] - 2'd1));
+wire [`dma_word_log2-1:0] tx_axis_byte_last = (tx_pkt_size[`dma_word_log2-1:0] - `axis_word_bytes) & ~(`axis_word_bytes - 1);
+wire [`dma_word_log2-1:0] tx_axis_byte_shift = tx_pkt_addr[`dma_word_log2-1:0];
 
-assign tx_burst_araddr = (tx_pkt_addr + tx_pkt_offs) & ~32'h3;
-assign tx_burst_arlen = (tx_word_left >= tx_burst_free_len ? tx_burst_free_len : tx_word_left) - 1;
+wire [`pkt_addr_bits_range] tx_burst_araddr = (tx_pkt_addr + tx_pkt_offs) & ~(`dma_word_bytes - 1);
+wire [`burst_size_log2-1:0] tx_burst_arlen = (tx_word_left >= tx_burst_free_len ? tx_burst_free_len : tx_word_left) - 1;
 
 // AXI burst cannot cross a 4KB boundary
-assign tx_burst_arlen4k = ~tx_burst_araddr[11:2] >= tx_burst_arlen ? tx_burst_arlen : ~tx_burst_araddr[burst_size_bits+1:2];
+wire [`burst_size_log2-1:0] tx_burst_arlen4k = ~tx_burst_araddr[11:`dma_word_log2] >= tx_burst_arlen ? tx_burst_arlen : ~tx_burst_araddr[`burst_size_log2+`dma_word_log2-1:`dma_word_log2];
+
+assign m_axi_rready = m_axi_rd_cyc;
+assign tx_axis_tuser = 0;
+assign tx_axis_tdata = tx_burst_buf[tx_burst_out][tx_axis_byte_offs*8+:axis_word_bits];
+assign tx_axis_tvalid = tx_burst_inp != tx_burst_out;
+assign tx_axis_tkeep = tx_axis_tlast && tx_pkt_size[`dma_word_log2-1:0] != 0 ? ~(~0 << tx_pkt_size[`dma_word_log2-1:0]) : ~0;
+assign tx_axis_tlast = tx_m_axi_stop && !tx_burst_tail && (tx_burst_out_next == tx_burst_inp) && (tx_axis_byte_offs == tx_axis_byte_last);
 
 always @(posedge clock) begin
     if (reset) begin
@@ -414,54 +406,69 @@ always @(posedge clock) begin
         tx_axis_start <= 0;
         tx_axis_stop <= 0;
         tx_m_axi_stop <= 0;
+        tx_burst_tail <= 0;
+    end else if (!tx_start) begin
+        tx_burst_inp <= 0;
+        tx_burst_out <= 0;
+        tx_axis_start <= 0;
+        tx_axis_stop <= 0;
+        tx_m_axi_stop <= 0;
+    end else if (!tx_axis_start) begin
+        tx_axis_byte_offs <= 0;
+        tx_axis_start <= 1;
+        tx_burst_tail <= 0;
+        tx_pkt_addr <= tx_addr[tx_pkt_out];
+        tx_pkt_size <= tx_size[tx_pkt_out];
+        tx_pkt_offs <= 0;
+        tx_word_left <= (tx_size[tx_pkt_out] + tx_addr[tx_pkt_out][`dma_word_log2-1:0] + (`dma_word_bytes - 1)) >> `dma_word_log2;
+        m_axi_rd_err <= 0;
     end else begin
-        if (!tx_start) begin
-            tx_burst_inp <= 0;
-            tx_burst_out <= 0;
-            tx_axis_start <= 0;
-            tx_axis_stop <= 0;
-        end else if (!tx_axis_start) begin
-            tx_axis_byte <= tx_addr[tx_pkt_out][1:0];
-            tx_axis_start <= 1;
-        end else if (tx_axis_tvalid && tx_axis_tready) begin
-            tx_axis_byte <= tx_axis_byte + 1;
+        if (tx_axis_tvalid && tx_axis_tready) begin
+            tx_axis_byte_offs <= tx_axis_byte_offs + `axis_word_bytes;
             if (tx_axis_tlast) begin
                 tx_burst_out <= tx_burst_out_next;
                 tx_axis_stop <= 1;
-            end else if (tx_axis_byte == 2'h3) begin
+            end else if (tx_axis_byte_offs == `dma_word_bytes - `axis_word_bytes) begin
                 tx_burst_out <= tx_burst_out_next;
             end
         end
-        if (!tx_start) begin
-            tx_m_axi_stop <= 0;
-        end else if (!tx_axis_start) begin
-            m_axi_rd_err <= 0;
-            tx_pkt_addr <= tx_addr[tx_pkt_out];
-            tx_pkt_size <= tx_size[tx_pkt_out];
-            tx_pkt_offs <= 0;
-            tx_word_left <= (tx_size[tx_pkt_out] + tx_addr[tx_pkt_out][1:0] + 3) >> 2;
-        end else if (m_axi_rd_cyc) begin
+        if (m_axi_rd_cyc) begin
             if (m_axi_arvalid && m_axi_arready) begin
                 m_axi_arvalid <= 0;
             end
             if (m_axi_rvalid && m_axi_rready) begin
-                tx_burst_buf[tx_burst_inp] <= m_axi_rdata;
-                tx_burst_inp <= tx_burst_inp_next;
+                if (tx_axis_byte_shift == 0) begin
+                    tx_burst_buf[tx_burst_inp] <= m_axi_rdata;
+                    tx_burst_inp <= tx_burst_inp_next;
+                end else begin
+                    tx_burst_head <= m_axi_rdata >> tx_axis_byte_shift*8;
+                    if (((tx_pkt_size - 1) & (`dma_word_bytes - 1)) < `dma_word_bytes - tx_axis_byte_shift) tx_burst_tail <= 1;
+                    if (tx_pkt_offs != 0) begin
+                        tx_burst_buf[tx_burst_inp] <= tx_burst_head | (m_axi_rdata << (`dma_word_bytes - tx_axis_byte_shift)*8);
+                        tx_burst_inp <= tx_burst_inp_next;
+                    end
+                end
                 if (tx_word_left <= 1) begin
                     tx_m_axi_stop <= 1;
                     tx_pkt_offs <= tx_pkt_size;
                 end else if (tx_pkt_offs == 0) begin
-                    tx_pkt_offs[2:0] <= 3'd4 - tx_pkt_addr[1:0];
+                    tx_pkt_offs[`dma_word_log2:0] <= `dma_word_bytes - tx_pkt_addr[`dma_word_log2-1:0];
                 end else begin
-                    tx_pkt_offs <= tx_pkt_offs + 4;
+                    tx_pkt_offs <= tx_pkt_offs + `dma_word_bytes;
                 end
                 if (m_axi_rlast) m_axi_rd_cyc <= 0;
                 if (m_axi_rresp) m_axi_rd_err <= 1;
                 tx_word_left <= tx_word_left - 1;
             end
+        end else if (tx_m_axi_stop) begin
+            if (tx_burst_tail && tx_burst_free_len != 0) begin
+                tx_burst_buf[tx_burst_inp] <= tx_burst_head;
+                tx_burst_inp <= tx_burst_inp_next;
+                tx_burst_tail <= 0;
+            end
         end else if (tx_word_left >= `min_burst && tx_burst_free_len < `min_burst) begin
             // wait for more free space
-        end else if (tx_burst_free_len != 0 && tx_axis_start && !tx_m_axi_stop) begin
+        end else if (tx_burst_free_len != 0) begin
             m_axi_rd_cyc <= 1;
             m_axi_araddr <= tx_burst_araddr;
             m_axi_arlen <= tx_burst_arlen4k;
@@ -472,37 +479,55 @@ end
 
 // ------ AXI Master Interface, RX
 
-reg [burst_size_bits-1:0] m_axi_wcnt;
+reg [`burst_size_log2-1:0] m_axi_wcnt;
 reg rx_m_axi_stop0;
 wire rx_m_axi_last;
+wire rx_word_last;
 
-reg  [31:0] rx_burst_buf [(1 << burst_size_bits) - 1 : 0];
-reg  [burst_size_bits-1:0] rx_burst_inp;
-reg  [burst_size_bits-1:0] rx_burst_out;
-reg  [1:0] rx_axis_byte;
+reg  [dma_word_bits-1:0] rx_burst_buf [(1 << `burst_size_log2) - 1 : 0];
+reg  [`burst_size_log2-1:0] rx_burst_inp;
+reg  [`burst_size_log2-1:0] rx_burst_out;
+reg  [`dma_word_log2-1:0] rx_axis_byte_offs;
+reg  [`dma_word_log2-1:0] rx_axis_byte_shift;
+reg  [`axis_word_bytes-1:0] rx_axis_keep;
 
-wire [burst_size_bits-1:0] rx_burst_inp_next;
-wire [burst_size_bits-1:0] rx_burst_out_next;
-wire [burst_size_bits-1:0] rx_burst_data_len;
-wire [burst_size_bits-1:0] rx_burst_awlen;
-wire [burst_size_bits-1:0] rx_burst_awlen4k;
-wire [31:0] rx_burst_awaddr;
+wire [`burst_size_log2-1:0] rx_burst_inp_next = rx_burst_inp + 1;
+wire [`burst_size_log2-1:0] rx_burst_out_next = rx_burst_out + 1;
+wire [`burst_size_log2-1:0] rx_burst_data_len = rx_burst_inp - rx_burst_out;
 
-reg  [31:0] rx_pkt_addr;
-reg  [13:0] rx_word_left;
+// Find highest set bit in rx_axis_keep
+wire [`axis_word_log2:0] rx_axis_keep_stage [0:`axis_word_bytes];
+assign rx_axis_keep_stage[0] = 0;
+generate genvar i;
+    for (i = 0; i < `axis_word_bytes; i = i + 1)
+        assign rx_axis_keep_stage[i + 1] = rx_axis_keep[i] ? i + 1 : rx_axis_keep_stage[i];
+endgenerate
+wire [`axis_word_log2:0] rx_axis_keep_cnt = rx_axis_keep_stage[`axis_word_bytes] + rx_axis_byte_shift;
 
+reg  [`pkt_addr_bits_range] rx_pkt_addr;
+reg  [`pkt_size_bits_range] rx_word_left;
+wire [`pkt_size_bits_range] rx_size_al;
+reg  [`dma_word_bytes-1:0] rx_wstrb;
+reg  [`dma_word_bytes-1:0] rx_wstrb_last;
+reg  [dma_word_bits-1:0] rx_burst_tail;
+
+wire rx_burst_1p = rx_axis_byte_shift != 0 && rx_axis_stop && rx_axis_keep_cnt > `dma_word_bytes;
+
+assign rx_size_al = rx_size[rx_pkt_out] + rx_addr[rx_pkt_out][`dma_word_log2-1:0];
+assign rx_word_last = rx_word_left <= 1;
 assign m_axi_bready = m_axi_wr_cyc && !m_axi_wvalid;
-assign m_axi_wdata = rx_burst_buf[rx_burst_out];
-assign rx_burst_inp_next = rx_burst_inp + 1;
-assign rx_burst_out_next = rx_burst_out + 1;
-assign rx_burst_data_len = rx_burst_inp - rx_burst_out;
-assign rx_m_axi_last = rx_axis_stop && (rx_burst_out_next == rx_burst_inp);
+assign m_axi_wdata = rx_axis_byte_shift == 0 ? rx_burst_buf[rx_burst_out] : rx_burst_tail | (rx_burst_buf[rx_burst_out] << rx_axis_byte_shift*8);
+assign m_axi_wstrb = rx_wstrb & (rx_word_last ? rx_wstrb_last : ~0);
+assign rx_m_axi_last = rx_axis_stop && (rx_burst_1p ? rx_burst_out == rx_burst_inp : rx_burst_out_next == rx_burst_inp);
 assign rx_axis_tready = rx_axis_start && !rx_axis_stop && (rx_burst_inp_next != rx_burst_out || rx_m_axi_stop);
-assign rx_burst_awlen = (rx_word_left >= rx_burst_data_len ? rx_burst_data_len : rx_word_left) - 1;
-assign rx_burst_awaddr = { rx_pkt_addr[31:2], 2'b00 };
+
+wire [`pkt_addr_bits_range] rx_burst_awaddr = rx_pkt_addr & ~(`dma_word_bytes - 1);
+wire [`burst_size_log2-1:0] rx_burst_awlen = rx_word_left >= rx_burst_data_len ? rx_burst_data_len : rx_word_left;
+
+wire [`burst_size_log2-1:0] rx_burst_awlen1p = rx_burst_1p ? rx_burst_awlen : rx_burst_awlen - 1;
 
 // AXI burst cannot cross a 4KB boundary
-assign rx_burst_awlen4k = ~rx_burst_awaddr[11:2] >= rx_burst_awlen ? rx_burst_awlen : ~rx_burst_awaddr[burst_size_bits+1:2];
+wire [`burst_size_log2-1:0] rx_burst_awlen4k = ~rx_burst_awaddr[11:`dma_word_log2] >= rx_burst_awlen1p ? rx_burst_awlen1p : ~rx_burst_awaddr[`burst_size_log2+`dma_word_log2-1:`dma_word_log2];
 
 always @(posedge clock) begin
     // RX DMA
@@ -518,38 +543,42 @@ always @(posedge clock) begin
         rx_axis_start <= 0;
         rx_axis_stop <= 0;
         rx_bad_frame <= 0;
+    end else if (!rx_start) begin
+        rx_burst_inp <= 0;
+        rx_burst_out <= 0;
+        rx_axis_start <= 0;
+        rx_axis_stop <= 0;
+        rx_m_axi_stop0 <= 0;
+        rx_m_axi_stop <= 0;
+    end else if (!rx_axis_start) begin
+        rx_axis_byte_offs <= `axis_word_bytes > 1 ? 0 : rx_addr[rx_pkt_out][`dma_word_log2-1:0];
+        rx_axis_start <= 1;
+        rx_done[rx_pkt_out] <= 0;
+        rx_status[rx_pkt_out] <= 1;
+        rx_wstrb <= ~0 << rx_addr[rx_pkt_out][`dma_word_log2-1:0];
+        rx_wstrb_last <= ~(rx_size_al[`dma_word_log2-1:0] == 0 ? 0 : (~0 << (rx_size_al[`dma_word_log2-1:0])));
+        rx_word_left <= (rx_size_al + (`dma_word_bytes - 1)) >> `dma_word_log2;
+        rx_axis_byte_shift <= `axis_word_bytes > 1 ? rx_addr[rx_pkt_out][`dma_word_log2-1:0] : 0;
+        rx_pkt_addr <= rx_addr[rx_pkt_out];
+        rx_burst_tail <= 0;
+        rx_bad_frame <= 1;
+        m_axi_wr_err <= 0;
     end else begin
-        if (!rx_start) begin
-            rx_burst_inp <= 0;
-            rx_burst_out <= 0;
-            rx_axis_start <= 0;
-            rx_axis_stop <= 0;
-            rx_bad_frame <= 1;
-        end else if (!rx_axis_start) begin
-            rx_axis_byte <= rx_addr[rx_pkt_out][1:0];
-            rx_axis_start <= 1;
-        end else if (rx_axis_tvalid && rx_axis_tready) begin
-            rx_burst_buf[rx_burst_inp][rx_axis_byte*8+:8] <= rx_axis_tdata;
-            rx_axis_byte <= rx_axis_byte + 1;
+        if (rx_axis_tvalid && rx_axis_tready) begin
+            rx_burst_buf[rx_burst_inp][rx_axis_byte_offs*8+:axis_word_bits] <= rx_axis_tdata;
             if (rx_axis_tlast) begin
                 rx_burst_inp <= rx_burst_inp_next;
-                rx_axis_stop <= 1;
+                rx_axis_keep <= rx_axis_tkeep;
                 rx_bad_frame <= rx_axis_tuser;
-            end else if (rx_axis_byte == 2'h3) begin
+                rx_axis_stop <= 1;
+            end else if (rx_axis_byte_offs >= `dma_word_bytes - `axis_word_bytes) begin
+                rx_axis_byte_offs <= 0;
                 rx_burst_inp <= rx_burst_inp_next;
+            end else begin
+                rx_axis_byte_offs <= rx_axis_byte_offs + `axis_word_bytes;
             end
         end
-        if (!rx_start) begin
-            rx_m_axi_stop0 <= 0;
-            rx_m_axi_stop <= 0;
-        end else if (!rx_axis_start) begin
-            m_axi_wr_err <= 0;
-            rx_done[rx_pkt_out] <= 0;
-            rx_status[rx_pkt_out] <= 1;
-            m_axi_wstrb <= 4'b1111 << rx_addr[rx_pkt_out][1:0];
-            rx_word_left <= (rx_size[rx_pkt_out] + rx_addr[rx_pkt_out][1:0]) >> 2;
-            rx_pkt_addr <= rx_addr[rx_pkt_out];
-        end else if (m_axi_wr_cyc) begin
+        if (m_axi_wr_cyc) begin
             if (m_axi_awvalid && m_axi_awready) begin
                 m_axi_awvalid <= 0;
             end
@@ -561,22 +590,30 @@ always @(posedge clock) begin
                 rx_status[rx_pkt_out] <= { m_axi_wr_err, rx_bad_frame };
             end
             if (m_axi_wvalid && m_axi_wready) begin
-                rx_burst_out <= rx_burst_out_next;
-                if (m_axi_wlast)
+                if (rx_burst_data_len != 0) begin
+                    rx_burst_tail <= rx_burst_buf[rx_burst_out] >> (`dma_word_bytes - rx_axis_byte_shift)*8;
+                    rx_burst_out <= rx_burst_out_next;
+                end
+                if (m_axi_wlast) begin
                     m_axi_wvalid <= 0;
-                else begin
+                    m_axi_wlast <= 0;
+                end else begin
                     m_axi_wlast <= m_axi_wcnt + 1 == m_axi_awlen;
                     m_axi_wcnt <= m_axi_wcnt + 1;
                 end
-                if (!rx_m_axi_last || rx_axis_byte == 0) rx_pkt_addr <= rx_burst_awaddr + 4;
-                else rx_pkt_addr <= rx_pkt_addr + rx_axis_byte;
-                if (rx_m_axi_last || rx_word_left <= 1) rx_m_axi_stop0 <= 1;
+                if (!rx_m_axi_last) rx_pkt_addr <= rx_burst_awaddr + `dma_word_bytes;
+                else rx_pkt_addr <= rx_pkt_addr + rx_axis_byte_offs + rx_axis_keep_cnt - (rx_burst_1p ? `dma_word_bytes : 0);
+                if (rx_m_axi_last || rx_word_last) begin
+                    rx_m_axi_stop0 <= 1;
+                    rx_wstrb <= 0;
+                end else begin
+                    rx_wstrb <= ((1 << `dma_word_bytes) - 1);
+                end
                 rx_word_left <= rx_word_left - 1;
-                m_axi_wstrb <= 4'b1111;
             end
         end else if (!rx_axis_stop && rx_burst_data_len < `min_burst) begin
             // wait for more data
-        end else if (rx_burst_data_len != 0 && rx_axis_start && !rx_m_axi_stop) begin
+        end else if ((rx_burst_data_len != 0 || rx_burst_1p) && !rx_m_axi_stop) begin
             m_axi_wcnt <= 0;
             m_axi_wr_cyc <= 1;
             m_axi_awaddr <= rx_burst_awaddr;
@@ -590,65 +627,99 @@ end
 
 // ------ PHY MDIO Interface
 
-always @(posedge clock) begin
-    if (reset) begin
-        mdio_rx <= 0;
-        mdio_stop <= 0;
-        mdio_done <= 0;
-        mdio_cnt <= 0;
-        mdio_cnt_rx <= 0;
-        mdio_div <= 0;
-        mdio_t <= 1;
-        mdio_o <= 1;
-        mdio_clock <= 0;
-    end else if (!mdio_start) begin
-        mdio_stop <= 0;
-        mdio_done <= 0;
-        mdio_cnt <= 0;
-        mdio_cnt_rx <= 0;
-        mdio_div <= 0;
-        mdio_t <= 1;
-        mdio_o <= 1;
-        mdio_clock <= 0;
-    end else if (mdio_done) begin
-        // Waiting for handshake
-    end else if (mdio_div == 0) begin
-        mdio_div <= 24;
-        mdio_cnt_rx <= mdio_cnt;
-        if (!mdio_clock) begin
-            if (mdio_cnt_rx[5]) mdio_rx[~mdio_cnt_rx[4:0]] <= mdio_i;
-            mdio_clock <= 1;
-        end else if (mdio_stop) begin
-            mdio_done <= 1;
-            mdio_t <= 0;
+generate if (enable_mdio) begin
+
+    wire mdio_i;
+    reg mdio_o;
+    reg mdio_t;
+    IOBUF mdio(.O(mdio_i), .IO(mdio_data), .I(mdio_o), .T(mdio_t));
+
+    (* ASYNC_REG="true" *)
+    reg  [2:0] mdio_int_sync;
+    assign mdio_phy_int = mdio_int_sync[2];
+    assign mdio_txrx_int = !(mdio_start || mdio_done);
+
+    always @(posedge clock)
+        mdio_int_sync <= {mdio_int_sync[1:0], mdio_int};
+
+    assign mdio_reset = !mdio_reset_reg;
+
+    reg mdio_stop;
+    reg [5:0] mdio_cnt;
+    reg [5:0] mdio_cnt_rx;
+    reg [4:0] mdio_div;
+
+    always @(posedge clock) begin
+        if (reset) begin
+            mdio_rx <= 0;
+            mdio_stop <= 0;
+            mdio_done <= 0;
+            mdio_cnt <= 0;
+            mdio_cnt_rx <= 0;
+            mdio_div <= 0;
+            mdio_t <= 1;
             mdio_o <= 1;
             mdio_clock <= 0;
-        end else begin
-            if (!mdio_cnt[5]) begin
-                // PHY devices require a preamble of 32 ones
+        end else if (!mdio_start) begin
+            mdio_stop <= 0;
+            mdio_done <= 0;
+            mdio_cnt <= 0;
+            mdio_cnt_rx <= 0;
+            mdio_div <= 0;
+            mdio_t <= 1;
+            mdio_o <= 1;
+            mdio_clock <= 0;
+        end else if (mdio_done) begin
+            // Waiting for handshake
+        end else if (mdio_div == 0) begin
+            mdio_div <= 24;
+            mdio_cnt_rx <= mdio_cnt;
+            if (!mdio_clock) begin
+                if (mdio_cnt_rx[5]) mdio_rx[~mdio_cnt_rx[4:0]] <= mdio_i;
+                mdio_clock <= 1;
+            end else if (mdio_stop) begin
+                mdio_done <= 1;
                 mdio_t <= 0;
                 mdio_o <= 1;
+                mdio_clock <= 0;
             end else begin
-                if (mdio_tx[29] && mdio_cnt >= 46) begin
-                    // Read from PHY
-                    mdio_t <= 1;
-                end else begin
-                    // Write to PHY
+                if (!mdio_cnt[5]) begin
+                    // PHY devices require a preamble of 32 ones
                     mdio_t <= 0;
+                    mdio_o <= 1;
+                end else begin
+                    if (mdio_tx[29] && mdio_cnt >= 46) begin
+                        // Read from PHY
+                        mdio_t <= 1;
+                    end else begin
+                        // Write to PHY
+                        mdio_t <= 0;
+                    end
+                    mdio_o <= mdio_tx[~mdio_cnt[4:0]];
                 end
-                mdio_o <= mdio_tx[~mdio_cnt[4:0]];
+                if (mdio_cnt == 63) begin
+                    mdio_stop <= 1;
+                    mdio_cnt <= 0;
+                end else begin
+                    mdio_cnt <= mdio_cnt + 1;
+                end
+                mdio_clock <= 0;
             end
-            if (mdio_cnt == 63) begin
-                mdio_stop <= 1;
-                mdio_cnt <= 0;
-            end else begin
-                mdio_cnt <= mdio_cnt + 1;
-            end
-            mdio_clock <= 0;
+        end else begin
+            mdio_div <= mdio_div - 1;
         end
-    end else begin
-        mdio_div <= mdio_div - 1;
     end
-end
+
+end else begin
+
+    assign mdio_reset = 0;
+    assign mdio_phy_int = 0;
+    assign mdio_txrx_int = 0;
+    always @(posedge clock) begin
+        mdio_done <= 0;
+        mdio_clock <= 0;
+    end
+
+end endgenerate
 
 endmodule
