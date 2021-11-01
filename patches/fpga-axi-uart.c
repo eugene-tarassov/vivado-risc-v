@@ -47,6 +47,8 @@ struct uart_regs {
 #define MAX_PORTS  CONFIG_SERIAL_AXI_UART_PORTS
 static struct uart_port axi_uart_ports[MAX_PORTS];
 
+#define MAX_CHARS_PER_INTERRUPT 32
+
 #ifdef CONFIG_SERIAL_AXI_UART_CONSOLE
 static void axi_uart_console_putchar(struct uart_port * port, int ch) {
     struct uart_regs __iomem * regs = (struct uart_regs __iomem *)port->membase;
@@ -157,7 +159,7 @@ static int axi_uart_transmit(struct uart_port * port) {
     int ret = 0;
 
     regs->control = control &= ~CR_IE_TX_READY;
-    for (;;) {
+    while (tx_cnt < MAX_CHARS_PER_INTERRUPT) {
         if (port->x_char) {
             regs->tx_fifo = port->x_char | 0x100;
             port->icount.tx++;
@@ -177,8 +179,8 @@ static int axi_uart_transmit(struct uart_port * port) {
             regs->tx_fifo = xmit->buf[xmit->tail] & 0xff;
             xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
             port->icount.tx++;
-            ret = 1;
             tx_cnt++;
+            ret = 1;
         }
         else {
             regs->control = control &= ~CR_TX_STOP;
@@ -189,24 +191,29 @@ static int axi_uart_transmit(struct uart_port * port) {
     return ret;
 }
 
-static irqreturn_t axi_uart_isr(int irq, void * dev_id) {
-    struct uart_port * port = dev_id;
+static int axi_uart_receive(struct uart_port * port) {
     struct tty_port * tport = &port->state->port;
     struct uart_regs __iomem * regs = (struct uart_regs __iomem *)port->membase;
-    unsigned long flags;
     unsigned rx_cnt = 0;
-    irqreturn_t ret = IRQ_NONE;
 
-    spin_lock_irqsave(&port->lock, flags);
-    if (axi_uart_transmit(port)) ret = IRQ_HANDLED;
-    while (regs->status & SR_RX_FIFO_VALID) {
+    while (rx_cnt < MAX_CHARS_PER_INTERRUPT && (regs->status & SR_RX_FIFO_VALID)) {
         tty_insert_flip_char(tport, regs->rx_fifo, TTY_NORMAL);
         port->icount.rx++;
-        ret = IRQ_HANDLED;
         rx_cnt++;
     }
-    spin_unlock_irqrestore(&port->lock, flags);
     if (rx_cnt) tty_flip_buffer_push(tport);
+
+    return rx_cnt > 0;
+}
+
+static irqreturn_t axi_uart_isr(int irq, void * dev_id) {
+    struct uart_port * port = dev_id;
+    irqreturn_t ret = IRQ_NONE;
+
+    spin_lock(&port->lock);
+    if (axi_uart_transmit(port)) ret = IRQ_HANDLED;
+    if (axi_uart_receive(port)) ret = IRQ_HANDLED;
+    spin_unlock(&port->lock);
 
     return ret;
 }
@@ -235,6 +242,9 @@ static void axi_uart_start_tx(struct uart_port * port) {
 }
 
 static void axi_uart_stop_rx(struct uart_port * port) {
+    /* Called before port shutdown */
+    struct uart_regs __iomem * regs = (struct uart_regs __iomem *)port->membase;
+    regs->control &= ~CR_IE_RX_READY;
 }
 
 static void axi_uart_break_ctl(struct uart_port *port, int ctl) {
