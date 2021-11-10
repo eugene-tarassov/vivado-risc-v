@@ -9,13 +9,9 @@ set_false_path -through [get_pins -hier RocketChip/sys_reset]
 
 #------------------ Ethernet adapter
 
-if { [llength [get_pins -quiet -hier ethernet_stream_0/clock]] } {
-  set eth_clock [get_clocks -of_objects [get_pins -hier ethernet_stream_0/clock]]
-} else {
-  set eth_clock [get_clocks -of_objects [get_pins -hier clk_wiz_0/clk_out4]]
-}
+if { [llength [get_pins -quiet -hier Ethernet/clock]] } {
+  set eth_clock [get_clocks -of_objects [get_pins -hier Ethernet/clock]]
 
-if { $eth_clock != "" } {
   set_max_delay -from $eth_clock -to $main_clock -datapath_only 10.0
   set_max_delay -from $main_clock -to $eth_clock -datapath_only 10.0
 

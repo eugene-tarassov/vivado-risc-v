@@ -25,6 +25,7 @@ THE SOFTWARE.
 module ethernet #(
     parameter burst_size = 16,
     parameter dma_word_bits = 32,
+    parameter dma_addr_bits = 32,
     parameter axis_word_bits = 8,
     parameter enable_mdio = 1
 ) (
@@ -74,7 +75,7 @@ module ethernet #(
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI AWADDR" *)
     (* X_INTERFACE_PARAMETER = "CLK_DOMAIN clock, ID_WIDTH 0, PROTOCOL AXI4" *)
-    output reg  [31:0] m_axi_awaddr,
+    output reg  [dma_addr_bits-1:0] m_axi_awaddr,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI AWLEN" *)
     output reg  [7:0] m_axi_awlen,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI AWVALID" *)
@@ -98,7 +99,7 @@ module ethernet #(
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI BREADY" *)
     output wire m_axi_bready,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI ARADDR" *)
-    output reg  [31:0] m_axi_araddr,
+    output reg  [dma_addr_bits-1:0] m_axi_araddr,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI ARLEN" *)
     output reg  [7:0] m_axi_arlen,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI ARVALID" *)
@@ -163,10 +164,10 @@ module ethernet #(
 
 (* ASYNC_REG="true" *)
 reg  [2:0] reset_sync;
-assign reset = reset_sync[2];
+assign reset = !reset_sync[2];
 
 always @(posedge clock)
-    reset_sync <= {reset_sync[1:0], !async_resetn};
+    reset_sync <= {reset_sync[1:0], async_resetn};
 
 `define burst_size_log2 $clog2(burst_size)
 
@@ -176,24 +177,26 @@ always @(posedge clock)
 `define axis_word_bytes (axis_word_bits / 8)
 `define axis_word_log2 $clog2(`axis_word_bytes)
 
-`define pkt_addr_bits_range 31:0
+`define pkt_addr_bits_range dma_addr_bits-1:0
 `define pkt_size_bits_range 13:0
 
 // ------ AXI LITE Slave Interface
 
+`define pkt_ptr_bits 4 /* max is 6 */
+`define pkt_ptr_max ((1 << `pkt_ptr_bits) - 1)
+`define min_burst (1 << (`burst_size_log2 - 1))
+
+reg rd_req;
+reg [1:0] wr_req;
 reg [11:0] read_addr;
 reg [11:0] write_addr;
 reg [31:0] write_data;
-reg rd_req;
-reg [1:0] wr_req;
+wire [`pkt_ptr_bits-1:0] read_pkt_no = read_addr[4+:`pkt_ptr_bits];
+wire [`pkt_ptr_bits-1:0] write_pkt_no = write_addr[4+:`pkt_ptr_bits];
 
 assign s_axi_arready = !rd_req && !s_axi_rvalid;
 assign s_axi_awready = !wr_req[0] && !s_axi_bvalid;
 assign s_axi_wready = !wr_req[1] && !s_axi_bvalid;
-
-`define pkt_ptr_bits 4
-`define pkt_ptr_max ((1 << `pkt_ptr_bits) - 1)
-`define min_burst (1 << (`burst_size_log2 - 1))
 
 reg [`pkt_ptr_bits-1:0] rx_pkt_inp;
 reg [`pkt_ptr_bits-1:0] rx_pkt_out;
@@ -286,19 +289,30 @@ always @(posedge clock) begin
                 10'h020: s_axi_rdata <= { mdio_reset_reg, tx_enable, rx_enable };
                 10'h024: s_axi_rdata <= mdio_tx;
                 10'h028: s_axi_rdata <= mdio_rx;
-                10'h02c: begin s_axi_rdata[8] <= enable_mdio; s_axi_rdata[7:4] <= `pkt_ptr_bits; s_axi_rdata[3:0] <= `burst_size_log2; end
+                10'h02c: begin
+                  s_axi_rdata[15:10] <= dma_addr_bits;
+                  s_axi_rdata[8] <= enable_mdio;
+                  s_axi_rdata[7:4] <= `pkt_ptr_bits;
+                  s_axi_rdata[3:0] <= `burst_size_log2;
+                end
                 endcase
             end else if (read_addr[11:10] == 2) begin
                 case (read_addr[3:0])
-                4'h00: s_axi_rdata <= rx_addr[read_addr[4+:`pkt_ptr_bits]];
-                4'h04: s_axi_rdata <= rx_size[read_addr[4+:`pkt_ptr_bits]];
-                4'h08: s_axi_rdata <= rx_done[read_addr[4+:`pkt_ptr_bits]];
-                4'h0c: s_axi_rdata <= rx_status[read_addr[4+:`pkt_ptr_bits]];
+                4'h00: s_axi_rdata <= rx_addr[read_pkt_no];
+                4'h04: begin
+                  s_axi_rdata[15:0] <= rx_size[read_pkt_no];
+                  if (dma_addr_bits > 32) s_axi_rdata[31:16] <= rx_addr[read_pkt_no][dma_addr_bits-1:32];
+                end
+                4'h08: s_axi_rdata <= rx_done[read_pkt_no];
+                4'h0c: s_axi_rdata <= rx_status[read_pkt_no];
                 endcase
             end else if (read_addr[11:10] == 3) begin
                 case (read_addr[3:0])
-                4'h00: s_axi_rdata <= tx_addr[read_addr[4+:`pkt_ptr_bits]];
-                4'h04: s_axi_rdata <= tx_size[read_addr[4+:`pkt_ptr_bits]];
+                4'h00: s_axi_rdata <= tx_addr[read_pkt_no];
+                4'h04: begin
+                  s_axi_rdata[15:0] <= tx_size[read_pkt_no];
+                  if (dma_addr_bits > 32) s_axi_rdata[31:16] <= tx_addr[read_pkt_no][dma_addr_bits-1:32];
+                end
                 endcase
             end
             s_axi_rresp <= 0;
@@ -329,13 +343,19 @@ always @(posedge clock) begin
                 endcase
             end else if (write_addr[11:10] == 2) begin
                 case (write_addr[3:0])
-                4'h00: rx_addr[write_addr[4+:`pkt_ptr_bits]] <= write_data;
-                4'h04: rx_size[write_addr[4+:`pkt_ptr_bits]] <= write_data;
+                4'h00: rx_addr[write_pkt_no] <= write_data;
+                4'h04: begin
+                  rx_size[write_pkt_no] <= write_data;
+                  if (dma_addr_bits > 32) rx_addr[write_pkt_no][dma_addr_bits-1:32] <= write_data[31:16];
+                end
                 endcase
             end else if (write_addr[11:10] == 3) begin
                 case (write_addr[3:0])
-                4'h00: tx_addr[write_addr[4+:`pkt_ptr_bits]] <= write_data;
-                4'h04: tx_size[write_addr[4+:`pkt_ptr_bits]] <= write_data;
+                4'h00: tx_addr[write_pkt_no] <= write_data;
+                4'h04: begin
+                  tx_size[write_pkt_no] <= write_data;
+                  if (dma_addr_bits > 32) tx_addr[write_pkt_no][dma_addr_bits-1:32] <= write_data[31:16];
+                end
                 endcase
             end
             s_axi_bresp <= 0;
@@ -499,8 +519,9 @@ wire [`burst_size_log2-1:0] rx_burst_data_len = rx_burst_inp - rx_burst_out;
 wire [`axis_word_log2:0] rx_axis_keep_stage [0:`axis_word_bytes];
 assign rx_axis_keep_stage[0] = 0;
 generate genvar i;
-    for (i = 0; i < `axis_word_bytes; i = i + 1)
+    for (i = 0; i < `axis_word_bytes; i = i + 1) begin
         assign rx_axis_keep_stage[i + 1] = rx_axis_keep[i] ? i + 1 : rx_axis_keep_stage[i];
+    end
 endgenerate
 wire [`axis_word_log2:0] rx_axis_keep_cnt = rx_axis_keep_stage[`axis_word_bytes] + rx_axis_byte_shift;
 

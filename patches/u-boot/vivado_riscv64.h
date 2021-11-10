@@ -28,13 +28,13 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
         "fdt_addr=0x10080\0" \
         "kernel_addr_r=0x81000000\0" \
-        "fdt_addr_r=0x83000000\0" \
-        "scriptaddr=0x83010000\0" \
-        "pxefile_addr_r=0x83020000\0" \
-        "ramdisk_addr_r=0x83030000\0" \
-        "bootm_low=0x85000000\0" \
+        "fdt_addr_r=0x82fd0000\0" \
+        "scriptaddr=0x82fe0000\0" \
+        "pxefile_addr_r=0x82ff0000\0" \
+        "bootm_low=0x83000000\0" \
         "bootm_size=0x02000000\0" \
-        "initrd_high=no\0" \
+        "ramdisk_addr_r=0x85000000\0" \
+        "initrd_high=0xffffffffffffffff\0" \
         BOOTENV
 
 #endif /* __CONFIG_H */

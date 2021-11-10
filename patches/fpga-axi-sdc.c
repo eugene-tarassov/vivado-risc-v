@@ -405,10 +405,18 @@ static int axi_sdc_probe(struct platform_device * pdev) {
         return ret;
     }
 
+    ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32));
+    if (ret) {
+        printk(KERN_ERR "AXI-SDC: Can't set DMA mask\n");
+        mmc_free_host(mmc);
+        return ret;
+    }
+
     sdc_reset(mmc);
 
     ret = mmc_add_host(mmc);
     if (ret) {
+        printk(KERN_ERR "AXI-SDC: Can't register device\n");
         mmc_free_host(mmc);
         return ret;
     }

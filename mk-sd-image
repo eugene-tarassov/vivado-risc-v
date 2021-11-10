@@ -4,16 +4,24 @@ set -e
 cd -P `dirname $0`
 
 SD_SIZE=1500
+SD_BOOT_SIZE=64
+SD_SWAP_SIZE=
 SD_IMG=debian-riscv64/debian-riscv64.sd.img
 RSYNC_BOOT=
 
-while getopts r:s:i: name ; do
+while getopts r:s:b:p:i: name ; do
   case $name in
   r)
     RSYNC_BOOT=$OPTARG
     ;;
   s)
     SD_SIZE=$OPTARG
+    ;;
+  b)
+    SD_BOOT_SIZE=$OPTARG
+    ;;
+  p)
+    SD_SWAP_SIZE=$OPTARG
     ;;
   i)
     SD_IMG=$OPTARG
@@ -66,7 +74,7 @@ done
 echo "SD image device: ${SD_LOOP}"
 
 sudo sfdisk --no-tell-kernel ${SD_LOOP} <<-__EOF__
-1M,400M,0xE,*
+1M,${SD_BOOT_SIZE}M,0xE,*
 ,,,-
 __EOF__
 
@@ -83,7 +91,7 @@ default Debain $KERNEL_VER
 label Debain $KERNEL_VER
  kernel /extlinux/image-$KERNEL_VER
  initrd /extlinux/initrd-$KERNEL_VER.img
- append ro root=UUID=$UUID earlycon initramfs.runsize=24M LANG=en_US.UTF-8
+ append ro root=UUID=$UUID earlycon initramfs.runsize=24M locale.LANG=en_US.UTF-8
 EOF
 
 mkdir -p debian-riscv64/boot
@@ -93,16 +101,22 @@ sudo mount ${SD_LOOP}p1 debian-riscv64/boot
 sudo mount ${SD_LOOP}p2 debian-riscv64/rootfs
 
 pushd debian-riscv64/rootfs
-sudo tar xzf ../rootfs.tar.gz
+  if [ -z "$SD_SWAP_SIZE" ] ; then
+    sudo tar xzf ../rootfs.tar.gz
+  else
+    sudo tar --exclude=swapfile -xzf ../rootfs.tar.gz
+    sudo fallocate -l ${SD_SWAP_SIZE}M swapfile
+    sudo chmod 600 swapfile
+    sudo mkswap swapfile
+  fi
 popd
 
 pushd debian-riscv64/boot
-sudo mkdir extlinux
-sudo cp ../extlinux.conf extlinux
-sudo cp ../initrd extlinux/initrd-$KERNEL_VER.img
-sudo cp ../../linux-stable/vmlinux extlinux/vmlinux-$KERNEL_VER
-sudo cp ../../linux-stable/arch/riscv/boot/Image extlinux/image-$KERNEL_VER
-sudo cp ../../workspace/boot.elf boot.elf
+  sudo mkdir extlinux
+  sudo cp ../extlinux.conf extlinux
+  sudo cp ../initrd extlinux/initrd-$KERNEL_VER.img
+  sudo cp ../../linux-stable/arch/riscv/boot/Image extlinux/image-$KERNEL_VER
+  sudo cp ../../workspace/boot.elf boot.elf
 popd
 
 sudo chown root:root debian-riscv64/rootfs
@@ -130,6 +144,6 @@ sync
 
 sudo umount ${SD_LOOP}p1
 sudo umount ${SD_LOOP}p2
-sudo fsck -f -p -T ${SD_LOOP}p1
+sudo fsck -f -p -T ${SD_LOOP}p1 || true
 sudo fsck -f -p -T ${SD_LOOP}p2
 sudo losetup -d ${SD_LOOP}

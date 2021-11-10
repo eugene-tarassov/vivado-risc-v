@@ -10,8 +10,17 @@ if {[string equal [get_filesets -quiet sources_1] ""]} {
   create_fileset -srcset sources_1
 }
 
+# Create 'constrs_1' fileset (if not found)
+if {[string equal [get_filesets -quiet constrs_1] ""]} {
+  create_fileset -constrset constrs_1
+}
+
 # Set 'sources_1' fileset object
 set source_fileset [get_filesets sources_1]
+
+# Set 'constrs_1' fileset object
+set constraint_fileset [get_filesets constrs_1]
+
 set files [list \
  [file normalize "rocket.vhdl"] \
  [file normalize "srams.v"] \
@@ -33,23 +42,21 @@ set files [list \
 ]
 add_files -norecurse -fileset $source_fileset $files
 
-# Create 'constrs_1' fileset (if not found)
-if {[string equal [get_filesets -quiet constrs_1] ""]} {
-  create_fileset -constrset constrs_1
-}
-
-# Set 'constrs_1' fileset object
-set constraint_fileset [get_filesets constrs_1]
 # Note: top.xdc must be first - other files depend on clocks defined in top.xdc
 set files [list \
  [file normalize ../../board/${vivado_board_name}/top.xdc] \
  [file normalize ../../board/${vivado_board_name}/sdc.xdc] \
  [file normalize ../../board/${vivado_board_name}/uart.xdc] \
- [file normalize ../../board/timing-constraints.tcl] \
 ]
 add_files -norecurse -fileset $constraint_fileset $files
 
 source ../../board/${vivado_board_name}/ethernet-${vivado_board_name}.tcl
+
+# Note: timing-constraints.tcl must be last
+set files [list \
+ [file normalize ../../board/timing-constraints.tcl] \
+]
+add_files -norecurse -fileset $constraint_fileset $files
 
 # Set file properties
 
@@ -84,7 +91,9 @@ validate_bd_design
 regenerate_bd_layout
 save_bd_design
 
-make_wrapper -files [get_files riscv.bd] -top
-add_files -norecurse [file normalize vivado-${vivado_board_name}-riscv/${vivado_board_name}-riscv.srcs/sources_1/bd/riscv/hdl/riscv_wrapper.v ]
+if { [get_files -quiet -of_objects $source_fileset [list "*/riscv_wrapper.v"]] == "" } {
+  make_wrapper -files [get_files riscv.bd] -top
+  add_files -norecurse [file normalize vivado-${vivado_board_name}-riscv/${vivado_board_name}-riscv.srcs/sources_1/bd/riscv/hdl/riscv_wrapper.v ]
+}
 set_property top riscv_wrapper $source_fileset
 update_compile_order -fileset $source_fileset

@@ -86,10 +86,12 @@ struct eth_pkt_regs {
 #define NIC_CAPABILITY_BURST    0x000f
 #define NIC_CAPABILITY_RING     0x00f0
 #define NIC_CAPABILITY_MDIO     0x0100
+#define NIC_CAPABILITY_ADDR     0xfc00
 
 struct axi_eth_ring_item {
     struct sk_buff * skb;
     dma_addr_t dma_addr;
+    unsigned dma_size;
 };
 
 struct axi_eth_stats {
@@ -251,7 +253,7 @@ static void axi_eth_rx_done(struct net_device * net_dev, struct axi_eth_ring_ite
     struct axi_eth_priv * priv = netdev_priv(net_dev);
     struct sk_buff * skb = i->skb;
     uint32_t status = priv->rx_pkt_regs[priv->rx_out].status;
-    dma_unmap_single(&priv->pdev->dev, i->dma_addr, net_dev->mtu + ETH_HLEN, DMA_FROM_DEVICE);
+    dma_unmap_single(&priv->pdev->dev, i->dma_addr, i->dma_size, DMA_FROM_DEVICE);
     if (status & 1) {
         dev_kfree_skb_any(skb);
         net_dev->stats.rx_dropped++;
@@ -282,33 +284,40 @@ static void axi_eth_tx_done(struct net_device * net_dev, struct axi_eth_ring_ite
     priv->tx_stats.bytes += skb->len;
     u64_stats_update_end(&priv->tx_stats.syncp);
     dev_consume_skb_any(skb);
-    dma_unmap_single(&priv->pdev->dev, i->dma_addr, skb->len, DMA_TO_DEVICE);
+    dma_unmap_single(&priv->pdev->dev, i->dma_addr, i->dma_size, DMA_TO_DEVICE);
     i->skb = NULL;
 }
 
 static netdev_tx_t axi_eth_xmit(struct sk_buff * skb, struct net_device * net_dev) {
     struct axi_eth_priv * priv = netdev_priv(net_dev);
+    const char * err = NULL;
+    unsigned pkt_size = 0;
     dma_addr_t dma_addr;
-    int drop = 0;
-
-    if (skb->len < ETH_ZLEN && skb_padto(skb, ETH_ZLEN)) {
-        netdev_err(net_dev, "Padding error\n");
-        dev_kfree_skb_any(skb);
-        drop = 1;
-    }
-    else {
-        dma_addr = dma_map_single(&priv->pdev->dev, skb->data, skb->len, DMA_TO_DEVICE);
-        if (dma_mapping_error(&priv->pdev->dev, dma_addr)) {
-            netdev_err(net_dev, "DMA mapping error\n");
-            dev_kfree_skb_any(skb);
-            drop = 1;
-        }
-    }
 
     spin_lock_irq(&priv->lock);
 
-    if (drop) {
+    if (skb->len < ETH_ZLEN && skb_padto(skb, ETH_ZLEN)) {
+        err = "Padding error\n";
+    }
+    else if (skb->len > 0x3fff) {
+        err = "Packet too large\n";
+    }
+    else if (skb->data_len > 0) {
+        /* If there are page buffers, the total number of bytes in the page buffer area is 'data_len' */
+        err = "Paging error\n";
+    }
+    else {
+        pkt_size = skb->len;
+        dma_addr = dma_map_single(&priv->pdev->dev, skb->data, pkt_size, DMA_TO_DEVICE);
+        if (dma_mapping_error(&priv->pdev->dev, dma_addr)) {
+            err = "DMA mapping error\n";
+        }
+    }
+
+    if (err) {
         net_dev->stats.tx_dropped++;
+        netdev_err(net_dev, err);
+        dev_kfree_skb_any(skb);
     }
     else {
         uint32_t tx_next = (priv->tx_inp + 1) & AXI_ETH_RING_MASK;
@@ -323,11 +332,10 @@ static netdev_tx_t axi_eth_xmit(struct sk_buff * skb, struct net_device * net_de
         skb_tx_timestamp(skb);
 
         i->skb = skb;
+        i->dma_size = pkt_size;
         i->dma_addr = dma_addr;
-        priv->tx_pkt_regs[priv->tx_inp].addr = i->dma_addr;
-        priv->tx_pkt_regs[priv->tx_inp].size = skb->len;
-
-        wmb();
+        priv->tx_pkt_regs[priv->tx_inp].addr = i->dma_addr; wmb();
+        priv->tx_pkt_regs[priv->tx_inp].size = i->dma_size | ((i->dma_addr >> 32) << 16); wmb();
         priv->regs->tx_inp = priv->tx_inp = tx_next;
 
         if (tx_ring_free(priv) == 0) netif_stop_queue(net_dev);
@@ -361,19 +369,22 @@ static void axi_eth_get_stats64(struct net_device * net_dev, struct rtnl_link_st
 
 static void axi_eth_add_rx_buffers(struct net_device * net_dev) {
     struct axi_eth_priv * priv = netdev_priv(net_dev);
+    unsigned pkt_size = net_dev->mtu + ETH_HLEN;
+    if (pkt_size > 0x3fff) pkt_size = 0x3fff;
     for (;;) {
         struct axi_eth_ring_item * i;
         struct sk_buff * skb;
         uint32_t rx_next = (priv->rx_inp + 1) & AXI_ETH_RING_MASK;
         if (rx_next == priv->rx_out) break;
         i = priv->rx_ring + priv->rx_inp;
-        skb = netdev_alloc_skb_ip_align(net_dev, net_dev->mtu + ETH_HLEN);
+        skb = netdev_alloc_skb_ip_align(net_dev, pkt_size);
         if (!skb) {
             netdev_err(net_dev, "Cannot allocate DMA buffer\n");
             net_dev->stats.rx_errors++;
             return;
         }
-        i->dma_addr = dma_map_single(&priv->pdev->dev, skb->data, net_dev->mtu + ETH_HLEN, DMA_FROM_DEVICE);
+        i->dma_size = pkt_size;
+        i->dma_addr = dma_map_single(&priv->pdev->dev, skb->data, pkt_size, DMA_FROM_DEVICE);
         if (dma_mapping_error(&priv->pdev->dev, i->dma_addr)) {
             netdev_err(net_dev, "DMA mapping error\n");
             net_dev->stats.rx_errors++;
@@ -381,8 +392,8 @@ static void axi_eth_add_rx_buffers(struct net_device * net_dev) {
             return;
         }
         i->skb = skb;
-        priv->rx_pkt_regs[priv->rx_inp].addr = i->dma_addr;
-        priv->rx_pkt_regs[priv->rx_inp].size = net_dev->mtu + ETH_HLEN;
+        priv->rx_pkt_regs[priv->rx_inp].addr = i->dma_addr; wmb();
+        priv->rx_pkt_regs[priv->rx_inp].size = i->dma_size | ((i->dma_addr >> 32) << 16); wmb();
         priv->regs->rx_inp = priv->rx_inp = rx_next;
     }
 }
@@ -403,7 +414,7 @@ static int axi_eth_change_mtu(struct net_device * net_dev, int new_mtu) {
             struct sk_buff * skb = i->skb;
             if (skb) {
                 dev_kfree_skb_any(skb);
-                dma_unmap_single(&priv->pdev->dev, i->dma_addr, net_dev->mtu + ETH_HLEN, DMA_FROM_DEVICE);
+                dma_unmap_single(&priv->pdev->dev, i->dma_addr, i->dma_size, DMA_FROM_DEVICE);
                 i->skb = NULL;
             }
             priv->rx_out = (priv->rx_out + 1) & AXI_ETH_RING_MASK;
@@ -544,7 +555,7 @@ static int axi_eth_dev_close(struct net_device * net_dev) {
         struct sk_buff * skb = i->skb;
         if (skb) {
             dev_kfree_skb_any(skb);
-            dma_unmap_single(&priv->pdev->dev, i->dma_addr, net_dev->mtu + ETH_HLEN, DMA_FROM_DEVICE);
+            dma_unmap_single(&priv->pdev->dev, i->dma_addr, i->dma_size, DMA_FROM_DEVICE);
             i->skb = NULL;
         }
         priv->rx_out = (priv->rx_out + 1) & AXI_ETH_RING_MASK;
@@ -629,6 +640,7 @@ static int axi_eth_probe(struct platform_device * pdev) {
     struct axi_eth_priv * priv = NULL;
     struct resource * iomem;
     void __iomem * ioaddr;
+    uint32_t capability;
     int err = -ENOMEM;
     const u8 * maddr;
     int len;
@@ -671,7 +683,17 @@ static int axi_eth_probe(struct platform_device * pdev) {
         goto out;
     }
 
-    if (priv->regs->capability & NIC_CAPABILITY_MDIO) {
+    capability = priv->regs->capability;
+    if (capability & NIC_CAPABILITY_ADDR) {
+        unsigned addr_bits = (capability & NIC_CAPABILITY_ADDR) >> __builtin_ctz(NIC_CAPABILITY_ADDR);
+        err = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(addr_bits));
+        if (err) {
+            printk(KERN_ERR "AXI-ETH: Can't set DMA mask\n");
+            goto out;
+        }
+    }
+
+    if (capability & NIC_CAPABILITY_MDIO) {
         err = axi_eth_mdio_register(priv);
         if (err) {
             printk(KERN_ERR "AXI-ETH: Can't register MDIO bus\n");
