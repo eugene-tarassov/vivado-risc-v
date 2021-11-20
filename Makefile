@@ -1,3 +1,18 @@
+# --- configuration ---
+
+ifneq (,$(wildcard workspace/config))
+include workspace/config
+endif
+
+BOARD ?= nexys-video
+CONFIG ?= rocket64b2
+HW_SERVER_URL ?= localhost:3121
+JAVA_OPTIONS ?=
+
+include board/$(BOARD)/Makefile.inc
+
+# --- packages and repos ---
+
 apt-install:
 	sudo apt update
 	sudo apt upgrade
@@ -38,7 +53,6 @@ debian-riscv64/rootfs.tar.gz:
 	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/37912707 \
 	  -o $@
 
-
 # --- build Linux kernel ---
 
 linux: linux-stable/arch/riscv/boot/Image
@@ -59,6 +73,9 @@ linux-stable/arch/riscv/boot/Image: linux-patch
 
 # --- build U-Boot ---
 
+ROOTFS ?= SD
+ROOTFS_URL ?= 192.168.0.100:/home/nfsroot/192.168.0.243
+
 u-boot: u-boot/u-boot-nodtb.bin
 
 U_BOOT_SRC = $(wildcard patches/u-boot/*/*) \
@@ -71,10 +88,19 @@ u-boot-patch: $(U_BOOT_SRC)
 	cp -r patches/u-boot/vivado_riscv64 u-boot/board/xilinx
 	cp patches/u-boot/vivado_riscv64_defconfig u-boot/configs
 	cp patches/u-boot/vivado_riscv64.h u-boot/include/configs
+ifeq ($(ROOTFS),NFS)
+	echo 'CONFIG_BOOTDELAY=0' >>u-boot/configs/vivado_riscv64_defconfig
+	echo 'CONFIG_USE_BOOTARGS=y' >>u-boot/configs/vivado_riscv64_defconfig
+	echo 'CONFIG_BOOTCOMMAND="booti ${kernel_addr_r} - ${fdt_addr}"' >>u-boot/configs/vivado_riscv64_defconfig
+	echo 'CONFIG_BOOTARGS="root=/dev/nfs rootfstype=nfs rw nfsroot='$(ROOTFS_URL)',nolock,vers=4,tcp ip=dhcp earlycon console=ttyAU0,115200n8 locale.LANG=en_US.UTF-8"' >>u-boot/configs/vivado_riscv64_defconfig
+else ifeq ($(JTAG_BOOT),1)
+	echo 'CONFIG_BOOTCOMMAND="booti ${kernel_addr_r} ${ramdisk_addr_r} ${fdt_addr}"' >>u-boot/configs/vivado_riscv64_defconfig
+endif
 
 u-boot/u-boot-nodtb.bin: u-boot-patch $(U_BOOT_SRC)
-	make -C u-boot CROSS_COMPILE=$(CROSS_COMPILE_LINUX) vivado_riscv64_config
+	make -C u-boot CROSS_COMPILE=$(CROSS_COMPILE_LINUX) BOARD=vivado_riscv64 vivado_riscv64_config
 	make -C u-boot \
+	  BOARD=vivado_riscv64 \
 	  CC=$(CROSS_COMPILE_LINUX)gcc-8 \
 	  CROSS_COMPILE=$(CROSS_COMPILE_LINUX) \
 	  KCFLAGS='-O1 -gno-column-info' \
@@ -98,17 +124,15 @@ opensbi/build/platform/vivado-risc-v/firmware/fw_payload.elf: $(wildcard patches
 
 # --- generate HDL ---
 
-BOARD ?= nexys-video
-CONFIG ?= rocket64b2
 CONFIG_SCALA := $(subst rocket,Rocket,$(CONFIG))
-JAVA_OPTIONS =
-
-include board/$(BOARD)/Makefile.inc
 
 # valid ROCKET_FREQ_MHZ values (MHz): 160 125 100 80 62.5 50 40 31.25 25 20
 ROCKET_FREQ_MHZ ?= $(shell awk '$$3 != "" && "$(BOARD)" ~ $$1 && "$(CONFIG_SCALA)" ~ ("^" $$2 "$$") {print $$3; exit}' board/rocket-freq)
+
 ROCKET_CLOCK_FREQ := $(shell echo - | awk '{printf("%.0f\n", $(ROCKET_FREQ_MHZ) * 1000000)}')
 ROCKET_TIMEBASE_FREQ := $(shell echo - | awk '{printf("%.0f\n", $(ROCKET_FREQ_MHZ) * 10000)}')
+
+MEMORY_SIZE ?= 0x40000000
 
 ifneq ($(findstring Rocket32t,$(CONFIG_SCALA)),)
   CROSS_COMPILE_NO_OS_TOOLS = $(realpath workspace/gcc/riscv/bin)/riscv32-unknown-elf-
@@ -213,8 +237,10 @@ proj_name = $(BOARD)-riscv
 proj_path = workspace/$(CONFIG)/vivado-$(proj_name)
 proj_file = $(proj_path)/$(proj_name).xpr
 proj_time = $(proj_path)/timestamp.txt
+synthesis = $(proj_path)/$(proj_name).runs/synth_1/riscv_wrapper.dcp
 bitstream = $(proj_path)/$(proj_name).runs/impl_1/riscv_wrapper.bit
 mcs_file  = workspace/$(CONFIG)/$(proj_name).mcs
+prm_file  = workspace/$(CONFIG)/$(proj_name).prm
 vivado    = env XILINX_LOCAL_USER_DATA=no vivado -mode batch -nojournal -nolog -notrace -quiet
 
 workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl
@@ -236,25 +262,96 @@ vivado-project: $(proj_time)
 
 # --- generate FPGA bitstream ---
 
-# Multi-threading appears broken in Vivado.
-# It causes intermittent failures.
+# Multi-threading appears broken in Vivado. It causes intermittent failures.
 MAX_THREADS ?= 1
 
-$(bitstream): $(proj_time)
+$(synthesis): $(proj_time)
+	echo "open_project $(proj_file)" >$(proj_path)/make-synthesis.tcl
+	echo "update_compile_order -fileset sources_1" >>$(proj_path)/make-synthesis.tcl
+	echo "set_param general.maxThreads $(MAX_THREADS)" >>$(proj_path)/make-synthesis.tcl
+	echo "reset_run synth_1" >>$(proj_path)/make-synthesis.tcl
+	echo "launch_runs -jobs $(MAX_THREADS) synth_1" >>$(proj_path)/make-synthesis.tcl
+	echo "wait_on_run synth_1" >>$(proj_path)/make-synthesis.tcl
+	$(vivado) -source $(proj_path)/make-synthesis.tcl
+	if find $(proj_path) -name "*.log" -exec cat {} \; | grep 'ERROR: ' ; then exit 1 ; fi
+
+$(bitstream): $(synthesis)
 	echo "open_project $(proj_file)" >$(proj_path)/make-bitstream.tcl
-	echo "update_compile_order -fileset sources_1" >>$(proj_path)/make-bitstream.tcl
 	echo "set_param general.maxThreads $(MAX_THREADS)" >>$(proj_path)/make-bitstream.tcl
-	echo "launch_runs impl_1 -to_step write_bitstream -jobs $(MAX_THREADS)" >>$(proj_path)/make-bitstream.tcl
+	echo "reset_run impl_1" >>$(proj_path)/make-bitstream.tcl
+	echo "launch_runs -to_step write_bitstream -jobs $(MAX_THREADS) impl_1" >>$(proj_path)/make-bitstream.tcl
 	echo "wait_on_run impl_1" >>$(proj_path)/make-bitstream.tcl
 	$(vivado) -source $(proj_path)/make-bitstream.tcl
 	if find $(proj_path) -name "*.log" -exec cat {} \; | grep 'ERROR: ' ; then exit 1 ; fi
 
-$(mcs_file): $(bitstream)
+$(mcs_file) $(prm_file): $(bitstream) workspace/boot.elf
 	echo "open_project $(proj_file)" >$(proj_path)/make-mcs.tcl
-	echo "write_cfgmem -format mcs -interface $(CFG_DEVICE) -loadbit \"up 0x0 $(bitstream)\" -file $(mcs_file) -force" >>$(proj_path)/make-mcs.tcl
+	echo "write_cfgmem -format mcs -interface $(CFG_DEVICE) -loadbit {up 0x0 $(bitstream)} $(CFG_BOOT) -file $(mcs_file) -force" >>$(proj_path)/make-mcs.tcl
 	$(vivado) -source $(proj_path)/make-mcs.tcl
 
 bitstream: $(bitstream) $(mcs_file)
+
+# --- program flash memory ---
+
+# Note: Vivado flash programming appears unstable when JTAG clock frequency is higher than 15MHz
+flash: $(mcs_file) $(prm_file)
+	echo "open_hw_manager" >$(proj_path)/flash.tcl
+	echo "connect_hw_server -url $(HW_SERVER_URL)" >>$(proj_path)/flash.tcl
+	echo "open_hw_target" >>$(proj_path)/flash.tcl
+	echo "current_hw_device [lindex [get_hw_devices] 0]" >>$(proj_path)/flash.tcl
+	echo "refresh_hw_device -update_hw_probes false [current_hw_device]" >>$(proj_path)/flash.tcl
+	echo "create_hw_cfgmem -hw_device [current_hw_device] [lindex [get_cfgmem_parts {$(CFG_PART)}] 0]" >>$(proj_path)/flash.tcl
+	echo "current_hw_cfgmem -hw_device [current_hw_device] [get_property PROGRAM.HW_CFGMEM [current_hw_device]]" >>$(proj_path)/flash.tcl
+	echo "set_property PROGRAM.FILES [list {$(mcs_file)}] [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
+	echo "set_property PROGRAM.PRM_FILE {$(prm_file)} [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
+	echo "set_property PROGRAM.ERASE 1 [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
+	echo "set_property PROGRAM.BLANK_CHECK 1 [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
+	echo "set_property PROGRAM.CFG_PROGRAM 1 [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
+	echo "set_property PROGRAM.VERIFY 1 [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
+	echo "set_property PROGRAM.CHECKSUM 0 [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
+	echo "set_property PROGRAM.ADDRESS_RANGE {use_file} [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
+	echo "set_property PROGRAM.UNUSED_PIN_TERMINATION {pull-none} [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
+	echo "create_hw_bitstream -hw_device [current_hw_device] [get_property PROGRAM.HW_CFGMEM_BITFILE [current_hw_device]]" >>$(proj_path)/flash.tcl
+	echo "program_hw_devices [current_hw_device]" >>$(proj_path)/flash.tcl
+	echo "refresh_hw_device [current_hw_device]" >>$(proj_path)/flash.tcl
+	echo "program_hw_cfgmem -hw_cfgmem [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
+	echo "boot_hw_device [current_hw_device]" >>$(proj_path)/flash.tcl
+	$(vivado) -source $(proj_path)/flash.tcl
+
+# --- program FPGA and boot Linux ---
+
+debian-riscv64/ramdisk: debian-riscv64/initrd
+ifeq ($(ROOTFS),NFS)
+	mkdir -p debian-riscv64
+	rm -f debian-riscv64/ramdisk
+	dd if=/dev/zero of=debian-riscv64/ramdisk bs=32 count=1
+else ifeq ($(JTAG_BOOT),1)
+	mkimage -A riscv -T ramdisk -C gzip -d debian-riscv64/initrd debian-riscv64/ramdisk
+else
+	echo "JTAG boot requires either ROOTFS=NFS or JTAG_BOOT=1" && exit 1
+endif
+
+jtag-boot: $(bitstream) linux-stable/arch/riscv/boot/Image debian-riscv64/ramdisk workspace/boot.elf 
+	echo "connect -url tcp:$(HW_SERVER_URL)" >$(proj_path)/jtag-boot.tcl
+	echo "targets -set -filter {name =~ \"x*\"}" >>$(proj_path)/jtag-boot.tcl
+	echo "puts {Downloading bitstream}" >>$(proj_path)/jtag-boot.tcl
+	echo "fpga $(bitstream)" >>$(proj_path)/jtag-boot.tcl
+	echo "targets -set -filter {name =~ \"Hart #0*\"}" >>$(proj_path)/jtag-boot.tcl
+	echo "stop" >>$(proj_path)/jtag-boot.tcl
+	echo "targets -set -filter {name =~ \"RISC-V\"}" >>$(proj_path)/jtag-boot.tcl
+	echo "puts {Downloading Linux image}" >>$(proj_path)/jtag-boot.tcl
+	echo "dow -data linux-stable/arch/riscv/boot/Image 0x81000000" >>$(proj_path)/jtag-boot.tcl
+	echo "puts {Downloading ramdisk}" >>$(proj_path)/jtag-boot.tcl
+	echo "dow -data debian-riscv64/ramdisk 0x85000000" >>$(proj_path)/jtag-boot.tcl
+	echo "targets -set -filter {name =~ \"Hart #0*\"}" >>$(proj_path)/jtag-boot.tcl
+	echo "puts {Downloading boot.elf}" >>$(proj_path)/jtag-boot.tcl
+	echo "dow -clear workspace/boot.elf" >>$(proj_path)/jtag-boot.tcl
+	echo "rwr a0 0" >>$(proj_path)/jtag-boot.tcl
+	echo "rwr a1 0x10080" >>$(proj_path)/jtag-boot.tcl
+	echo "rwr s0 0x80000000" >>$(proj_path)/jtag-boot.tcl
+	echo "puts {Starting CPU}" >>$(proj_path)/jtag-boot.tcl
+	echo "con" >>$(proj_path)/jtag-boot.tcl
+	xsdb -quiet $(proj_path)/jtag-boot.tcl
 
 # --- launch Vivado GUI ---
 
