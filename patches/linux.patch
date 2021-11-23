@@ -1,8 +1,8 @@
 diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 4f7b70ae7c31..907e88fe3790 100644
+index f076cee11af6..15ceee7070fc 100644
 --- a/arch/riscv/Kconfig
 +++ b/arch/riscv/Kconfig
-@@ -239,7 +239,6 @@ config ARCH_RV64I
+@@ -248,7 +248,6 @@ config ARCH_RV64I
  	select HAVE_FTRACE_MCOUNT_RECORD if !XIP_KERNEL
  	select HAVE_FUNCTION_GRAPH_TRACER
  	select HAVE_FUNCTION_TRACER if !XIP_KERNEL
@@ -11,7 +11,7 @@ index 4f7b70ae7c31..907e88fe3790 100644
  endchoice
  
 diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
-index 71313961cc54..687f2ac1d373 100644
+index ccc148cdb5ee..73e09e8ae7fa 100644
 --- a/drivers/mmc/host/Kconfig
 +++ b/drivers/mmc/host/Kconfig
 @@ -1081,6 +1081,14 @@ config MMC_SDHCI_AM654
@@ -42,10 +42,10 @@ index 14004cc09aaa..3f38369d0ea4 100644
  
  obj-$(CONFIG_MMC_REALTEK_PCI)	+= rtsx_pci_sdmmc.o
 diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
-index 1cdff1dca790..215c699b8374 100644
+index 412ae3e43ffb..ae6e8ed52da4 100644
 --- a/drivers/net/ethernet/Kconfig
 +++ b/drivers/net/ethernet/Kconfig
-@@ -155,6 +155,14 @@ config ETHOC
+@@ -157,6 +157,14 @@ config ETHOC
  	help
  	  Say Y here if you want to use the OpenCores 10/100 Mbps Ethernet MAC.
  
@@ -61,10 +61,10 @@ index 1cdff1dca790..215c699b8374 100644
  source "drivers/net/ethernet/pasemi/Kconfig"
  source "drivers/net/ethernet/pensando/Kconfig"
 diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
-index cb3f9084a21b..d0832402daa8 100644
+index aaa5078cd7d1..a92959ca91cb 100644
 --- a/drivers/net/ethernet/Makefile
 +++ b/drivers/net/ethernet/Makefile
-@@ -68,6 +68,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
+@@ -69,6 +69,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
  obj-$(CONFIG_LPC_ENET) += nxp/
  obj-$(CONFIG_NET_VENDOR_OKI) += oki-semi/
  obj-$(CONFIG_ETHOC) += ethoc.o
@@ -73,7 +73,7 @@ index cb3f9084a21b..d0832402daa8 100644
  obj-$(CONFIG_NET_VENDOR_PASEMI) += pasemi/
  obj-$(CONFIG_NET_VENDOR_QLOGIC) += qlogic/
 diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index 24282ad99d85..91dc9790a5bb 100644
+index 131a6a587acd..3b9490af2f33 100644
 --- a/drivers/tty/serial/Kconfig
 +++ b/drivers/tty/serial/Kconfig
 @@ -536,6 +536,32 @@ config SERIAL_UARTLITE_NR_UARTS
