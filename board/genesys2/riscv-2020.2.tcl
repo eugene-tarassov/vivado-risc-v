@@ -40,7 +40,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following
 # module references:
-# $rocket_module_name, synchronizer, ethernet, sdc_controller, uart, ethernet_genesys2
+# $rocket_module_name, synchronizer, mem_reset_control, ethernet, sdc_controller, uart, ethernet_genesys2
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
