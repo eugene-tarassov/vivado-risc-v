@@ -6,7 +6,7 @@ endif
 
 BOARD ?= nexys-video
 CONFIG ?= rocket64b2
-HW_SERVER_URL ?= localhost:3121
+HW_SERVER_ADDR ?= localhost:3121
 JAVA_OPTIONS ?=
 
 include board/$(BOARD)/Makefile.inc
@@ -55,16 +55,18 @@ debian-riscv64/rootfs.tar.gz:
 
 # --- build Linux kernel ---
 
+.PHONY: linux linux-patch
+
 linux: linux-stable/arch/riscv/boot/Image
 
 CROSS_COMPILE_LINUX = /usr/bin/riscv64-linux-gnu-
 
 linux-patch: patches/linux.patch patches/fpga-axi-sdc.c patches/fpga-axi-eth.c patches/linux.config
 	cd linux-stable && ( git apply -R --check ../patches/linux.patch 2>/dev/null || git apply ../patches/linux.patch )
-	cp patches/fpga-axi-eth.c  linux-stable/drivers/net/ethernet
-	cp patches/fpga-axi-sdc.c  linux-stable/drivers/mmc/host
-	cp patches/fpga-axi-uart.c linux-stable/drivers/tty/serial
-	cp patches/linux.config linux-stable/.config
+	cp -p patches/fpga-axi-eth.c  linux-stable/drivers/net/ethernet
+	cp -p patches/fpga-axi-sdc.c  linux-stable/drivers/mmc/host
+	cp -p patches/fpga-axi-uart.c linux-stable/drivers/tty/serial
+	cp -p patches/linux.config linux-stable/.config
 
 linux-stable/arch/riscv/boot/Image: linux-patch
 	make -C linux-stable ARCH=riscv CROSS_COMPILE=$(CROSS_COMPILE_LINUX) oldconfig
@@ -76,6 +78,8 @@ linux-stable/arch/riscv/boot/Image: linux-patch
 ROOTFS ?= SD
 ROOTFS_URL ?= 192.168.0.100:/home/nfsroot/192.168.0.243
 
+.PHONY: u-boot u-boot-patch
+
 u-boot: u-boot/u-boot-nodtb.bin
 
 U_BOOT_SRC = $(wildcard patches/u-boot/*/*) \
@@ -83,19 +87,22 @@ U_BOOT_SRC = $(wildcard patches/u-boot/*/*) \
   patches/u-boot/vivado_riscv64.h \
   patches/u-boot.patch
 
-u-boot-patch: $(U_BOOT_SRC)
-	cd u-boot && ( git apply -R --check ../patches/u-boot.patch 2>/dev/null || git apply ../patches/u-boot.patch )
-	cp -r patches/u-boot/vivado_riscv64 u-boot/board/xilinx
+u-boot/configs/vivado_riscv64_defconfig: patches/u-boot/vivado_riscv64_defconfig Makefile
 	cp patches/u-boot/vivado_riscv64_defconfig u-boot/configs
-	cp patches/u-boot/vivado_riscv64.h u-boot/include/configs
 ifeq ($(ROOTFS),NFS)
-	echo 'CONFIG_BOOTDELAY=0' >>u-boot/configs/vivado_riscv64_defconfig
 	echo 'CONFIG_USE_BOOTARGS=y' >>u-boot/configs/vivado_riscv64_defconfig
-	echo 'CONFIG_BOOTCOMMAND="booti ${kernel_addr_r} - ${fdt_addr}"' >>u-boot/configs/vivado_riscv64_defconfig
+	echo 'CONFIG_BOOTCOMMAND="booti $${kernel_addr_r} - $${fdt_addr}"' >>u-boot/configs/vivado_riscv64_defconfig
 	echo 'CONFIG_BOOTARGS="root=/dev/nfs rootfstype=nfs rw nfsroot='$(ROOTFS_URL)',nolock,vers=4,tcp ip=dhcp earlycon console=ttyAU0,115200n8 locale.LANG=en_US.UTF-8"' >>u-boot/configs/vivado_riscv64_defconfig
 else ifeq ($(JTAG_BOOT),1)
-	echo 'CONFIG_BOOTCOMMAND="booti ${kernel_addr_r} ${ramdisk_addr_r} ${fdt_addr}"' >>u-boot/configs/vivado_riscv64_defconfig
+	echo 'CONFIG_USE_BOOTARGS=y' >>u-boot/configs/vivado_riscv64_defconfig
+	echo 'CONFIG_BOOTCOMMAND="booti $${kernel_addr_r} $${ramdisk_addr_r} $${fdt_addr}"' >>u-boot/configs/vivado_riscv64_defconfig
+	echo 'CONFIG_BOOTARGS="ro root=UUID=68d82fa1-1bb5-435f-a5e3-862176586eec earlycon initramfs.runsize=24M locale.LANG=en_US.UTF-8"' >>u-boot/configs/vivado_riscv64_defconfig
 endif
+
+u-boot-patch: u-boot/configs/vivado_riscv64_defconfig
+	cd u-boot && ( git apply -R --check ../patches/u-boot.patch 2>/dev/null || git apply ../patches/u-boot.patch )
+	cp -p -r patches/u-boot/vivado_riscv64 u-boot/board/xilinx
+	cp -p patches/u-boot/vivado_riscv64.h u-boot/include/configs
 
 u-boot/u-boot-nodtb.bin: u-boot-patch $(U_BOOT_SRC)
 	make -C u-boot CROSS_COMPILE=$(CROSS_COMPILE_LINUX) BOARD=vivado_riscv64 vivado_riscv64_config
@@ -293,30 +300,14 @@ bitstream: $(bitstream) $(mcs_file)
 
 # --- program flash memory ---
 
-# Note: Vivado flash programming appears unstable when JTAG clock frequency is higher than 15MHz
 flash: $(mcs_file) $(prm_file)
-	echo "open_hw_manager" >$(proj_path)/flash.tcl
-	echo "connect_hw_server -url $(HW_SERVER_URL)" >>$(proj_path)/flash.tcl
-	echo "open_hw_target" >>$(proj_path)/flash.tcl
-	echo "current_hw_device [lindex [get_hw_devices] 0]" >>$(proj_path)/flash.tcl
-	echo "refresh_hw_device -update_hw_probes false [current_hw_device]" >>$(proj_path)/flash.tcl
-	echo "create_hw_cfgmem -hw_device [current_hw_device] [lindex [get_cfgmem_parts {$(CFG_PART)}] 0]" >>$(proj_path)/flash.tcl
-	echo "current_hw_cfgmem -hw_device [current_hw_device] [get_property PROGRAM.HW_CFGMEM [current_hw_device]]" >>$(proj_path)/flash.tcl
-	echo "set_property PROGRAM.FILES [list {$(mcs_file)}] [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
-	echo "set_property PROGRAM.PRM_FILE {$(prm_file)} [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
-	echo "set_property PROGRAM.ERASE 1 [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
-	echo "set_property PROGRAM.BLANK_CHECK 1 [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
-	echo "set_property PROGRAM.CFG_PROGRAM 1 [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
-	echo "set_property PROGRAM.VERIFY 1 [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
-	echo "set_property PROGRAM.CHECKSUM 0 [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
-	echo "set_property PROGRAM.ADDRESS_RANGE {use_file} [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
-	echo "set_property PROGRAM.UNUSED_PIN_TERMINATION {pull-none} [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
-	echo "create_hw_bitstream -hw_device [current_hw_device] [get_property PROGRAM.HW_CFGMEM_BITFILE [current_hw_device]]" >>$(proj_path)/flash.tcl
-	echo "program_hw_devices [current_hw_device]" >>$(proj_path)/flash.tcl
-	echo "refresh_hw_device [current_hw_device]" >>$(proj_path)/flash.tcl
-	echo "program_hw_cfgmem -hw_cfgmem [current_hw_cfgmem]" >>$(proj_path)/flash.tcl
-	echo "boot_hw_device [current_hw_device]" >>$(proj_path)/flash.tcl
-	$(vivado) -source $(proj_path)/flash.tcl
+	env HW_SERVER_URL=tcp:$(HW_SERVER_ADDR) \
+	 xsdb -quiet board/jtag-freq.tcl
+	env HW_SERVER_ADDR=$(HW_SERVER_ADDR) \
+	env CFG_PART=$(CFG_PART) \
+	env mcs_file=$(mcs_file) \
+	env prm_file=$(prm_file) \
+	 $(vivado) -source board/program-flash.tcl
 
 # --- program FPGA and boot Linux ---
 
@@ -331,27 +322,12 @@ else
 	echo "JTAG boot requires either ROOTFS=NFS or JTAG_BOOT=1" && exit 1
 endif
 
-jtag-boot: $(bitstream) linux-stable/arch/riscv/boot/Image debian-riscv64/ramdisk workspace/boot.elf 
-	echo "connect -url tcp:$(HW_SERVER_URL)" >$(proj_path)/jtag-boot.tcl
-	echo "targets -set -filter {name =~ \"x*\"}" >>$(proj_path)/jtag-boot.tcl
-	echo "puts {Downloading bitstream}" >>$(proj_path)/jtag-boot.tcl
-	echo "fpga $(bitstream)" >>$(proj_path)/jtag-boot.tcl
-	echo "targets -set -filter {name =~ \"Hart #0*\"}" >>$(proj_path)/jtag-boot.tcl
-	echo "stop" >>$(proj_path)/jtag-boot.tcl
-	echo "targets -set -filter {name =~ \"RISC-V\"}" >>$(proj_path)/jtag-boot.tcl
-	echo "puts {Downloading Linux image}" >>$(proj_path)/jtag-boot.tcl
-	echo "dow -data linux-stable/arch/riscv/boot/Image 0x81000000" >>$(proj_path)/jtag-boot.tcl
-	echo "puts {Downloading ramdisk}" >>$(proj_path)/jtag-boot.tcl
-	echo "dow -data debian-riscv64/ramdisk 0x85000000" >>$(proj_path)/jtag-boot.tcl
-	echo "targets -set -filter {name =~ \"Hart #0*\"}" >>$(proj_path)/jtag-boot.tcl
-	echo "puts {Downloading boot.elf}" >>$(proj_path)/jtag-boot.tcl
-	echo "dow -clear workspace/boot.elf" >>$(proj_path)/jtag-boot.tcl
-	echo "rwr a0 0" >>$(proj_path)/jtag-boot.tcl
-	echo "rwr a1 0x10080" >>$(proj_path)/jtag-boot.tcl
-	echo "rwr s0 0x80000000" >>$(proj_path)/jtag-boot.tcl
-	echo "puts {Starting CPU}" >>$(proj_path)/jtag-boot.tcl
-	echo "con" >>$(proj_path)/jtag-boot.tcl
-	xsdb -quiet $(proj_path)/jtag-boot.tcl
+jtag-boot: $(bitstream) linux-stable/arch/riscv/boot/Image debian-riscv64/ramdisk workspace/boot.elf
+	env HW_SERVER_URL=tcp:$(HW_SERVER_ADDR) \
+	 xsdb -quiet board/jtag-freq.tcl
+	env BITSTREAM=$(bitstream) \
+	env HW_SERVER_URL=tcp:$(HW_SERVER_ADDR) \
+	 xsdb -quiet board/jtag-boot.tcl
 
 # --- launch Vivado GUI ---
 
