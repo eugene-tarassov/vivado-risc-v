@@ -224,7 +224,7 @@ proc write_mig_file_riscv_mig_7series_0_0 { str_mig_prj_filepath } {
    puts $mig_prj_file {  <dci_cascade>0</dci_cascade>}
    puts $mig_prj_file {  <Controller number="0">}
    puts $mig_prj_file {    <MemoryDevice>DDR3_SDRAM/SODIMMs/MT8JTF12864HZ-1G6</MemoryDevice>}
-   puts $mig_prj_file {    <TimePeriod>1250</TimePeriod>}
+   puts $mig_prj_file {    <TimePeriod>2000</TimePeriod>}
    puts $mig_prj_file {    <VccAuxIO>1.8V</VccAuxIO>}
    puts $mig_prj_file {    <PHYRatio>4:1</PHYRatio>}
    puts $mig_prj_file {    <InputClkFreq>200</InputClkFreq>}
