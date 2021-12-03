@@ -214,7 +214,16 @@ public class Main {
             "jtag_TDO_data",    "tdo",
             "jtag_TDO_driven",  "tdt",
         };
+        boolean multi_mem = false;
+        boolean multi_io = false;
+        boolean multi_dma = false;
         ArrayList<PortDeclaration> l = iteratePortDeclaration(port_decls);
+        for (PortDeclaration d : l) {
+            String sig_name = d.id.getText();
+            if (sig_name.startsWith("mem_axi4_") && !sig_name.startsWith("mem_axi4_0_")) multi_mem = true;
+            else if (sig_name.startsWith("mmio_axi4_") && !sig_name.startsWith("mmio_axi4_0_")) multi_io = true;
+            else if (sig_name.startsWith("l2_frontend_bus_axi4_") && !sig_name.startsWith("l2_frontend_bus_axi4_0_")) multi_dma = true;
+        }
         for (PortDeclaration d : l) {
             String sig_name = d.id.getText();
             if (sig_name.equals("interrupts")) {
@@ -222,9 +231,36 @@ public class Main {
                 continue;
             }
             String bus_name = null;
-            if (sig_name.startsWith("mem_axi4_0_")) bus_name = "mem_axi4";
-            else if (sig_name.startsWith("mmio_axi4_0_")) bus_name = "io_axi4";
-            else if (sig_name.startsWith("l2_frontend_bus_axi4_0_")) bus_name = "dma_axi4";
+            if (sig_name.startsWith("mem_axi4_")) {
+                int no = 0;
+                for (int i = 9; i < sig_name.length(); i++) {
+                        char ch = sig_name.charAt(i);
+                        if (ch < '0' || ch > '9') break;
+                        no = no * 10 + (ch - '0');
+                }
+                if (!multi_mem && no == 0) bus_name = "mem_axi4";
+                else bus_name = "mem_axi4_" + no;
+            }
+            else if (sig_name.startsWith("mmio_axi4_0_")) {
+                int no = 0;
+                for (int i = 9; i < sig_name.length(); i++) {
+                        char ch = sig_name.charAt(i);
+                        if (ch < '0' || ch > '9') break;
+                        no = no * 10 + (ch - '0');
+                }
+                if (!multi_io && no == 0) bus_name = "io_axi4";
+                else bus_name = "io_axi4_" + no;
+            }
+            else if (sig_name.startsWith("l2_frontend_bus_axi4_")) {
+                int no = 0;
+                for (int i = 9; i < sig_name.length(); i++) {
+                        char ch = sig_name.charAt(i);
+                        if (ch < '0' || ch > '9') break;
+                        no = no * 10 + (ch - '0');
+                }
+                if (!multi_io && no == 0) bus_name = "dma_axi4";
+                else bus_name = "dma_axi4_" + no;
+            }
             else if (sig_name.startsWith("debug_clockeddmi_dmi_")) bus_name = "dmi";
             else if (sig_name.startsWith("debug_systemjtag_jtag_")) bus_name = "jtag";
             else if (sig_name.startsWith("debug_debug_clockeddmi_dmi_")) bus_name = "dmi";
