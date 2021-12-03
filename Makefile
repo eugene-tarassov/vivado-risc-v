@@ -34,24 +34,30 @@ clean:
 
 # --- download gcc, initrd and rootfs from github.com ---
 
-workspace/gcc/riscv:
+workspace/gcc/tools.tar.gz:
 	mkdir -p workspace/gcc
-	cd workspace/gcc &&\
-	  curl --netrc --location --header 'Accept: application/octet-stream' \
-	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/18060315 |\
-	  tar xz
+	curl --netrc --location --header 'Accept: application/octet-stream' \
+	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/18060315 \
+	  -o $@.tmp
+	mv $@.tmp $@
+
+workspace/gcc/riscv: workspace/gcc/tools.tar.gz
+	cd workspace/gcc && tar xzf tools.tar.gz
+	touch $@
 
 debian-riscv64/initrd:
 	mkdir -p debian-riscv64
 	curl --netrc --location --header 'Accept: application/octet-stream' \
 	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/37912705 \
-	  -o $@
+	  -o $@.tmp
+	mv $@.tmp $@
 
 debian-riscv64/rootfs.tar.gz:
 	mkdir -p debian-riscv64
 	curl --netrc --location --header 'Accept: application/octet-stream' \
 	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/37912707 \
-	  -o $@
+	  -o $@.tmp
+	mv $@.tmp $@
 
 # --- build Linux kernel ---
 
