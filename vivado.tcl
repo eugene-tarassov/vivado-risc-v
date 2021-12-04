@@ -50,6 +50,7 @@ set files [list \
 ]
 add_files -norecurse -fileset $constraint_fileset $files
 
+set block_design_tcl "riscv-[version -short].tcl"
 source ../../board/${vivado_board_name}/ethernet-${vivado_board_name}.tcl
 
 # Note: timing-constraints.tcl must be last
@@ -74,8 +75,7 @@ set_property -name "used_in" -value "implementation" -objects $file_obj
 set_property -name "used_in_synthesis" -value "0" -objects $file_obj
 
 # Create block design
-set current_vivado_version [version -short]
-source ../../board/${vivado_board_name}/riscv-${current_vivado_version}.tcl
+source ../../board/${vivado_board_name}/${block_design_tcl}
 
 if { [llength [get_bd_intf_pins -quiet RocketChip/JTAG]] == 1 } {
   create_bd_cell -type module -reference bscan2jtag JTAG
