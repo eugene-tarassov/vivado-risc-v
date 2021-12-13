@@ -7,6 +7,10 @@ module mem_reset_control (
     input wire mmcm_locked,
     input wire calib_complete,
 
+    (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 ui_clk_sync_rst RST" *)
+    (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_HIGH" *)
+    input wire ui_clk_sync_rst,
+
     (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 sys_reset RST" *)
     (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_HIGH" *)
     input wire sys_reset,
@@ -14,6 +18,10 @@ module mem_reset_control (
     (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 mem_reset RST" *)
     (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_HIGH" *)
     output wire mem_reset,
+
+    (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 aresetn RST" *)
+    (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_LOW" *)
+    output wire aresetn,
 
     output wire mem_ok
 );
@@ -27,7 +35,9 @@ reg [2:0] no_reset_reg = 0;
 
 reg [4:0] reset_cnt = 0;
 assign mem_reset = !reset_cnt[4];
-assign mem_ok = !mem_reset && mmcm_locked && calib_complete;
+assign mem_ok = !mem_reset && mmcm_locked && calib_complete && !ui_clk_sync_rst;
+
+assign aresetn = !ui_clk_sync_rst;
 
 always @(posedge clock) begin
     clock_ok_reg <= {clock_ok_reg[1:0], clock_ok};

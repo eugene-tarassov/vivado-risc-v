@@ -40,7 +40,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following
 # module references:
-# $rocket_module_name, synchronizer, ethernet, sdc_controller, uart, ethernet_vc707
+# $rocket_module_name, ethernet, sdc_controller, uart, ethernet_vc707
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -164,12 +164,11 @@ set bCheckModules 1
 if { $bCheckModules == 1 } {
    set list_check_mods "\
 $rocket_module_name\
-synchronizer\
 mem_reset_control\
 ethernet\
 sdc_controller\
-uart\
 ethernet_vc707\
+uart\
 "
 
    set list_mods_missing ""
@@ -791,33 +790,23 @@ proc create_hier_cell_DDR { parentCell nameHier } {
    CONFIG.XML_INPUT_FILE {mig_a.prj} \
  ] $mig_7series_0
 
-  # Create instance: mem_axi_reset_sync, and set properties
-  set block_name synchronizer
-  set block_cell_name mem_axi_reset_sync
-  if { [catch {set mem_axi_reset_sync [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $mem_axi_reset_sync eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-
   # Create interface connections
   connect_bd_intf_net -intf_net MEM_AXI4 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins axi_smc_1/S00_AXI]
   connect_bd_intf_net -intf_net axi_smc_1_M00_AXI [get_bd_intf_pins axi_smc_1/M00_AXI] [get_bd_intf_pins mig_7series_0/S_AXI]
   connect_bd_intf_net -intf_net mig_7series_0_DDR3 [get_bd_intf_pins DDR3_0] [get_bd_intf_pins mig_7series_0/DDR3]
 
   # Create port connections
-  connect_bd_net -net AXI_reset [get_bd_pins axi_reset] [get_bd_pins axi_smc_1/aresetn] [get_bd_pins mem_axi_reset_sync/dinp]
+  connect_bd_net -net AXI_reset [get_bd_pins axi_reset] [get_bd_pins axi_smc_1/aresetn]
   connect_bd_net -net AXI_clock [get_bd_pins axi_clock] [get_bd_pins axi_smc_1/aclk]
   connect_bd_net -net clock_200MHz [get_bd_pins clock_200MHz] [get_bd_pins mem_reset_control_0/clock] [get_bd_pins mig_7series_0/sys_clk_i]
   connect_bd_net -net clock_ok [get_bd_pins clock_ok] [get_bd_pins mem_reset_control_0/clock_ok]
   connect_bd_net -net mem_ok [get_bd_pins mem_ok] [get_bd_pins mem_reset_control_0/mem_ok]
   connect_bd_net -net mem_reset [get_bd_pins mem_reset_control_0/mem_reset] [get_bd_pins mig_7series_0/sys_rst]
-  connect_bd_net -net mem_aresetn [get_bd_pins mig_7series_0/aresetn] [get_bd_pins mem_axi_reset_sync/dout]
+  connect_bd_net -net mem_aresetn [get_bd_pins mem_reset_control_0/aresetn] [get_bd_pins mig_7series_0/aresetn]
+  connect_bd_net -net mem_ui_clk_sync_rst [get_bd_pins mem_reset_control_0/ui_clk_sync_rst] [get_bd_pins mig_7series_0/ui_clk_sync_rst]
   connect_bd_net -net mem_init_calib_complete [get_bd_pins mem_reset_control_0/calib_complete] [get_bd_pins mig_7series_0/init_calib_complete]
   connect_bd_net -net mem_mmcm_locked [get_bd_pins mem_reset_control_0/mmcm_locked] [get_bd_pins mig_7series_0/mmcm_locked]
-  connect_bd_net -net mem_ui_clk [get_bd_pins axi_smc_1/aclk1] [get_bd_pins mig_7series_0/ui_clk] [get_bd_pins mem_axi_reset_sync/clock]
+  connect_bd_net -net mem_ui_clk [get_bd_pins axi_smc_1/aclk1] [get_bd_pins mig_7series_0/ui_clk]
   connect_bd_net -net device_temp [get_bd_pins device_temp] [get_bd_pins mig_7series_0/device_temp_i]
   connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins mem_reset_control_0/sys_reset]
 
