@@ -40,13 +40,13 @@ sudo access required.
 [Vitis 2021.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2021-2.html) or
 [Vitis 2021.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2021-1.html) or
 [Vitis 2020.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2020-2.html) or
-[Vitis 2020.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2020-1.html).
+[Vitis 2020.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/archive-vitis.html).
 Vitis installation includes Vivado Design Suite – there is no need to install Vivado separately.
 
 Nexys Video and Nexys A7 100T are supported by free version of Vivado. KC705, VC707 and Genesys 2 require Vivado license.
 
 If using a Digilent board, install [Vivado Board Files for Digilent FPGA Boards](https://github.com/Digilent/vivado-boards).
-Note: installation instructions tell to "navigate to its '<version>/data/boards/board_files' directory".
+Note: installation instructions tell to "navigate to its 'data/boards/board_files' directory".
 The directory does not exist in the latest Vivado, you have to create it first.
 
 # Usage
