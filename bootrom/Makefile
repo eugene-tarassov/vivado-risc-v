@@ -19,12 +19,20 @@ $(dtb): $(dts)
 all: bootrom.img bootrom.elf
 
 %.img: %.elf
+	$(OBJDUMP) -h -p $<
 	$(OBJCOPY) -O binary $< $@
 	ls -l $@
 
+ifneq (,$(wildcard ../board/$(BOARD)/bootrom.inc))
+
+include ../board/$(BOARD)/bootrom.inc
+
+else
+
 %.elf: $(dtb) head.S kprintf.c bootrom.c ff.c ffunicode.c
 	$(CC) $(CCFLAGS) -DDEVICE_TREE='"$(dtb)"' $(LFLAGS) -o $@ head.S kprintf.c bootrom.c ff.c ffunicode.c
-	$(OBJDUMP) -h -p $@
+
+endif
 
 clean:
 	rm -f *.elf *.img *.dtb
