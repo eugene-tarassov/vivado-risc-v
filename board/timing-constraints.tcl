@@ -116,6 +116,15 @@ foreach ddrmc_inst [get_cells -quiet -hier {mig_7series_*}] {
   set_max_delay -from $ddrc_clock -to $main_clock -datapath_only $main_clock_period
 }
 
+foreach ddrmc_rst_inst [get_cells -hier -filter {(ORIG_REF_NAME == mem_reset_control || REF_NAME == mem_reset_control)}] {
+  set_false_path -through [get_pins $ddrmc_rst_inst/clock_ok]
+  set_false_path -through [get_pins $ddrmc_rst_inst/sys_reset]
+  set_false_path -through [get_pins $ddrmc_rst_inst/mmcm_locked]
+  set_false_path -through [get_pins $ddrmc_rst_inst/calib_complete]
+  set_false_path -through [get_pins $ddrmc_rst_inst/ui_clk_sync_rst]
+  set_false_path -through [get_pins $ddrmc_rst_inst/aresetn_reg_reg\[0\]/D]
+}
+
 foreach ddrmc_inst [get_cells -quiet -hier {ddr4_*}] {
   set_false_path -through [get_pins $ddrmc_inst/sys_rst]
   set ddrc_clock [get_clocks -of_objects [get_pins $ddrmc_inst/c0_ddr4_ui_clk]]

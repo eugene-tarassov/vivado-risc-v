@@ -638,7 +638,7 @@ proc create_hier_cell_DDR { parentCell nameHier } {
   connect_bd_net -net mem_mmcm_locked [get_bd_pins mem_reset_control_0/mmcm_locked] [get_bd_pins mig_7series_0/mmcm_locked]
   connect_bd_net -net mem_ok [get_bd_pins mem_ok] [get_bd_pins mem_reset_control_0/mem_ok]
   connect_bd_net -net mem_reset [get_bd_pins mem_reset_control_0/mem_reset] [get_bd_pins mig_7series_0/sys_rst]
-  connect_bd_net -net mem_ui_clk [get_bd_pins axi_smc_1/aclk1] [get_bd_pins mig_7series_0/ui_clk]
+  connect_bd_net -net mem_ui_clk [get_bd_pins mem_reset_control_0/ui_clk] [get_bd_pins axi_smc_1/aclk1] [get_bd_pins mig_7series_0/ui_clk]
   connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins mem_reset_control_0/sys_reset]
 
   # Restore current instance
