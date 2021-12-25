@@ -68,7 +68,7 @@ linux: linux-stable/arch/riscv/boot/Image
 CROSS_COMPILE_LINUX = /usr/bin/riscv64-linux-gnu-
 
 linux-patch: patches/linux.patch patches/fpga-axi-sdc.c patches/fpga-axi-eth.c patches/linux.config
-	cd linux-stable && ( git apply -R --check ../patches/linux.patch 2>/dev/null || git apply ../patches/linux.patch )
+	if [ -s patches/linux.patch ] ; then cd linux-stable && ( git apply -R --check ../patches/linux.patch 2>/dev/null || git apply ../patches/linux.patch ) ; fi
 	cp -p patches/fpga-axi-eth.c  linux-stable/drivers/net/ethernet
 	cp -p patches/fpga-axi-sdc.c  linux-stable/drivers/mmc/host
 	cp -p patches/fpga-axi-uart.c linux-stable/drivers/tty/serial
@@ -106,7 +106,7 @@ else ifeq ($(JTAG_BOOT),1)
 endif
 
 u-boot-patch: u-boot/configs/vivado_riscv64_defconfig
-	cd u-boot && ( git apply -R --check ../patches/u-boot.patch 2>/dev/null || git apply ../patches/u-boot.patch )
+	if [ -s patches/u-boot.patch ] ; then cd u-boot && ( git apply -R --check ../patches/u-boot.patch 2>/dev/null || git apply ../patches/u-boot.patch ) ; fi
 	cp -p -r patches/u-boot/vivado_riscv64 u-boot/board/xilinx
 	cp -p patches/u-boot/vivado_riscv64.h u-boot/include/configs
 
@@ -184,8 +184,8 @@ FIRRTL = java -Xmx12G -Xss8M $(JAVA_OPTIONS) -cp target/scala-2.12/classes:rocke
 
 # Generate default device tree - not including peripheral devices or board specific data
 workspace/$(CONFIG)/system.dts: $(CHISEL_SRC) rocket-chip/bootrom/bootrom.img
-	cd rocket-chip && ( git apply -R --check ../patches/rocket-chip.patch 2>/dev/null || git apply ../patches/rocket-chip.patch )
-	cd generators/gemmini && ( git apply -R --check ../../patches/gemmini.patch 2>/dev/null || git apply ../../patches/gemmini.patch )
+	if [ -s patches/rocket-chip.patch ] ; then cd rocket-chip && ( git apply -R --check ../patches/rocket-chip.patch 2>/dev/null || git apply ../patches/rocket-chip.patch ) ; fi
+	if [ -s patches/gemmini.patch ] ; then cd generators/gemmini && ( git apply -R --check ../../patches/gemmini.patch 2>/dev/null || git apply ../../patches/gemmini.patch ) ; fi
 	mkdir -p workspace/$(CONFIG)/tmp
 	cp rocket-chip/bootrom/bootrom.img workspace/bootrom.img
 	$(SBT) "runMain freechips.rocketchip.system.Generator -td workspace/$(CONFIG)/tmp -T Vivado.RocketSystem -C Vivado.$(CONFIG_SCALA)"
