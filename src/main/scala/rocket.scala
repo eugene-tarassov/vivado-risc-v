@@ -265,6 +265,11 @@ class Rocket64b2s extends Config(
 
 /*----------------- Sonic BOOM   ---------------*/
 
+class Rocket64w1 extends Config(
+  new WithNBreakpoints(8) ++
+  new boom.common.WithNSmallBooms(1) ++
+  new RocketBaseConfig)
+
 class Rocket64x1 extends Config(
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
@@ -278,12 +283,43 @@ class Rocket64x2 extends Config(
   new boom.common.WithNMediumBooms(2) ++
   new RocketWideBusConfig)
 
+class Rocket64x4 extends Config(
+  new WithInclusiveCache  ++
+  new WithNBreakpoints(8) ++
+  new boom.common.WithNMediumBooms(4) ++
+  new RocketWideBusConfig)
+
+class Rocket64x8 extends Config(
+  new WithInclusiveCache  ++
+  new WithNBreakpoints(4) ++
+  new boom.common.WithNMediumBooms(8) ++
+  new RocketWideBusConfig)
+
+class Rocket64x12 extends Config(
+  new WithInclusiveCache  ++
+  new WithNBreakpoints(4) ++
+  new boom.common.WithNMediumBooms(12) ++
+  new RocketWideBusConfig)
+
+/* With up to 256GB memory, 4 memory channels */
+/* Note: lower 2GB are used for memory mapped IO, so max usable RAM size is 254GB */
+class Rocket64x12m4 extends Config(
+  new WithNBreakpoints(4) ++
+  new boom.common.WithNMediumBooms(12) ++
+  new WithExtMemSize(0x3f80000000L) ++
+  new WithNMemoryChannels(4) ++
+  new WithNBanks(8) ++ 
+  new WithInclusiveCache ++
+  new RocketWideBusConfig)
+
+/* Note: 3-way BOOM appears unstable */
 class Rocket64y1 extends Config(
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
   new boom.common.WithNLargeBooms(1) ++
   new RocketWideBusConfig)
 
+/* Note: 4-way BOOM appears unstable */
 class Rocket64z1 extends Config(
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
@@ -292,7 +328,7 @@ class Rocket64z1 extends Config(
 
 /* With up to 256GB memory */
 /* Note: lower 2GB are used for memory mapped IO, so max usable RAM size is 254GB */
-/* Note: multi-core BOOM appears unstable */
+/* Note: 4-way BOOM appears unstable */
 class Rocket64z2m extends Config(
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
