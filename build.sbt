@@ -30,5 +30,11 @@ lazy val sifive_cache = (project in file("generators/sifive-cache"))
   .settings(commonSettings, scalaSource in Compile := baseDirectory.value / "design/craft")
 
 lazy val gemmini = (project in file("generators/gemmini"))
-  .dependsOn(rocketchip, testchipip)
+  .dependsOn(rocketchip)
+  .dependsOn(testchipip)
+  .dependsOn(targetutils)
   .settings(commonSettings)
+
+lazy val targetutils = (project in file("generators/targetutils"))
+  .settings(commonSettings)
+
