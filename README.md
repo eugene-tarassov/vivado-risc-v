@@ -73,7 +73,7 @@ For Genesys 2 use `BOARD=genesys2`
 
 For Nexys A7 100T use `BOARD=nexys-a7-100t`
 
-Available CONFIG values:
+Some of available CONFIG values (See [rocket.scala](https://github.com/eugene-tarassov/vivado-risc-v/blob/master/src/main/scala/rocket.scala)):
 * 64-bit big RISC-V cores, Linux capable:
   * `rocket64b1` - 1 core
   * `rocket64b2` - 2 cores
@@ -82,15 +82,23 @@ Available CONFIG values:
   * `rocket64b4l2w` - 4 cores with 512KB level 2 cache and wide 256-bit memory bus
   * `rocket64b4` - 4 cores
   * `rocket64b8` - 8 cores
+* 64-bit Sonic BOOM cores, Linux capable:
+  * `rocket64w1` - 1-wide Small BOOM, 1 core
   * `rocket64x1` - 2-wide superscalar Medium BOOM, 1 core
   * `rocket64y1` - 3-wide superscalar Large BOOM, 1 core
-  * `rocket64z1` - 4-wide superscalar Mega BOOM, 1 core, added for completeness - too big for supported boards
+  * `rocket64z1` - 4-wide superscalar Mega BOOM, 1 core
 * 32-bit small RISC-V cores, Linux not supported:
   * `rocket32s1` - 1 core
   * `rocket32s2` - 2 cores
   * `rocket32s4` - 4 cores
   * `rocket32s8` - 8 cores
   * `rocket32s16` - 16 cores
+
+FPGA utilization, LUTs:
+* 32-bit small RISC-V: 10,800 + 6,100 per core
+* 64-bit big RISC-V: 10,800 + 27,500 per core
+* 2-wide superscalar Medium BOOM, 1 core, L2 cache: 148,500
+* 3-wide superscalar Large BOOM, 1 core, L2 cache: 252,700
 
 ## Prepare the SD card
 Use USB SD card reader to connect SD card to the workstation, and run:
