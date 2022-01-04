@@ -6,7 +6,7 @@
 	url = https://github.com/u-boot/u-boot.git
 [submodule "linux-stable"]
 	path = linux-stable
-	url = git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
+	url = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
 [submodule "ethernet/verilog-ethernet"]
 	path = ethernet/verilog-ethernet
 	url = https://github.com/alexforencich/verilog-ethernet.git
