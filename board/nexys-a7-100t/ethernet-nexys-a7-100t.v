@@ -9,6 +9,8 @@ module ethernet_nexys_a7_100t (
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 TX_AXIS TDATA" *)
     input wire [7:0] tx_axis_tdata,
+    (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 TX_AXIS TKEEP" *)
+    input wire [0:0] tx_axis_tkeep,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 TX_AXIS TVALID" *)
     input wire tx_axis_tvalid,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 TX_AXIS TREADY" *)
@@ -20,6 +22,8 @@ module ethernet_nexys_a7_100t (
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TDATA" *)
     output wire [7:0] rx_axis_tdata,
+    (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TKEEP" *)
+    output wire [0:0] rx_axis_tkeep,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TVALID" *)
     output wire rx_axis_tvalid,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TREADY" *)
