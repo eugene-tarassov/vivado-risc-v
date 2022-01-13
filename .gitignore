@@ -8,3 +8,4 @@
 /target/
 /project/target/
 /project/project/target/
+/bare-metal/hello-world/boot.elf
