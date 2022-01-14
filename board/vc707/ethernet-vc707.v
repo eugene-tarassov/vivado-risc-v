@@ -68,9 +68,7 @@ module ethernet_vc707 (
     output speed_is_10_100,
     output speed_is_100,
     input [15:0]status_vector,
-    output signal_detect,
-    input gt0_qplloutclk_out,
-    input gt0_qplloutrefclk_out
+    output signal_detect
   );
 
 wire [1:0] pcspma_status_speed              = status_vector[11:10];

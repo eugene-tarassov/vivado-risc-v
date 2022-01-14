@@ -504,8 +504,6 @@ proc create_hier_cell_EthernetVC707 { parentCell nameHier } {
   connect_bd_net -net ethernet_stream_0_speed_is_10_100 [get_bd_pins ethernet_stream_0/speed_is_10_100] [get_bd_pins gig_ethernet_pcs_pma_0/speed_is_10_100]
   connect_bd_net -net gig_ethernet_pcs_pma_0_an_interrupt [get_bd_pins ethernet_stream_0/an_interrupt] [get_bd_pins gig_ethernet_pcs_pma_0/an_interrupt]
   connect_bd_net -net gig_ethernet_pcs_pma_0_gmii_isolate [get_bd_pins ethernet_stream_0/gmii_isolate] [get_bd_pins gig_ethernet_pcs_pma_0/gmii_isolate]
-  connect_bd_net -net gig_ethernet_pcs_pma_0_gt0_qplloutclk_out [get_bd_pins ethernet_stream_0/gt0_qplloutclk_out] [get_bd_pins gig_ethernet_pcs_pma_0/gt0_qplloutclk_out]
-  connect_bd_net -net gig_ethernet_pcs_pma_0_gt0_qplloutrefclk_out [get_bd_pins ethernet_stream_0/gt0_qplloutrefclk_out] [get_bd_pins gig_ethernet_pcs_pma_0/gt0_qplloutrefclk_out]
   connect_bd_net -net gig_ethernet_pcs_pma_0_mmcm_locked_out [get_bd_pins mmcm_locked] [get_bd_pins gig_ethernet_pcs_pma_0/mmcm_locked_out]
   connect_bd_net -net gig_ethernet_pcs_pma_0_pma_reset_out [get_bd_pins ethernet_stream_0/pma_reset_out] [get_bd_pins gig_ethernet_pcs_pma_0/pma_reset_out]
   connect_bd_net -net gig_ethernet_pcs_pma_0_sgmii_clk_en [get_bd_pins ethernet_stream_0/sgmii_clk_en] [get_bd_pins gig_ethernet_pcs_pma_0/sgmii_clk_en]
