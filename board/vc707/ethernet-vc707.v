@@ -52,7 +52,6 @@ module ethernet_vc707 (
 
     input userclk_out,
     input userclk2_out,
-    input pma_reset_out,
     input sgmii_clk_r,
     input sgmii_clk_f,
     input sgmii_clk_en,
