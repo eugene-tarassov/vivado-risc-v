@@ -6,13 +6,13 @@ RocketChip generator and Linux/U-Boot/OpenSBI builds can run on Windows under WS
 
 Ubuntu 20 LTS terminal is freely available for Windows 10, see [ubuntu.com/tutorials/ubuntu-on-windows](https://ubuntu.com/tutorials/ubuntu-on-windows) for installation instructions.
 
-Make sure you install WSL 2, not WLS 1. Check the version by running wsl command in Windows cmd shell:
+Make sure you install WSL 2, not WSL 1. Check the version by running wsl command in Windows cmd shell:
 ```
 C:\Users\eugene>wsl --list --verbose
   NAME                   STATE           VERSION
   Ubuntu-20.04           Running         2
 ```
-WLS 1 does not supprt loop device, which is needed to build SD card image.
+WSL 1 does not supprt loop device, which is needed to build SD card image.
 If necessary, run WSL conversion:
 ```
 C:\Users\eugene>wsl --set-version Ubuntu-20.04 2

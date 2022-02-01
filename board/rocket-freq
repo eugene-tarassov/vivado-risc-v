@@ -14,9 +14,9 @@ vc707         Rocket.*          100.0
 
 vcu1525       Rocket64.*gem         31.25
 vcu1525       Rocket64[xyz].*       40.0
+vcu1525       Rocket.*m4            62.5
 vcu1525       Rocket.*b[2-9][0-9].* 62.5
 vcu1525       Rocket.*b1[0-9].*     80.0
-vcu1525       Rocket.*m4            80.0
 vcu1525       Rocket.*m2            100.0
 vcu1525       Rocket.*              125.0
 

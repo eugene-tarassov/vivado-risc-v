@@ -122,6 +122,15 @@ class Rocket64b2 extends Config(
   new WithNBigCores(2)    ++
   new RocketBaseConfig)
 
+/* With exposed BSCAN port - the name must end with 'e' */
+/* With up to 256GB memory */
+/* Note: lower 2GB are used for memory mapped IO, so max usable RAM size is 254GB */
+class Rocket64b2e extends Config(
+  new WithNBreakpoints(8) ++
+  new WithNBigCores(2)    ++
+  new WithExtMemSize(0x3f80000000L) ++
+  new RocketBaseConfig)
+
 /* With up to 256GB memory */
 /* Note: lower 2GB are used for memory mapped IO, so max usable RAM size is 254GB */
 class Rocket64b2m extends Config(

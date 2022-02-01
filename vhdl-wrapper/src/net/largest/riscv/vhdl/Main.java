@@ -45,6 +45,7 @@ public class Main {
         String riscv_name;
         String xilinx_name;
         String signal_name;
+        String addr_offs_name;
         String bus_name;
         Verilog2001Parser.Range_Context range;
         boolean out;
@@ -61,7 +62,12 @@ public class Main {
     private static int jtag_signal_name_len = 0;
     private static Bus jtag_bus = null;
 
+    private static int bscan_signal_name_len = 0;
+    private static Bus bscan_bus = null;
+
     private static int interrupt_bits = 0;
+
+    private static boolean mem_addr_offset = false;
 
     private static final HashSet<String> modules = new HashSet<String>();
 
@@ -116,6 +122,11 @@ public class Main {
         return
             Integer.parseInt(getExpressionString(fr.constant_expression())) -
             Integer.parseInt(getExpressionString(to.constant_expression())) + 1;
+    }
+
+    private static int getRangeHigh(Verilog2001Parser.Range_Context range) {
+        Msb_constant_expressionContext fr = range.msb_constant_expression();
+        return Integer.parseInt(getExpressionString(fr.constant_expression()));
     }
 
     private static class PortDeclaration {
@@ -234,31 +245,31 @@ public class Main {
             if (sig_name.startsWith("mem_axi4_")) {
                 int no = 0;
                 for (int i = 9; i < sig_name.length(); i++) {
-                        char ch = sig_name.charAt(i);
-                        if (ch < '0' || ch > '9') break;
-                        no = no * 10 + (ch - '0');
+                    char ch = sig_name.charAt(i);
+                    if (ch < '0' || ch > '9') break;
+                    no = no * 10 + (ch - '0');
                 }
                 if (!multi_mem && no == 0) bus_name = "mem_axi4";
                 else bus_name = "mem_axi4_" + no;
             }
-            else if (sig_name.startsWith("mmio_axi4_0_")) {
+            else if (sig_name.startsWith("mmio_axi4_")) {
                 int no = 0;
-                for (int i = 9; i < sig_name.length(); i++) {
-                        char ch = sig_name.charAt(i);
-                        if (ch < '0' || ch > '9') break;
-                        no = no * 10 + (ch - '0');
+                for (int i = 10; i < sig_name.length(); i++) {
+                    char ch = sig_name.charAt(i);
+                    if (ch < '0' || ch > '9') break;
+                    no = no * 10 + (ch - '0');
                 }
                 if (!multi_io && no == 0) bus_name = "io_axi4";
                 else bus_name = "io_axi4_" + no;
             }
             else if (sig_name.startsWith("l2_frontend_bus_axi4_")) {
                 int no = 0;
-                for (int i = 9; i < sig_name.length(); i++) {
-                        char ch = sig_name.charAt(i);
-                        if (ch < '0' || ch > '9') break;
-                        no = no * 10 + (ch - '0');
+                for (int i = 21; i < sig_name.length(); i++) {
+                    char ch = sig_name.charAt(i);
+                    if (ch < '0' || ch > '9') break;
+                    no = no * 10 + (ch - '0');
                 }
-                if (!multi_io && no == 0) bus_name = "dma_axi4";
+                if (!multi_dma && no == 0) bus_name = "dma_axi4";
                 else bus_name = "dma_axi4_" + no;
             }
             else if (sig_name.startsWith("debug_clockeddmi_dmi_")) bus_name = "dmi";
@@ -289,6 +300,16 @@ public class Main {
                         dmi_bus.signals.add(sig);
                     }
                     else {
+                        if (bus_name.startsWith("mem_axi4")) {
+                            if (sig.xilinx_name.equals("AWADDR") && getRangeLength(sig.range) > 32) {
+                                sig.addr_offs_name = sig.bus_name + "_awaddr_sys";
+                                mem_addr_offset = true;
+                            }
+                            if (sig.xilinx_name.equals("ARADDR") && getRangeLength(sig.range) > 32) {
+                                sig.addr_offs_name = sig.bus_name + "_araddr_sys";
+                                mem_addr_offset = true;
+                            }
+                        }
                         axi_signals.add(sig);
                         int len = sig.signal_name.length();
                         if (len > axi_signal_name_len) axi_signal_name_len = len;
@@ -326,16 +347,20 @@ public class Main {
     private static void generateEntityPort() {
         ln("");
         ln("entity " + rocket_module_name + " is");
-        ln("    port (");
-        ln("        clock      : in std_logic;");
-        ln("        clock_ok   : in std_logic;");
-        ln("        mem_ok     : in std_logic;");
-        ln("        io_ok      : in std_logic;");
-        ln("        sys_reset  : in std_logic;");
-        ln("        aresetn    : out std_logic;");
+        if (mem_addr_offset) {
+            ln("generic (");
+            ln("    RAM_ADDR_OFFSET_MB : integer := 0);");
+        }
+        ln("port (");
+        ln("    clock      : in std_logic;");
+        ln("    clock_ok   : in std_logic;");
+        ln("    mem_ok     : in std_logic;");
+        ln("    io_ok      : in std_logic;");
+        ln("    sys_reset  : in std_logic;");
+        ln("    aresetn    : out std_logic;");
         ln("");
         if (interrupt_bits > 0) {
-            ln("        interrupts: in std_logic_vector(" + (interrupt_bits - 1) + " downto 0);");
+            ln("    interrupts: in std_logic_vector(" + (interrupt_bits - 1) + " downto 0);");
             ln("");
         }
         String s = null;
@@ -347,9 +372,13 @@ public class Main {
             }
             String nm = sig.signal_name;
             while (nm.length() < axi_signal_name_len) nm += ' ';
-            s = "        " + nm + ": ";
+            s = "    " + nm + ": ";
             s += sig.out ? "out" : "in ";
-            if (sig.range != null) {
+            if (sig.addr_offs_name != null) {
+                int h = getRangeHigh(sig.range);
+                s += " std_logic_vector(" + h + " downto 0)";
+            }
+            else if (sig.range != null) {
                 s += " std_logic_vector(" + getRangeString(sig.range) + ")";
             }
             else {
@@ -365,13 +394,26 @@ public class Main {
                 if (s != null) ln(s + ";");
                 String nm = sig.signal_name;
                 while (nm.length() < jtag_signal_name_len) nm += ' ';
-                s = "        " + nm + ": ";
+                s = "    " + nm + ": ";
+                s += sig.out ? "out" : "in ";
+                s += " std_logic";
+            }
+        }
+        if (bscan_bus != null) {
+            if (s != null) ln(s + ";");
+            s = null;
+            ln("");
+            for (BusSignal sig : bscan_bus.signals) {
+                if (s != null) ln(s + ";");
+                String nm = sig.signal_name;
+                while (nm.length() < bscan_signal_name_len) nm += ' ';
+                s = "    " + nm + ": ";
                 s += sig.out ? "out" : "in ";
                 s += " std_logic";
             }
         }
         if (s != null) ln(s + ");");
-        else ln("    );");
+        else ln(");");
         ln("end " + rocket_module_name + ";");
     }
 
@@ -392,11 +434,25 @@ public class Main {
         }
         if (jtag_bus != null) {
             ln("");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of jtag_tck: SIGNAL is \"xilinx.com:interface:jtag:1.0 JTAG TCK\";");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of jtag_tms: SIGNAL is \"xilinx.com:interface:jtag:1.0 JTAG TMS\";");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of jtag_tdi: SIGNAL is \"xilinx.com:interface:jtag:1.0 JTAG TD_I\";");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of jtag_tdo: SIGNAL is \"xilinx.com:interface:jtag:1.0 JTAG TD_O\";");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of jtag_tdt: SIGNAL is \"xilinx.com:interface:jtag:1.0 JTAG TD_T\";");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of jtag_tck : SIGNAL is \"xilinx.com:interface:jtag:1.0 JTAG TCK\";");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of jtag_tms : SIGNAL is \"xilinx.com:interface:jtag:1.0 JTAG TMS\";");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of jtag_tdi : SIGNAL is \"xilinx.com:interface:jtag:1.0 JTAG TD_I\";");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of jtag_tdo : SIGNAL is \"xilinx.com:interface:jtag:1.0 JTAG TD_O\";");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of jtag_tdt : SIGNAL is \"xilinx.com:interface:jtag:1.0 JTAG TD_T\";");
+        }
+        if (bscan_bus != null) {
+            ln("");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_update  : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN UPDATE\";");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_tms     : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN TMS\";");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_tdo     : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN TDO\";");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_tdi     : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN TDI\";");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_tck     : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN TCK\";");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_shift   : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN SHIFT\";");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_sel     : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN SEL\";");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_runtest : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN RUNTEST\";");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_reset   : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN RESET\";");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_drck    : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN DRCK\";");
+            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_capture : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN CAPTURE\";");
         }
     }
 
@@ -473,6 +529,15 @@ public class Main {
             ln("    attribute ASYNC_REG of interrupts_ss2 : signal is \"TRUE\";");
             ln("    attribute ASYNC_REG of interrupts_sync: signal is \"TRUE\";");
         }
+        ln("");
+        if (mem_addr_offset) {
+            ln("    signal mem_start_addr : std_logic_vector(31 downto 0) := x\"80000000\";");
+            for (BusSignal sig : axi_signals) {
+                if (sig.addr_offs_name != null) {
+                    ln("    signal " + sig.addr_offs_name + " : std_logic_vector(" + getRangeString(sig.range) + ");");
+                }
+            }
+        }
     }
 
     private static void generateResetLogic() {
@@ -526,6 +591,15 @@ public class Main {
         Verilog2001Parser.List_of_port_declarationsContext port_decls = rocket_system.list_of_port_declarations();
         if (port_decls == null) throw new Error("Cannot find a port declaration of RocketSystem module");
         ln("");
+        for (BusSignal sig : axi_signals) {
+            if (sig.addr_offs_name != null) {
+                int h = getRangeHigh(sig.range);
+                ln("    " + sig.signal_name + " <= std_logic_vector(unsigned(" +
+                    sig.addr_offs_name + ") - unsigned(mem_start_addr) + " +
+                    "shift_left(to_unsigned(RAM_ADDR_OFFSET_MB, " + (h + 1) + "), 20));");
+            }
+        }
+        ln("");
         ln("    rocket_system : component RocketSystem");
         ln("    port map (");
         ArrayList<PortDeclaration> decl_list = iteratePortDeclaration(port_decls);
@@ -555,7 +629,7 @@ public class Main {
             String nm = decl.id.getText();
             String dst = null;
             BusSignal sig = sig_map.get(nm);
-            if (sig != null) dst = sig.signal_name;
+            if (sig != null) dst = sig.addr_offs_name != null ? sig.addr_offs_name : sig.signal_name;
             else if (nm.equals("reset")) dst = "riscv_reset";
             else if (nm.equals("debug_clock")) dst = "clock";
             else if (nm.equals("debug_clockeddmi_dmiClock")) dst = "clock";
@@ -595,12 +669,28 @@ public class Main {
     private static void generateDebugComponent() {
         if (dmi_bus != null) {
             ln("");
-            ln("    jtag : entity work.JtagSeries7");
-            ln("    port map (");
-            ln("        clock => clock,");
-            ln("        reset => reset,");
-            ln("        -- Debug Module interface");
             String s = null;
+            if (bscan_bus != null) {
+                ln("    jtag : entity work.JtagExtBscan");
+                ln("    port map (");
+                ln("        clock => clock,");
+                ln("        reset => reset,");
+                ln("        -- BSCAN interface");
+                for (BusSignal sig : bscan_bus.signals) {
+                    if (s != null) ln(s + ",");
+                    String nm = sig.signal_name;
+                    while (nm.length() < bscan_signal_name_len) nm += ' ';
+                    s = "        " + nm + " => ";
+                    s += sig.signal_name;
+                }
+            }
+            else {
+                ln("    jtag : entity work.JtagSeries7");
+                ln("    port map (");
+                ln("        clock => clock,");
+                ln("        reset => reset,");
+            }
+            ln("        -- Debug Module interface");
             for (BusSignal sig : dmi_bus.signals) {
                 if (s != null) ln(s + ',');
                 String nm = sig.signal_name;
@@ -614,9 +704,15 @@ public class Main {
 
     private static void generateSystemVHDL() {
         copyModule("sync");
+
         if (dmi_bus != null) {
             ln("");
-            copyModule("jtag");
+            if (bscan_bus != null) {
+                copyModule("jtag-ext-bscan");
+            }
+            else {
+                copyModule("jtag");
+            }
         }
 
         ln("");
@@ -851,6 +947,31 @@ public class Main {
             });
             parser.source_text();
             if (rocket_system != null) {
+                if (dmi_bus != null && rocket_module_name.endsWith("e")) {
+                    bscan_bus = new Bus();
+                    String[] sigs = {
+                        "capture",
+                        "drck",
+                        "reset",
+                        "runtest",
+                        "sel",
+                        "shift",
+                        "tck",
+                        "tdi",
+                        "tdo",
+                        "tms",
+                        "update",
+                    };
+                    for (String nm : sigs) {
+                        BusSignal sig = new BusSignal();
+                        sig.bus_name = "S_BSCAN";
+                        sig.signal_name = "S_BSCAN_" + nm;
+                        sig.out = nm.equals("tdo");
+                        bscan_bus.signals.add(sig);
+                        int len = sig.signal_name.length();
+                        if (len > bscan_signal_name_len) bscan_signal_name_len = len;
+                    }
+                }
                 generateSystemVHDL();
             }
         }

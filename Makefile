@@ -159,14 +159,11 @@ else
 endif
 
 ifeq ($(shell echo $$(($(MEMORY_SIZE) <= 0x80000000))),1)
-  MEMORY_ADDR_RANGE = 0x80000000 $(MEMORY_SIZE)
   MEMORY_ADDR_RANGE32 = 0x80000000 $(MEMORY_SIZE)
-else ifeq ($(shell echo $$(($(MEMORY_SIZE) / 0x100000000))),0)
-  MEMORY_ADDR_RANGE = 0x80000000 0x80000000
-  MEMORY_ADDR_RANGE32 = 0x80000000 0x80000000
+  MEMORY_ADDR_RANGE64 = 0x0 0x80000000 0x0 $(MEMORY_SIZE)
 else
-  MEMORY_ADDR_RANGE = 0x0 0x80000000 $(shell echo - | awk '{printf "0x%x", $(MEMORY_SIZE) / 0x100000000 - 1}') 0x80000000
   MEMORY_ADDR_RANGE32 = 0x80000000 0x80000000
+  MEMORY_ADDR_RANGE64 = 0x0 0x80000000 $(shell echo - | awk '{printf "0x%x", $(MEMORY_SIZE) / 0x100000000}') $(shell echo - | awk '{printf "0x%x", $(MEMORY_SIZE) % 0x100000000}')
 endif
 
 SBT := java -Xmx8G -Xss8M $(JAVA_OPTIONS) -jar $(realpath rocket-chip/sbt-launch.jar)
@@ -198,7 +195,7 @@ workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir: workspace/$(CONF
 	mkdir -p workspace/$(CONFIG)/system-$(BOARD)
 	cat workspace/$(CONFIG)/system.dts board/$(BOARD)/bootrom.dts >bootrom/system.dts
 	sed -i "s#reg = <0x80000000 *0x.*>#reg = <$(MEMORY_ADDR_RANGE32)>#g" bootrom/system.dts
-	sed -i "s#reg = <0x0 0x80000000 *0x.*>#reg = <$(MEMORY_ADDR_RANGE)>#g" bootrom/system.dts
+	sed -i "s#reg = <0x0 0x80000000 *0x.*>#reg = <$(MEMORY_ADDR_RANGE64)>#g" bootrom/system.dts
 	sed -i "s#clock-frequency = <[0-9]*>#clock-frequency = <$(ROCKET_CLOCK_FREQ)>#g" bootrom/system.dts
 	sed -i "s#timebase-frequency = <[0-9]*>#timebase-frequency = <$(ROCKET_TIMEBASE_FREQ)>#g" bootrom/system.dts
 	sed -i "s#local-mac-address = \[.*\]#local-mac-address = [$(ETHER_MAC)]#g" bootrom/system.dts
@@ -246,12 +243,14 @@ rocket-sbt:
 
 .PHONY: vivado-tcl vivado-project vivado-gui bitstream
 
+FPGA_FNM    ?= riscv_wrapper.bit
+
 proj_name = $(BOARD)-riscv
 proj_path = workspace/$(CONFIG)/vivado-$(proj_name)
 proj_file = $(proj_path)/$(proj_name).xpr
 proj_time = $(proj_path)/timestamp.txt
 synthesis = $(proj_path)/$(proj_name).runs/synth_1/riscv_wrapper.dcp
-bitstream = $(proj_path)/$(proj_name).runs/impl_1/riscv_wrapper.bit
+bitstream = $(proj_path)/$(proj_name).runs/impl_1/$(FPGA_FNM)
 mcs_file  = workspace/$(CONFIG)/$(proj_name).mcs
 prm_file  = workspace/$(CONFIG)/$(proj_name).prm
 vivado    = env XILINX_LOCAL_USER_DATA=no vivado -mode batch -nojournal -nolog -notrace -quiet

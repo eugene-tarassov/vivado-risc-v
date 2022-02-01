@@ -127,6 +127,7 @@ foreach ddrmc_rst_inst [get_cells -hier -filter {(ORIG_REF_NAME == mem_reset_con
 
 foreach ddrmc_inst [get_cells -quiet -hier {ddr4_*}] {
   set_false_path -through [get_pins $ddrmc_inst/sys_rst]
+  set_false_path -through [get_pins $ddrmc_inst/c0_init_calib_complete]
   set ddrc_clock [get_clocks -of_objects [get_pins $ddrmc_inst/c0_ddr4_ui_clk]]
   set ddrc_clock_period [get_property -min PERIOD $ddrc_clock]
   set_max_delay -from $main_clock -to $ddrc_clock -datapath_only $ddrc_clock_period
