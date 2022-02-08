@@ -1,8 +1,8 @@
 diff --git a/src/main/scala/devices/debug/DMI.scala b/src/main/scala/devices/debug/DMI.scala
-index 5561c4850..259cd8fcc 100644
+index 67164fb43..43a7f50c6 100644
 --- a/src/main/scala/devices/debug/DMI.scala
 +++ b/src/main/scala/devices/debug/DMI.scala
-@@ -70,7 +70,7 @@ class DMIIO(implicit val p: Parameters) extends ParameterizedBundle()(p) {
+@@ -69,7 +69,7 @@ class DMIIO(implicit val p: Parameters) extends ParameterizedBundle()(p) {
  class ClockedDMIIO(implicit val p: Parameters) extends ParameterizedBundle()(p){
    val dmi      = new DMIIO()(p)
    val dmiClock = Output(Clock())
@@ -12,10 +12,10 @@ index 5561c4850..259cd8fcc 100644
  
  /** Convert DMI to TL. Avoids using special DMI synchronizers and register accesses
 diff --git a/src/main/scala/devices/debug/DebugTransport.scala b/src/main/scala/devices/debug/DebugTransport.scala
-index 02659b4f9..31143570e 100644
+index 65856c2c1..9efac7231 100644
 --- a/src/main/scala/devices/debug/DebugTransport.scala
 +++ b/src/main/scala/devices/debug/DebugTransport.scala
-@@ -65,7 +65,7 @@ class DTMInfo extends Bundle {
+@@ -63,7 +63,7 @@ class DTMInfo extends Bundle {
  /** A wrapper around JTAG providing a reset signal and manufacturer id. */
  class SystemJTAGIO extends Bundle {
    val jtag = Flipped(new JTAGIO(hasTRSTn = false))

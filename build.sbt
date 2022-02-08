@@ -4,7 +4,9 @@ lazy val commonSettings = Seq(
   scalaVersion := "2.12.10",
   crossScalaVersions := Seq("2.12.10"),
   parallelExecution in Global := false,
-  scalacOptions ++= Seq("-deprecation","-unchecked","-Xsource:2.11"))
+  scalacOptions ++= Seq("-deprecation","-unchecked","-Xsource:2.11","-P:chiselplugin:useBundlePlugin"),
+  addCompilerPlugin("edu.berkeley.cs" % "chisel3-plugin" % "3.5.1" cross CrossVersion.full),
+  libraryDependencies ++= Seq("edu.berkeley.cs" %% "chisel3" % "3.5.1"))
 
 lazy val vivado = (project in file("."))
   .dependsOn(boom)
@@ -18,16 +20,19 @@ lazy val rocketchip = (project in file("rocket-chip"))
 
 lazy val testchipip = (project in file("generators/testchipip"))
   .dependsOn(rocketchip)
-  .settings(commonSettings, excludeFilter in unmanagedSources ~= { _ || "Dromajo.scala" || "SPIFlash.scala" || "UARTAdapter.scala" })
+  .settings(commonSettings)
+  .settings(includeFilter in unmanagedSources := { "Util.scala" || "TraceIO.scala" })
 
 lazy val boom = (project in file("generators/riscv-boom"))
   .dependsOn(rocketchip)
   .dependsOn(testchipip)
-  .settings(commonSettings, addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full))
+  .settings(commonSettings)
+  .settings(addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full))
 
 lazy val sifive_cache = (project in file("generators/sifive-cache"))
   .dependsOn(rocketchip)
-  .settings(commonSettings, scalaSource in Compile := baseDirectory.value / "design/craft")
+  .settings(commonSettings)
+  .settings(scalaSource in Compile := baseDirectory.value / "design/craft")
 
 lazy val gemmini = (project in file("generators/gemmini"))
   .dependsOn(rocketchip)

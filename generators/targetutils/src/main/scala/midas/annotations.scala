@@ -292,8 +292,8 @@ object TriggerSource {
     * debits issued while the module's implicit reset is asserted are not
     * counted.
     */
-  def credit(credit: Bool): Unit = annotateCredit(credit, Some(Module.reset.toBool))
-  def debit(debit: Bool): Unit = annotateDebit(debit, Some(Module.reset.toBool))
+  def credit(credit: Bool): Unit = annotateCredit(credit, Some(Module.reset.asBool))
+  def debit(debit: Bool): Unit = annotateDebit(debit, Some(Module.reset.asBool))
   def apply(creditSig: Bool, debitSig: Bool): Unit = {
     credit(creditSig)
     debit(debitSig)
