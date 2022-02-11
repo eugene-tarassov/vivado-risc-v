@@ -1,22 +1,22 @@
 diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index b3d7fd84ce..136643c532 100644
+index ba29e70acf..f029e7573a 100644
 --- a/arch/riscv/Kconfig
 +++ b/arch/riscv/Kconfig
-@@ -23,6 +23,9 @@ config TARGET_SIFIVE_UNLEASHED
- config TARGET_SIFIVE_UNMATCHED
+@@ -24,6 +24,9 @@ config TARGET_SIFIVE_UNMATCHED
  	bool "Support SiFive Unmatched Board"
+ 	select SYS_CACHE_SHIFT_6
  
 +config TARGET_VIVADO_RISCV64
 +	bool "Support RISC-V in Xilinx Vivado"
 +
  config TARGET_SIPEED_MAIX
  	bool "Support Sipeed Maix Board"
- 
-@@ -58,6 +61,7 @@ config SPL_SYS_DCACHE_OFF
+ 	select SYS_CACHE_SHIFT_6
+@@ -61,6 +64,7 @@ config SPL_SYS_DCACHE_OFF
  source "board/AndesTech/ax25-ae350/Kconfig"
  source "board/emulation/qemu-riscv/Kconfig"
  source "board/microchip/mpfs_icicle/Kconfig"
 +source "board/xilinx/vivado_riscv64/Kconfig"
  source "board/sifive/unleashed/Kconfig"
  source "board/sifive/unmatched/Kconfig"
- source "board/sipeed/maix/Kconfig"
+ source "board/openpiton/riscv64/Kconfig"
