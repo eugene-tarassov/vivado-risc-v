@@ -12,9 +12,10 @@ set_false_path -through [get_pins -hier RocketChip/sys_reset]
 
 if { [llength [get_pins -quiet -hier Ethernet/clock]] } {
   set eth_clock [get_clocks -of_objects [get_pins -hier Ethernet/clock]]
+  set eth_clock_period [get_property -min PERIOD $eth_clock]
 
-  set_max_delay -from $eth_clock -to $main_clock -datapath_only 10.0
-  set_max_delay -from $main_clock -to $eth_clock -datapath_only 10.0
+  set_max_delay -from $eth_clock -to $main_clock -datapath_only $main_clock_period
+  set_max_delay -from $main_clock -to $eth_clock -datapath_only $eth_clock_period
 
   if { [llength [get_ports -quiet eth_mdio_data]] } {
     set_max_delay -from $eth_clock -to [get_ports {eth_mdio_clock eth_mdio_data eth_mdio_reset}] -datapath_only 40.0
