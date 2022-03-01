@@ -20,6 +20,7 @@ if { [llength [get_pins -quiet -hier Ethernet/clock]] } {
   if { [llength [get_ports -quiet eth_mdio_data]] } {
     set_max_delay -from $eth_clock -to [get_ports {eth_mdio_clock eth_mdio_data eth_mdio_reset}] -datapath_only 40.0
     set_max_delay -from [get_ports {eth_mdio_data eth_mdio_int}] -to $eth_clock -datapath_only 40.0
+    set_min_delay -from [get_ports {eth_mdio_data eth_mdio_int}] -to $eth_clock 0.0
   }
 
   if { [llength [get_pins -quiet -hier Ethernet/async_resetn]] } {
@@ -38,16 +39,20 @@ if { [llength [get_ports -quiet sdio_dat*]] } {
   set_max_delay -from $main_clock -to $sdio_clock -datapath_only $sdio_clock_period
 
   set_max_delay -from $sdio_clock -to [get_ports {sdio_clk sdio_cmd sdio_dat*}] -datapath_only 8.0
-  set_max_delay -from [get_ports {sdio_cmd sdio_dat*}]  -to $sdio_clock -datapath_only 8.0
+  set_max_delay -from [get_ports {sdio_cmd sdio_dat*}] -to $sdio_clock -datapath_only 8.0
+  set_min_delay -from [get_ports {sdio_cmd sdio_dat*}] -to $sdio_clock 0.0
 
   if { [llength [get_ports -quiet sdio_reset]] } {
     set_max_delay -from $sdio_clock -to [get_ports sdio_reset] -datapath_only 100.0
+    set_min_delay -from $sdio_clock -to [get_ports sdio_reset] 0.0
   }
   if { [llength [get_ports -quiet sdio_cd]] } {
     set_max_delay -from [get_ports sdio_cd] -to $sdio_clock -datapath_only 100.0
+    set_min_delay -from [get_ports sdio_cd] -to $sdio_clock 0.0
   }
   if { [llength [get_ports -quiet sdio_wp]] } {
     set_max_delay -from [get_ports sdio_wp] -to $sdio_clock -datapath_only 100.0
+    set_min_delay -from [get_ports sdio_wp] -to $sdio_clock 0.0
   }
 
   set_max_delay -from $main_clock -through [get_pins -hier SD/async_resetn] -datapath_only 10.0
@@ -67,10 +72,11 @@ if { [llength [get_pins -quiet -hier FanControl/clock]] } {
 if { [llength [get_ports -quiet usb_uart_*]] } {
   set uart_clock [get_clocks -of_objects [get_pins -hier UART/clock]]
   set uart_clock_period [get_property -min PERIOD $uart_clock]
-  set_max_delay -datapath_only -from $uart_clock -to [get_ports usb_uart_txd] 100.0
-  set_max_delay -datapath_only -from [get_ports usb_uart_rxd] -to $uart_clock 100.0
-  set_max_delay -datapath_only -from $main_clock -through [get_pins -hier UART/async_resetn] 100.0
-  set_max_delay -datapath_only -from $uart_clock -through [get_pins -hier UART/interrupt] 100.0
+  set_max_delay -from $uart_clock -to [get_ports usb_uart_txd] -datapath_only 100.0
+  set_max_delay -from [get_ports usb_uart_rxd] -to $uart_clock -datapath_only 100.0
+  set_min_delay -from [get_ports usb_uart_rxd] -to $uart_clock 0.0
+  set_max_delay -from $main_clock -through [get_pins -hier UART/async_resetn] -datapath_only 100.0
+  set_max_delay -from $uart_clock -through [get_pins -hier UART/interrupt] -datapath_only 100.0
   set_max_delay -from $main_clock -to $uart_clock -datapath_only $uart_clock_period
   set_max_delay -from $uart_clock -to $main_clock -datapath_only $main_clock_period
 }
@@ -78,12 +84,11 @@ if { [llength [get_ports -quiet usb_uart_*]] } {
 if { [llength [get_ports -quiet rs232_uart_*]] } {
   set uart_clock [get_clocks -of_objects [get_pins -hier UART/clock]]
   set uart_clock_period [get_property -min PERIOD $uart_clock]
-  set_max_delay -datapath_only -from $uart_clock -to [get_ports rs232_uart_rtsn] 100.0
-  set_max_delay -datapath_only -from $uart_clock -to [get_ports rs232_uart_txd] 100.0
-  set_max_delay -datapath_only -from [get_ports rs232_uart_ctsn] -to $uart_clock 100.0
-  set_max_delay -datapath_only -from [get_ports rs232_uart_rxd] -to $uart_clock 100.0
-  set_max_delay -datapath_only -from $main_clock -through [get_pins -hier UART/async_resetn] 100.0
-  set_max_delay -datapath_only -from $uart_clock -through [get_pins -hier UART/interrupt] 100.0
+  set_max_delay -from $uart_clock -to [get_ports {rs232_uart_rtsn rs232_uart_txd}] -datapath_only 100.0
+  set_max_delay -from [get_ports {rs232_uart_ctsn rs232_uart_rxd}] -to $uart_clock -datapath_only 100.0
+  set_min_delay -from [get_ports {rs232_uart_ctsn rs232_uart_rxd}] -to $uart_clock 0.0
+  set_max_delay -from $main_clock -through [get_pins -hier UART/async_resetn] -datapath_only 100.0
+  set_max_delay -from $uart_clock -through [get_pins -hier UART/interrupt] -datapath_only 100.0
   set_max_delay -from $main_clock -to $uart_clock -datapath_only $uart_clock_period
   set_max_delay -from $uart_clock -to $main_clock -datapath_only $main_clock_period
 }
@@ -141,10 +146,9 @@ if { [llength [get_pins -quiet -hier IIC/s_axi_aclk]] } {
   set iic_clock [get_clocks -of_objects [get_pins -hier IIC/s_axi_aclk]]
   set iic_clock_period [get_property -min PERIOD $iic_clock]
   set_max_delay -from $iic_clock -through [get_pins -hier IIC/iic2intc_irpt] -datapath_only 10.0
-  set_max_delay -datapath_only -from $iic_clock -to [get_ports iic_main_scl_io] 40.0
-  set_max_delay -datapath_only -from $iic_clock -to [get_ports iic_main_sda_io] 40.0
-  set_max_delay -datapath_only -from [get_ports iic_main_scl_io] -to $iic_clock 40.0
-  set_max_delay -datapath_only -from [get_ports iic_main_sda_io] -to $iic_clock 40.0
+  set_max_delay -from $iic_clock -to [get_ports {iic_main_scl_io iic_main_sda_io}] -datapath_only 40.0
+  set_max_delay -from [get_ports {iic_main_scl_io iic_main_sda_io}] -to $iic_clock -datapath_only 40.0
+  set_min_delay -from [get_ports {iic_main_scl_io iic_main_sda_io}] -to $iic_clock 0.0
   set_max_delay -from $main_clock -to $iic_clock -datapath_only $iic_clock_period
   set_max_delay -from $iic_clock -to $main_clock -datapath_only $main_clock_period
 }
@@ -160,5 +164,5 @@ if { [llength [get_pins -quiet -hier qdma_0/axi_aclk]] } {
   set_max_delay -from $pcie_clock -to $main_clock -datapath_only $main_clock_period
   set_max_delay -from $pcie_clock -to $uart_clock -datapath_only $uart_clock_period
   set_max_delay -from $pcie_clock -to $iic_clock -datapath_only $iic_clock_period
-  set_max_delay -datapath_only -from [get_ports pcie_perstn] -to $pcie_clock 40.0
+  set_max_delay -from [get_ports pcie_perstn] -to $pcie_clock -datapath_only 40.0
 }
