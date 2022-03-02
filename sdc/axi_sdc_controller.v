@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2013-2020 Authors                              ////
+//// Copyright (C) 2013-2022 Authors                              ////
 ////                                                              ////
 //// Based on original work by                                    ////
 ////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
@@ -407,7 +407,7 @@ end
 // AXI transaction (DDR access) is over 80 clock cycles
 // Must use burst to achive required throughput
 
-parameter fifo_addr_bits = 6;
+parameter fifo_addr_bits = 7;
 
 wire m_bus_we_o;
 wire m_bus_stb_o;

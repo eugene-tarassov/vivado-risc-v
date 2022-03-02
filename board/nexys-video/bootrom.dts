@@ -30,7 +30,7 @@
             fifo-depth = <256>;
             interrupt-parent = <&{/soc/interrupt-controller@c000000}>;
             interrupts = <2>;
-            max-frequency = <50000000>;
+            max-frequency = <12500000>;
             cap-sd-highspeed;
         };
 
