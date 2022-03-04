@@ -166,7 +166,7 @@ else
   MEMORY_ADDR_RANGE64 = 0x0 0x80000000 $(shell echo - | awk '{printf "0x%x", $(MEMORY_SIZE) / 0x100000000}') $(shell echo - | awk '{printf "0x%x", $(MEMORY_SIZE) % 0x100000000}')
 endif
 
-SBT := java -Xmx8G -Xss8M $(JAVA_OPTIONS) -Dsbt.io.virtual=false -Dsbt.server.autostart=false -jar $(realpath rocket-chip/sbt-launch.jar)
+SBT := java -Xmx12G -Xss8M $(JAVA_OPTIONS) -Dsbt.io.virtual=false -Dsbt.server.autostart=false -jar $(realpath rocket-chip/sbt-launch.jar)
 
 CHISEL_SRC_DIRS = \
   src/main \
