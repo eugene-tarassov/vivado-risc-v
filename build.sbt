@@ -1,12 +1,12 @@
 lazy val commonSettings = Seq(
   organization := "edu.berkeley.cs",
   version := "1.0",
-  scalaVersion := "2.12.10",
-  crossScalaVersions := Seq("2.12.10"),
+  scalaVersion := "2.12.15",
+  crossScalaVersions := Seq("2.12.15"),
   parallelExecution in Global := false,
-  scalacOptions ++= Seq("-deprecation","-unchecked","-Xsource:2.11","-P:chiselplugin:useBundlePlugin"),
-  addCompilerPlugin("edu.berkeley.cs" % "chisel3-plugin" % "3.5.1" cross CrossVersion.full),
-  libraryDependencies ++= Seq("edu.berkeley.cs" %% "chisel3" % "3.5.1"))
+  scalacOptions ++= Seq("-deprecation","-unchecked","-Xsource:2.11"),
+  addCompilerPlugin("edu.berkeley.cs" % "chisel3-plugin" % "3.5.2" cross CrossVersion.full),
+  libraryDependencies ++= Seq("edu.berkeley.cs" %% "chisel3" % "3.5.2"))
 
 lazy val vivado = (project in file("."))
   .dependsOn(boom)
