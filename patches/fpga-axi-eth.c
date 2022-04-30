@@ -675,7 +675,8 @@ static int axi_eth_probe(struct platform_device * pdev) {
 
     maddr = of_get_property(pdev->dev.of_node, "local-mac-address", &len);
     if (maddr && len == ETH_ALEN) {
-        memcpy(net_dev->dev_addr, maddr, ETH_ALEN);
+        net_dev->addr_len = ETH_ALEN;
+        dev_addr_set(net_dev, maddr);
     }
     else {
         printk(KERN_ERR "AXI-ETH: Can't get MAC address\n");

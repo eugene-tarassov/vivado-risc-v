@@ -1,8 +1,8 @@
 diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 7a68a4106e5a..6a40d15df111 100644
+index 5adcbd9b5e88..6183c33d8864 100644
 --- a/arch/riscv/Kconfig
 +++ b/arch/riscv/Kconfig
-@@ -247,7 +247,6 @@ config ARCH_RV64I
+@@ -238,7 +238,6 @@ config ARCH_RV64I
  	select HAVE_FTRACE_MCOUNT_RECORD if !XIP_KERNEL
  	select HAVE_FUNCTION_GRAPH_TRACER
  	select HAVE_FUNCTION_TRACER if !XIP_KERNEL
@@ -11,10 +11,10 @@ index 7a68a4106e5a..6a40d15df111 100644
  endchoice
  
 diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
-index 5af8494c31b5..49c5dde958bd 100644
+index 52b0b27a6839..0975b00a534e 100644
 --- a/drivers/mmc/host/Kconfig
 +++ b/drivers/mmc/host/Kconfig
-@@ -1083,6 +1083,14 @@ config MMC_SDHCI_AM654
+@@ -1084,6 +1084,14 @@ config MMC_SDHCI_AM654
  
  	  If unsure, say N.
  
@@ -42,7 +42,7 @@ index ea36d379bd3c..d9ab4fe82cb8 100644
  
  obj-$(CONFIG_MMC_REALTEK_PCI)	+= rtsx_pci_sdmmc.o
 diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
-index 4601b38f532a..128f547452a4 100644
+index 7a730c9d4bdf..c524343bde52 100644
 --- a/drivers/net/ethernet/Kconfig
 +++ b/drivers/net/ethernet/Kconfig
 @@ -158,6 +158,14 @@ config ETHOC
@@ -61,10 +61,10 @@ index 4601b38f532a..128f547452a4 100644
  source "drivers/net/ethernet/pasemi/Kconfig"
  source "drivers/net/ethernet/pensando/Kconfig"
 diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
-index fdd8c6c17451..312151385ed2 100644
+index 8a87c1083d1d..c21237ef7419 100644
 --- a/drivers/net/ethernet/Makefile
 +++ b/drivers/net/ethernet/Makefile
-@@ -70,6 +70,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
+@@ -71,6 +71,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
  obj-$(CONFIG_LPC_ENET) += nxp/
  obj-$(CONFIG_NET_VENDOR_OKI) += oki-semi/
  obj-$(CONFIG_ETHOC) += ethoc.o
@@ -73,7 +73,7 @@ index fdd8c6c17451..312151385ed2 100644
  obj-$(CONFIG_NET_VENDOR_PASEMI) += pasemi/
  obj-$(CONFIG_NET_VENDOR_QLOGIC) += qlogic/
 diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index fc543ac97c13..138a5433d4d6 100644
+index 0e5ccb25bdb1..67165ba97002 100644
 --- a/drivers/tty/serial/Kconfig
 +++ b/drivers/tty/serial/Kconfig
 @@ -537,6 +537,32 @@ config SERIAL_UARTLITE_NR_UARTS
