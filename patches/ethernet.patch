@@ -1,0 +1,48 @@
+diff --git a/rtl/eth_phy_10g_rx_ber_mon.v b/rtl/eth_phy_10g_rx_ber_mon.v
+index f2ba8d4..5194a55 100644
+--- a/rtl/eth_phy_10g_rx_ber_mon.v
++++ b/rtl/eth_phy_10g_rx_ber_mon.v
+@@ -59,7 +59,7 @@ initial begin
+     end
+ end
+ 
+-parameter COUNT_WIDTH = $clog2(COUNT_125US);
++parameter COUNT_WIDTH = 16; // $clog2(COUNT_125US); - [Synth 8-9566] illegal argument of type real in math function 'clog2()', expected integral type
+ 
+ localparam [1:0]
+     SYNC_DATA = 2'b10,
+diff --git a/rtl/eth_phy_10g_rx_watchdog.v b/rtl/eth_phy_10g_rx_watchdog.v
+index 3f202f7..4bcf48e 100644
+--- a/rtl/eth_phy_10g_rx_watchdog.v
++++ b/rtl/eth_phy_10g_rx_watchdog.v
+@@ -63,7 +63,7 @@ initial begin
+     end
+ end
+ 
+-parameter COUNT_WIDTH = $clog2(COUNT_125US);
++parameter COUNT_WIDTH = 16; // $clog2(COUNT_125US); - [Synth 8-9566] illegal argument of type real in math function 'clog2()', expected integral type
+ 
+ localparam [1:0]
+     SYNC_DATA = 2'b10,
+diff --git a/rtl/rgmii_phy_if.v b/rtl/rgmii_phy_if.v
+index ca82572..273799b 100644
+--- a/rtl/rgmii_phy_if.v
++++ b/rtl/rgmii_phy_if.v
+@@ -215,7 +215,7 @@ oddr #(
+     .WIDTH(1)
+ )
+ clk_oddr_inst (
+-    .clk(USE_CLK90 == "TRUE" ? clk90 : clk),
++    .clk(clk),
+     .d1(rgmii_tx_clk_1),
+     .d2(rgmii_tx_clk_2),
+     .q(phy_rgmii_tx_clk)
+@@ -227,7 +227,7 @@ oddr #(
+     .WIDTH(5)
+ )
+ data_oddr_inst (
+-    .clk(clk),
++    .clk(USE_CLK90 == "TRUE" ? ~clk90 : clk),
+     .d1({rgmii_txd_1, rgmii_tx_ctl_1}),
+     .d2({rgmii_txd_2, rgmii_tx_ctl_2}),
+     .q({phy_rgmii_txd, phy_rgmii_tx_ctl})

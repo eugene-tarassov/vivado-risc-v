@@ -39,6 +39,7 @@ sudo access required.
 Alternatively, a Windows 10 machine with Ubuntu on Windows can be used to run the tools, see [Running RISC-V tools on Windows](docs/ubuntu-on-windows.md).
 
 ## Software
+[Vitis 2022.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2022-1.html) or
 [Vitis 2021.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2021-2.html) or
 [Vitis 2021.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2021-1.html) or
 [Vitis 2020.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/archive-vitis.html) or
@@ -64,7 +65,7 @@ make update-submodules
 
 ## Build FPGA bitstream
 ```
-source /opt/Xilinx/Vivado/2021.1/settings64.sh
+source /opt/Xilinx/Vivado/2022.1/settings64.sh
 make CONFIG=rocket64b2 BOARD=nexys-video bitstream
 ```
 For KC705, use `BOARD=kc705`
@@ -112,7 +113,7 @@ Make sure to confirm right SD card device - all old data will be erased.
 
 ## Program the FPGA flash memory
 ```
-source /opt/Xilinx/Vivado/2021.1/settings64.sh
+source /opt/Xilinx/Vivado/2022.1/settings64.sh
 make CONFIG=rocket64b2 BOARD=nexys-video flash
 ```
 Alternatively, [flash memory can be programmed using Vivado GUI](docs/vivado-flash.md).
@@ -140,7 +141,7 @@ ssh debian@debian
 
 Open Vivado:
 ```
-source /opt/Xilinx/Vivado/2021.1/settings64.sh
+source /opt/Xilinx/Vivado/2022.1/settings64.sh
 make CONFIG=rocket64b2 BOARD=nexys-video vivado-gui
 ```
 The IO block in the design is the best place to add device controllers, like GPIO.
