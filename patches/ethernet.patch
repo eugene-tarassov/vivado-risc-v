@@ -12,10 +12,10 @@ index f2ba8d4..5194a55 100644
  localparam [1:0]
      SYNC_DATA = 2'b10,
 diff --git a/rtl/eth_phy_10g_rx_watchdog.v b/rtl/eth_phy_10g_rx_watchdog.v
-index 3f202f7..4bcf48e 100644
+index c644de4..a882d0d 100644
 --- a/rtl/eth_phy_10g_rx_watchdog.v
 +++ b/rtl/eth_phy_10g_rx_watchdog.v
-@@ -63,7 +63,7 @@ initial begin
+@@ -68,7 +68,7 @@ initial begin
      end
  end
  
