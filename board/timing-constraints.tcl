@@ -105,7 +105,9 @@ if { [llength [get_pins -quiet -hier jtag/TCK]] } {
 }
 
 if { $tck_pin != "" } {
-  create_clock -period 15.000 $tck_pin
+  if { ! [llength [get_clocks -quiet -of_objects $tck_pin]] } {
+    create_clock -name jtag_clock -period 15.000 $tck_pin
+  }
   set jtag_clock [get_clocks -of_objects $tck_pin]
 
   set_max_delay -reset_path -from $main_clock -to $jtag_clock -datapath_only 12.0
