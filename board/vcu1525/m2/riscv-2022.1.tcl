@@ -504,6 +504,8 @@ proc create_hier_cell_DDR { parentCell nameHier } {
    CONFIG.NUM_SI {2} \
    CONFIG.S00_HAS_DATA_FIFO {2} \
    CONFIG.S01_HAS_DATA_FIFO {2} \
+   CONFIG.M00_HAS_REGSLICE {4} \
+   CONFIG.M01_HAS_REGSLICE {4} \
    CONFIG.STRATEGY {2} \
  ] $axi_interconnect_0
 

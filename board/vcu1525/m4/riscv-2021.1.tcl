@@ -495,6 +495,10 @@ proc create_hier_cell_DDR { parentCell nameHier } {
    CONFIG.S01_HAS_DATA_FIFO {2} \
    CONFIG.S02_HAS_DATA_FIFO {2} \
    CONFIG.S03_HAS_DATA_FIFO {2} \
+   CONFIG.M00_HAS_REGSLICE {4} \
+   CONFIG.M01_HAS_REGSLICE {4} \
+   CONFIG.M02_HAS_REGSLICE {4} \
+   CONFIG.M03_HAS_REGSLICE {4} \
    CONFIG.STRATEGY {2} \
  ] $axi_interconnect_0
 
