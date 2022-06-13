@@ -109,9 +109,13 @@ if { $tck_pin != "" } {
     create_clock -name jtag_clock -period 15.000 $tck_pin
   }
   set jtag_clock [get_clocks -of_objects $tck_pin]
+  set jtag_clock_period [get_property -min PERIOD $jtag_clock]
 
-  set_max_delay -reset_path -from $main_clock -to $jtag_clock -datapath_only 12.0
-  set_max_delay -reset_path -from $jtag_clock -to $main_clock -datapath_only 12.0
+  set_max_delay -reset_path -from $main_clock -to $jtag_clock -datapath_only $jtag_clock_period
+  set_max_delay -reset_path -from $jtag_clock -to $main_clock -datapath_only $main_clock_period
+  if { [llength [get_pins -quiet -hier jtag/TDO]] } {
+    set_max_delay -from $jtag_clock -to [get_pins -hier jtag/TDO] [expr $jtag_clock_period / 2]
+  }
 }
 
 #------------------ DDR SDRAM controllers
@@ -124,7 +128,7 @@ foreach ddrmc_inst [get_cells -quiet -hier {mig_7series_*}] {
   set_max_delay -from $ddrc_clock -to $main_clock -datapath_only $main_clock_period
 }
 
-foreach ddrmc_rst_inst [get_cells -hier -filter {(ORIG_REF_NAME == mem_reset_control || REF_NAME == mem_reset_control)}] {
+foreach ddrmc_rst_inst [get_cells -quiet -hier -filter {(ORIG_REF_NAME == mem_reset_control || REF_NAME == mem_reset_control)}] {
   set_false_path -through [get_pins $ddrmc_rst_inst/clock_ok]
   set_false_path -through [get_pins $ddrmc_rst_inst/sys_reset]
   set_false_path -through [get_pins $ddrmc_rst_inst/mmcm_locked]
