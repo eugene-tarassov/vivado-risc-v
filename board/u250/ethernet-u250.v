@@ -145,6 +145,9 @@ end
 
 
 // XGMII 10G PHY
+assign qsfp0_modsell = 1'b0;
+assign qsfp0_resetl = 1'b1;
+assign qsfp0_lpmode = 1'b0;
 assign qsfp0_refclk_reset = rst_refclk_int;
 assign qsfp0_fs = 2'b10;
 
@@ -156,9 +159,6 @@ wire [XGMII_CTRL_WIDTH-1:0]  qsfp0_rxc_1;
 wire [6:0]                   qsfp0_rx_error_count_1;
 
 wire qsfp0_rx_block_lock_1;
-wire qsfp0_rx_block_lock_2;
-wire qsfp0_rx_block_lock_3;
-wire qsfp0_rx_block_lock_4;
 
 wire qsfp_gtpowergood;
 
@@ -248,6 +248,8 @@ wire [1:0] qsfp0_gt_rxheadervalid_1;
 wire [63:0] qsfp0_gt_rxdata_1;
 wire [1:0] qsfp0_gt_rxdatavalid_1;
 
+assign qsfp0_gt_txheader_1[5:2] = 0;
+
 gtwizard_ultrascale_0
 qsfp0_gt1_inst (
     .gtwiz_userclk_tx_active_in(gt_userclk_tx_active),
@@ -327,9 +329,9 @@ qsfp0_phy_1_inst (
     .xgmii_rxd(qsfp0_rxd_1),
     .xgmii_rxc(qsfp0_rxc_1),
     .serdes_tx_data(qsfp0_gt_txdata_1),
-    .serdes_tx_hdr(qsfp0_gt_txheader_1),
+    .serdes_tx_hdr(qsfp0_gt_txheader_1[1:0]),
     .serdes_rx_data(qsfp0_gt_rxdata_1),
-    .serdes_rx_hdr(qsfp0_gt_rxheader_1),
+    .serdes_rx_hdr(qsfp0_gt_rxheader_1[1:0]),
     .serdes_rx_bitslip(qsfp0_gt_rxgearboxslip_1),
     .rx_error_count(qsfp0_rx_error_count_1),
     .rx_block_lock(qsfp0_rx_block_lock_1),
