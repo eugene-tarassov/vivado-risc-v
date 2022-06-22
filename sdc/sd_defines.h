@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2013-2020 Authors                              ////
+//// Copyright (C) 2013-2022 Authors                              ////
 ////                                                              ////
 //// Based on original work by                                    ////
 ////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
@@ -37,20 +37,21 @@
 `define DATA_TIMEOUT_W 28
 
 // cmd module interrupts
-`define INT_CMD_SIZE 5
-`define INT_CMD_CC 0
-`define INT_CMD_EI 1
-`define INT_CMD_CTE 2
-`define INT_CMD_CCRCE 3
-`define INT_CMD_CIE  4
+`define INT_CMD_SIZE    5
+`define INT_CMD_CC      0
+`define INT_CMD_EI      1
+`define INT_CMD_CTE     2
+`define INT_CMD_CCRCE   3
+`define INT_CMD_CIE     4
 
 // data module interrupts
-`define INT_DATA_SIZE 5
-`define INT_DATA_CC 0
-`define INT_DATA_EI 1
-`define INT_DATA_CTE 2
-`define INT_DATA_CCRCE 3
-`define INT_DATA_CFE 4
+`define INT_DATA_SIZE   6
+`define INT_DATA_CC     0
+`define INT_DATA_EI     1
+`define INT_DATA_CTE    2 // Timeout
+`define INT_DATA_CCRCE  3 // CRC error
+`define INT_DATA_CFE    4 // FIFO error
+`define INT_DATA_CBE    5 // Bus error
 
 // command register defines
 `define CMD_REG_SIZE 14

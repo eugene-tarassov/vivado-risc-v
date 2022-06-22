@@ -27,14 +27,11 @@ set files [list \
  [file normalize "system-${vivado_board_name}.v"] \
  [file normalize "../../uart/uart.v"] \
  [file normalize "../../sdc/sd_defines.h"] \
- [file normalize "../../sdc/axi_sd_fifo.v"] \
- [file normalize "../../sdc/axi_sd_fifo_filler.v"] \
  [file normalize "../../sdc/axi_sdc_controller.v"] \
  [file normalize "../../sdc/sd_cmd_master.v"] \
  [file normalize "../../sdc/sd_cmd_serial_host.v"] \
  [file normalize "../../sdc/sd_data_master.v"] \
  [file normalize "../../sdc/sd_data_serial_host.v"] \
- [file normalize "../../sdc/sd_data_xfer_trig.v"] \
  [file normalize "../../vhdl-wrapper/src/net/largest/riscv/vhdl/bscan2jtag.vhdl"] \
  [file normalize "../../board/${vivado_board_name}/ethernet-${vivado_board_name}.v"] \
  [file normalize "../../board/mem-reset-control.v"] \

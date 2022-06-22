@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2013-2020 Authors                              ////
+//// Copyright (C) 2013-2022 Authors                              ////
 ////                                                              ////
 //// Based on original work by                                    ////
 ////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
@@ -35,7 +35,7 @@ module sd_data_serial_host(
     input clock,
     input clock_posedge,
     input clock_data_in,
-    input rst,
+    input reset,
     // Tx Fifo
     input [31:0] data_in,
     output reg rd,
@@ -43,9 +43,9 @@ module sd_data_serial_host(
     output reg [31:0] data_out,
     output reg we,
     // tristate data
-    output reg DAT_oe_o,
-    output reg[3:0] DAT_dat_o,
-    input [3:0] DAT_dat_i,
+    output reg dat_oe,
+    output reg[3:0] dat_o,
+    input [3:0] dat_i,
     // Controll signals
     input [`BLKSIZE_W-1:0] blksize,
     input bus_4bit,
@@ -83,7 +83,7 @@ parameter READ_DAT   = 7'b1000000;
 
 // sd data input pad register
 always @(posedge clock) begin
-    if (clock_data_in) DAT_dat_reg <= DAT_dat_i;
+    if (clock_data_in) DAT_dat_reg <= dat_i;
 end
 
 genvar i;
@@ -97,16 +97,16 @@ assign busy = (state != IDLE);
 assign sd_data_busy = !DAT_dat_reg[0];
 
 always @(posedge clock) begin
-    if (rst) begin
+    if (reset) begin
         state <= IDLE;
-        DAT_oe_o <= 0;
+        dat_oe <= 0;
         crc_en <= 0;
         crc_rst <= 1;
         transf_cnt <= 0;
         rd <= 0;
         last_din <= 0;
         crc_bit <= 0;
-        DAT_dat_o <= 4'b1111;
+        dat_o <= 4'b1111;
         drt_bit <= 0;
         drt_reg <= 0;
         we <= 0;
@@ -120,8 +120,8 @@ always @(posedge clock) begin
     end else if (clock_posedge) begin
         case (state)
             IDLE: begin
-                DAT_oe_o <= 0;
-                DAT_dat_o <= 4'b1111;
+                dat_oe <= 0;
+                dat_o <= 4'b1111;
                 transf_cnt <= 0;
                 crc_en <= 0;
                 crc_rst <= 1;
@@ -155,8 +155,8 @@ always @(posedge clock) begin
                     end else begin
                         last_din <= {3'h7, data_in[31-(byte_alignment_reg << 3)]};
                     end
-                    DAT_oe_o <= 1;
-                    DAT_dat_o <= bus_4bit_reg ? 4'h0 : 4'he;
+                    dat_oe <= 1;
+                    dat_o <= bus_4bit_reg ? 4'h0 : 4'he;
                     data_index <= bus_4bit_reg ? {2'b00, byte_alignment_reg, 1'b1} : {byte_alignment_reg, 3'b001};
                 end else if (transf_cnt <= data_cycles+1) begin
                     if (bus_4bit_reg) begin
@@ -172,18 +172,18 @@ always @(posedge clock) begin
                         if (data_index == 30) rd <= 1;
                     end
                     data_index <= data_index + 5'h1;
-                    DAT_dat_o <= last_din;
+                    dat_o <= last_din;
                     if (transf_cnt == data_cycles+1) crc_en <= 0;
                 end else if (transf_cnt <= data_cycles+17) begin
                     crc_en <= 0;
-                    DAT_dat_o[0] <= crc_out[0][crc_bit];
+                    dat_o[0] <= crc_out[0][crc_bit];
                     if (bus_4bit_reg)
-                        DAT_dat_o[3:1] <= {crc_out[3][crc_bit], crc_out[2][crc_bit], crc_out[1][crc_bit]};
+                        dat_o[3:1] <= {crc_out[3][crc_bit], crc_out[2][crc_bit], crc_out[1][crc_bit]};
                     crc_bit <= crc_bit - 1;
                 end else if (transf_cnt == data_cycles+18) begin
-                    DAT_dat_o <= 4'hf;
+                    dat_o <= 4'hf;
                 end else if (transf_cnt == data_cycles+19) begin
-                    DAT_oe_o <= 0;
+                    dat_oe <= 0;
                 end else begin
                     state <= WRITE_WAIT;
                 end
@@ -216,7 +216,7 @@ always @(posedge clock) begin
                 end
             end
             READ_WAIT: begin
-                DAT_oe_o <= 0;
+                dat_oe <= 0;
                 crc_bit <= 15;
                 last_din <= 0;
                 transf_cnt <= 0;
@@ -232,13 +232,13 @@ always @(posedge clock) begin
                 transf_cnt <= transf_cnt + 16'h1;
                 if (transf_cnt < data_cycles) begin
                     if (bus_4bit_reg) begin
-                        we <= (data_index[2:0] == 7 || (transf_cnt == data_cycles-1  && !blkcnt_reg));
+                        we <= (data_index[2:0] == 7 || (transf_cnt == data_cycles-1 && !blkcnt_reg));
                         data_out[31-(data_index[2:0]<<2)] <= DAT_dat_reg[3];
                         data_out[30-(data_index[2:0]<<2)] <= DAT_dat_reg[2];
                         data_out[29-(data_index[2:0]<<2)] <= DAT_dat_reg[1];
                         data_out[28-(data_index[2:0]<<2)] <= DAT_dat_reg[0];
                     end else begin
-                        we <= (data_index == 31 || (transf_cnt == data_cycles-1  && !blkcnt_reg));
+                        we <= (data_index == 31 || (transf_cnt == data_cycles-1 && !blkcnt_reg));
                         data_out[31-data_index] <= DAT_dat_reg[0];
                     end
                     data_index <= data_index + 5'h1;

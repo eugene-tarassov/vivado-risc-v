@@ -130,6 +130,8 @@ module sdc_controller (
 
 `include "sd_defines.h"
 
+parameter fifo_addr_bits = 7;
+
 wire reset;
 
 wire go_idle;
@@ -145,21 +147,17 @@ wire cmd_finish;
 wire d_write;
 wire d_read;
 wire [31:0] data_in_rx_fifo;
-wire [31:0] data_out_tx_fifo;
-wire start_tx_fifo;
-wire start_rx_fifo;
-wire tx_fifo_empty;
-wire tx_fifo_ready;
-wire rx_fifo_empty;
-wire rx_fifo_full;
+wire en_tx_fifo;
+wire en_rx_fifo;
 wire sd_data_busy;
 wire data_busy;
 wire data_crc_ok;
 wire tx_fifo_re;
 wire rx_fifo_we;
 
-wire data_start_rx;
-wire data_start_tx;
+reg data_start_rx;
+reg data_start_tx;
+reg data_prepare_tx;
 reg  cmd_int_rst;
 reg  data_int_rst;
 reg  ctrl_rst;
@@ -206,6 +204,16 @@ always @(posedge clock) begin
         clock_state <= 0;
         clock_cnt <= 0;
     end else if (clock_cnt < clock_divider_reg) begin
+        clock_posedge <= 0;
+        clock_data_in <= 0;
+        clock_cnt <= clock_cnt + 1;
+    end else if (clock_cnt < 124 && data_busy && en_rx_fifo && fifo_data_len > (1 << fifo_addr_bits) * 3 / 4) begin
+        // Prevent Rx FIFO overflow
+        clock_posedge <= 0;
+        clock_data_in <= 0;
+        clock_cnt <= clock_cnt + 1;
+    end else if (clock_cnt < 124 && data_busy && en_tx_fifo && fifo_free_len > (1 << fifo_addr_bits) * 3 / 4) begin
+        // Prevent Tx FIFO underflow
         clock_posedge <= 0;
         clock_data_in <= 0;
         clock_cnt <= clock_cnt + 1;
@@ -402,41 +410,69 @@ always @(posedge clock) begin
     end
 end
 
+// ------ Data FIFO
+
+reg  [31:0] fifo_mem [(1<<fifo_addr_bits)-1:0];
+reg  [fifo_addr_bits-1:0] fifo_inp_pos;
+reg  [fifo_addr_bits-1:0] fifo_out_pos;
+wire [fifo_addr_bits-1:0] fifo_inp_nxt = fifo_inp_pos + 1;
+wire [fifo_addr_bits-1:0] fifo_out_nxt = fifo_out_pos + 1;
+wire [fifo_addr_bits-1:0] fifo_data_len = fifo_inp_pos - fifo_out_pos;
+wire [fifo_addr_bits-1:0] fifo_free_len = fifo_out_pos - fifo_inp_nxt;
+wire fifo_full = fifo_inp_nxt == fifo_out_pos;
+wire fifo_empty = fifo_inp_pos == fifo_out_pos;
+wire fifo_ready = fifo_data_len >= (1 << fifo_addr_bits) / 2;
+wire [31:0] fifo_din = m_axi_write ? data_in_rx_fifo : m_bus_dat_i;
+wire fifo_we = m_axi_write ? rx_fifo_we && clock_posedge : m_axi_rready && m_axi_rvalid;
+wire fifo_re = m_axi_write ? m_axi_wready && m_axi_wvalid : tx_fifo_re && clock_posedge;
+reg [31:0] fifo_dout;
+
+wire tx_stb = en_tx_fifo && fifo_free_len >= (1 << fifo_addr_bits) / 3;
+wire rx_stb = en_rx_fifo && m_axi_bresp_cnt != 3'b111 && (fifo_data_len >= (1 << fifo_addr_bits) / 3 || (!fifo_empty && !data_busy));
+
+always @(posedge clock)
+    if (reset || ctrl_rst || !(en_rx_fifo || en_tx_fifo)) begin
+        fifo_inp_pos <= 0;
+        fifo_out_pos <= 0;
+    end else begin
+        if (fifo_we && !fifo_full) begin
+            fifo_mem[fifo_inp_pos] <= fifo_din;
+            fifo_inp_pos <= fifo_inp_nxt;
+            if (fifo_empty) fifo_dout <= fifo_din;
+        end
+        if (fifo_re && !fifo_empty) begin
+            if (fifo_we && !fifo_full && fifo_out_nxt == fifo_inp_pos) fifo_dout <= fifo_din;
+            else fifo_dout <= fifo_mem[fifo_out_nxt];
+            fifo_out_pos <= fifo_out_nxt;
+        end
+    end
+
 // ------ AXI Master Interface
 
 // AXI transaction (DDR access) is over 80 clock cycles
 // Must use burst to achive required throughput
 
-parameter fifo_addr_bits = 7;
-
-wire m_bus_we_o;
-wire m_bus_stb_o;
-wire m_bus_last_i;
-wire m_bus_ack_i;
 reg m_axi_cyc;
-reg m_axi_write;
-reg [fifo_addr_bits-1:0] m_axi_wcnt;
-wire [31:2] m_bus_adr_o;
-wire [31:0] m_bus_dat_o;
+wire m_axi_write = en_rx_fifo;
+reg [7:0] m_axi_wcnt;
+reg [31:2] m_bus_adr_o;
 wire [31:0] m_bus_dat_i;
-wire [fifo_addr_bits-1:0] tx_fifo_free_len;
-wire [fifo_addr_bits-1:0] rx_fifo_data_len;
+reg [2:0] m_axi_bresp_cnt;
+reg m_bus_error;
 
-assign m_axi_bready = m_axi_cyc & m_axi_write;
+assign m_axi_bready = m_axi_bresp_cnt != 0;
 assign m_axi_rready = m_axi_cyc & !m_axi_write;
-assign m_bus_last_i = m_axi_write ? m_axi_wlast : m_axi_rlast;
-assign m_bus_ack_i = m_axi_write ? (m_axi_wready & m_axi_wvalid) : (m_axi_rready & m_axi_rvalid);
 assign m_bus_dat_i = {m_axi_rdata[7:0],m_axi_rdata[15:8],m_axi_rdata[23:16],m_axi_rdata[31:24]};
-assign m_axi_wdata = {m_bus_dat_o[7:0],m_bus_dat_o[15:8],m_bus_dat_o[23:16],m_bus_dat_o[31:24]};
+assign m_axi_wdata = {fifo_dout[7:0],fifo_dout[15:8],fifo_dout[23:16],fifo_dout[31:24]};
 
 // AXI burst cannot cross a 4KB boundary
 wire [fifo_addr_bits-1:0] tx_burst_len;
 wire [fifo_addr_bits-1:0] rx_burst_len;
-assign tx_burst_len = m_bus_adr_o[11:2] + tx_fifo_free_len >= m_bus_adr_o[11:2] ? tx_fifo_free_len - 1 : ~m_bus_adr_o[fifo_addr_bits+1:2];
-assign rx_burst_len = m_bus_adr_o[11:2] + rx_fifo_data_len >= m_bus_adr_o[11:2] ? rx_fifo_data_len - 1 : ~m_bus_adr_o[fifo_addr_bits+1:2];
+assign tx_burst_len = m_bus_adr_o[11:2] + fifo_free_len >= m_bus_adr_o[11:2] ? fifo_free_len - 1 : ~m_bus_adr_o[fifo_addr_bits+1:2];
+assign rx_burst_len = m_bus_adr_o[11:2] + fifo_data_len >= m_bus_adr_o[11:2] ? fifo_data_len - 1 : ~m_bus_adr_o[fifo_addr_bits+1:2];
 
 assign data_int_status_reg = { data_int_status[`INT_DATA_SIZE-1:1],
-    !m_bus_stb_o & !m_axi_cyc & rx_fifo_empty & data_int_status[0] };
+    !en_rx_fifo && !en_tx_fifo && !m_axi_cyc && m_axi_bresp_cnt == 0 && data_int_status[0] };
 
 always @(posedge clock) begin
     if (reset | ctrl_rst) begin
@@ -452,153 +488,161 @@ always @(posedge clock) begin
             m_axi_arvalid <= 0;
         end
         if (m_axi_wvalid && m_axi_wready) begin
-            if (m_axi_wlast)
+            if (m_axi_wlast) begin
                 m_axi_wvalid <= 0;
-            else begin
+                m_axi_cyc <= 0;
+            end else begin
                 m_axi_wlast <= m_axi_wcnt + 1 == m_axi_awlen;
                 m_axi_wcnt <= m_axi_wcnt + 1;
             end
         end
-        if (m_axi_bvalid || (m_axi_rvalid && m_axi_rlast)) begin
+        if (m_axi_rvalid && m_axi_rready && m_axi_rlast) begin
             m_axi_cyc <= 0;
         end
-    end else if (m_bus_stb_o) begin
+    end else if (tx_stb || rx_stb) begin
         m_axi_cyc <= 1;
         m_axi_wcnt <= 0;
-        m_axi_write <= m_bus_we_o;
-        if (m_bus_we_o) begin
+        if (m_axi_write) begin
             m_axi_awaddr <= { m_bus_adr_o, 2'b00 };
-            m_axi_awlen <= rx_burst_len;
+            m_axi_awlen <= rx_burst_len < 8'hff ? rx_burst_len : 8'hff;
             m_axi_wlast <= rx_burst_len == 0;
             m_axi_awvalid <= 1;
             m_axi_wvalid <= 1;
         end else begin
             m_axi_araddr <= { m_bus_adr_o, 2'b00 };
-            m_axi_arlen <= tx_burst_len;
+            m_axi_arlen <= tx_burst_len < 8'hff ? tx_burst_len : 8'hff;
             m_axi_arvalid <= 1;
+        end
+    end
+    if (reset | ctrl_rst) begin
+        m_bus_adr_o <= 0;
+    end else if ((m_axi_wready && m_axi_wvalid) || (m_axi_rready && m_axi_rvalid)) begin
+        m_bus_adr_o <= m_bus_adr_o + 1;
+    end else if (!m_axi_cyc && !en_rx_fifo && !en_tx_fifo) begin
+        m_bus_adr_o <= dma_addr_reg[31:2];
+    end
+    if (reset | ctrl_rst) begin
+        m_axi_bresp_cnt <= 0;
+    end else if ((m_axi_awvalid && m_axi_awready) && !(m_axi_bvalid && m_axi_bready)) begin
+        m_axi_bresp_cnt <= m_axi_bresp_cnt + 1;
+    end else if (!(m_axi_awvalid && m_axi_awready) && (m_axi_bvalid && m_axi_bready)) begin
+        m_axi_bresp_cnt <= m_axi_bresp_cnt - 1;
+    end
+    if (reset | ctrl_rst | cmd_start) begin
+        m_bus_error <= 0;
+    end else if (m_axi_bvalid && m_axi_bready && m_axi_bresp) begin
+        m_bus_error <= 1;
+    end else if (m_axi_rvalid && m_axi_rready && m_axi_rresp) begin
+        m_bus_error <= 1;
+    end
+    if (reset | ctrl_rst) begin
+        data_start_tx <= 0;
+        data_start_rx <= 0;
+        data_prepare_tx <= 0;
+    end else if (clock_posedge) begin
+        data_start_tx <= 0;
+        data_start_rx <= 0;
+        if (cmd_start) begin
+            data_prepare_tx <= 0;
+            if (command_reg[`CMD_WITH_DATA] == 2'b01) data_start_rx <= 1;
+            else if (command_reg[`CMD_WITH_DATA] != 2'b00) data_prepare_tx <= 1;
+        end else if (data_prepare_tx) begin
+            if (cmd_int_status_reg[`INT_CMD_CC]) begin
+                data_prepare_tx <= 0;
+                data_start_tx <= 1;
+            end else if (cmd_int_status_reg[`INT_CMD_EI]) begin
+                data_prepare_tx <= 0;
+            end
         end
     end
 end
 
-axi_sd_fifo_filler #(.fifo_addr_bits(fifo_addr_bits)) sd_fifo_filler0(
-    .clock     (clock),
-    .clock_posedge (clock_posedge),
-    .reset     (reset | ctrl_rst),
-    .bus_adr_o (m_bus_adr_o),
-    .bus_dat_o (m_bus_dat_o),
-    .bus_dat_i (m_bus_dat_i),
-    .bus_stb_o (m_bus_stb_o),
-    .bus_last_i(m_bus_last_i),
-    .bus_ack_i (m_bus_ack_i),
-    .bus_we_o  (m_bus_we_o),
-    .en_rx_i   (start_rx_fifo),
-    .en_tx_i   (start_tx_fifo),
-    .adr_i     (dma_addr_reg[31:2]),
-    .dat_i     (data_in_rx_fifo),
-    .dat_o     (data_out_tx_fifo),
-    .wr_i      (rx_fifo_we),
-    .rd_i      (tx_fifo_re),
-    .tx_free   (tx_fifo_free_len),
-    .rx_data   (rx_fifo_data_len),
-    .tx_empty_o(tx_fifo_empty), // HOST -> SD empty
-    .rx_full_o (rx_fifo_full),  // SD -> HOST full
-    .rx_empty_o(rx_fifo_empty), // SD -> HOST empty
-    .tx_ready_o(tx_fifo_ready)  // HOST -> SD has enough data to start transmission
-    );
+// ------ SD Card Interface
 
 sd_cmd_master sd_cmd_master0(
-    .clock        (clock),
-    .clock_posedge (clock_posedge),
-    .rst          (reset | ctrl_rst),
-    .start_i      (cmd_start),
-    .int_status_rst_i(cmd_int_rst),
-    .setting_o    (cmd_setting),
-    .start_xfr_o  (cmd_start_tx),
-    .go_idle_o    (go_idle),
-    .cmd_o        (cmd),
-    .response_i   (cmd_response),
-    .crc_ok_i     (cmd_crc_ok),
-    .index_ok_i   (cmd_index_ok),
-    .busy_i       (sd_data_busy),
-    .finish_i     (cmd_finish),
-    .argument_i   (argument_reg),
-    .command_i    (command_reg),
-    .timeout_i    (cmd_timeout_reg),
-    .int_status_o (cmd_int_status_reg),
-    .response_0_o (response_0_reg),
-    .response_1_o (response_1_reg),
-    .response_2_o (response_2_reg),
-    .response_3_o (response_3_reg)
+    .clock            (clock),
+    .clock_posedge    (clock_posedge),
+    .reset            (reset | ctrl_rst),
+    .start            (cmd_start),
+    .int_status_rst   (cmd_int_rst),
+    .setting          (cmd_setting),
+    .start_xfr        (cmd_start_tx),
+    .go_idle          (go_idle),
+    .cmd              (cmd),
+    .response         (cmd_response),
+    .crc_error        (!cmd_crc_ok),
+    .index_ok         (cmd_index_ok),
+    .busy             (sd_data_busy),
+    .finish           (cmd_finish),
+    .argument         (argument_reg),
+    .command          (command_reg),
+    .timeout          (cmd_timeout_reg),
+    .int_status       (cmd_int_status_reg),
+    .response_0       (response_0_reg),
+    .response_1       (response_1_reg),
+    .response_2       (response_2_reg),
+    .response_3       (response_3_reg)
     );
 
 sd_cmd_serial_host cmd_serial_host0(
-    .clock      (clock),
-    .clock_posedge (clock_posedge),
-    .clock_data_in (clock_data_in),
-    .rst        (reset | ctrl_rst | go_idle),
-    .setting_i  (cmd_setting),
-    .cmd_i      (cmd),
-    .start_i    (cmd_start_tx),
-    .finish_o   (cmd_finish),
-    .response_o (cmd_response),
-    .crc_ok_o   (cmd_crc_ok),
-    .index_ok_o (cmd_index_ok),
-    .cmd_dat_i  (sd_cmd_i),
-    .cmd_out_o  (sd_cmd_o),
-    .cmd_oe_o   (sd_cmd_oe)
+    .clock            (clock),
+    .clock_posedge    (clock_posedge),
+    .clock_data_in    (clock_data_in),
+    .reset            (reset | ctrl_rst | go_idle),
+    .setting          (cmd_setting),
+    .cmd              (cmd),
+    .start            (cmd_start_tx),
+    .finish           (cmd_finish),
+    .response         (cmd_response),
+    .crc_ok           (cmd_crc_ok),
+    .index_ok         (cmd_index_ok),
+    .cmd_i            (sd_cmd_i),
+    .cmd_o            (sd_cmd_o),
+    .cmd_oe           (sd_cmd_oe)
     );
 
 sd_data_master sd_data_master0(
     .clock            (clock),
     .clock_posedge    (clock_posedge),
-    .rst              (reset | ctrl_rst),
-    .start_tx_i       (data_start_tx),
-    .start_rx_i       (data_start_rx),
-    .timeout_i        (data_timeout_reg),
-    .d_write_o        (d_write),
-    .d_read_o         (d_read),
-    .start_tx_fifo_o  (start_tx_fifo),
-    .start_rx_fifo_o  (start_rx_fifo),
-    .tx_fifo_empty_i  (tx_fifo_empty),
-    .tx_fifo_ready_i  (tx_fifo_ready),
-    .rx_fifo_full_i   (rx_fifo_full),
-    .xfr_complete_i   (!data_busy),
-    .crc_ok_i         (data_crc_ok),
-    .int_status_o     (data_int_status),
-    .int_status_rst_i (data_int_rst)
+    .reset            (reset | ctrl_rst),
+    .start_tx         (data_start_tx),
+    .start_rx         (data_start_rx),
+    .timeout          (data_timeout_reg),
+    .d_write          (d_write),
+    .d_read           (d_read),
+    .en_tx_fifo       (en_tx_fifo),
+    .en_rx_fifo       (en_rx_fifo),
+    .fifo_empty       (fifo_empty),
+    .fifo_ready       (fifo_ready),
+    .fifo_full        (fifo_full),
+    .bus_cycle        (m_axi_cyc || m_axi_bresp_cnt != 0),
+    .xfr_complete     (!data_busy),
+    .crc_error        (!data_crc_ok),
+    .bus_error        (m_bus_error),
+    .int_status       (data_int_status),
+    .int_status_rst   (data_int_rst)
     );
 
 sd_data_serial_host sd_data_serial_host0(
-    .clock          (clock),
-    .clock_posedge  (clock_posedge),
-    .clock_data_in  (clock_data_in),
-    .rst            (reset | ctrl_rst),
-    .data_in        (data_out_tx_fifo),
-    .rd             (tx_fifo_re),
-    .data_out       (data_in_rx_fifo),
-    .we             (rx_fifo_we),
-    .DAT_oe_o       (sd_dat_oe),
-    .DAT_dat_o      (sd_dat_o),
-    .DAT_dat_i      (sd_dat_i),
-    .blksize        (block_size_reg),
-    .bus_4bit       (controller_setting_reg[0]),
-    .blkcnt         (block_count_reg),
-    .start          ({d_read, d_write}),
-    .byte_alignment (dma_addr_reg),
-    .sd_data_busy   (sd_data_busy),
-    .busy           (data_busy),
-    .crc_ok         (data_crc_ok)
-    );
-
-sd_data_xfer_trig sd_data_xfer_trig0 (
-    .clock                 (clock),
-    .clock_posedge         (clock_posedge),
-    .rst                   (reset | ctrl_rst),
-    .cmd_with_data_start_i (cmd_start & (command_reg[`CMD_WITH_DATA] != 2'b00)),
-    .r_w_i                 (command_reg[`CMD_WITH_DATA] == 2'b01),
-    .cmd_int_status_i      (cmd_int_status_reg),
-    .start_tx_o            (data_start_tx),
-    .start_rx_o            (data_start_rx)
+    .clock            (clock),
+    .clock_posedge    (clock_posedge),
+    .clock_data_in    (clock_data_in),
+    .reset            (reset | ctrl_rst),
+    .data_in          (fifo_dout),
+    .rd               (tx_fifo_re),
+    .data_out         (data_in_rx_fifo),
+    .we               (rx_fifo_we),
+    .dat_oe           (sd_dat_oe),
+    .dat_o            (sd_dat_o),
+    .dat_i            (sd_dat_i),
+    .blksize          (block_size_reg),
+    .bus_4bit         (controller_setting_reg[0]),
+    .blkcnt           (block_count_reg),
+    .start            ({d_read, d_write}),
+    .byte_alignment   (dma_addr_reg),
+    .sd_data_busy     (sd_data_busy),
+    .busy             (data_busy),
+    .crc_ok           (data_crc_ok)
     );
 
 assign interrupt =

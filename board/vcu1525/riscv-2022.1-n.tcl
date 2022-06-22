@@ -702,5 +702,3 @@ proc create_root_design { parentCell } {
 ##################################################################
 
 create_root_design ""
-
-

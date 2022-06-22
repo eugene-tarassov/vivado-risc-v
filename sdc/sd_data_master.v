@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////
 ////                                                              ////
-//// Copyright (C) 2013-2020 Authors                              ////
+//// Copyright (C) 2013-2022 Authors                              ////
 ////                                                              ////
 //// Based on original work by                                    ////
 ////     Adam Edvardsson (adam.edvardsson@orsoc.se)               ////
@@ -34,25 +34,27 @@
 module sd_data_master (
     input clock,
     input clock_posedge,
-    input rst,
-    input start_tx_i,
-    input start_rx_i,
-    input [`DATA_TIMEOUT_W-1:0] timeout_i,
+    input reset,
+    input start_tx,
+    input start_rx,
+    input [`DATA_TIMEOUT_W-1:0] timeout,
     // Output to SD-Host Reg
-    output reg d_write_o,
-    output reg d_read_o,
+    output reg d_write,
+    output reg d_read,
     // To fifo filler
-    output reg start_tx_fifo_o,
-    output reg start_rx_fifo_o,
-    input tx_fifo_empty_i,
-    input tx_fifo_ready_i,
-    input rx_fifo_full_i,
+    output reg en_tx_fifo,
+    output reg en_rx_fifo,
+    input fifo_empty,
+    input fifo_ready,
+    input fifo_full,
+    input bus_cycle,
     // SD-DATA_Host
-    input xfr_complete_i,
-    input crc_ok_i,
+    input xfr_complete,
+    input crc_error,
+    input bus_error,
     // status output
-    output reg [`INT_DATA_SIZE-1:0] int_status_o,
-    input int_status_rst_i
+    output reg [`INT_DATA_SIZE-1:0] int_status,
+    input int_status_rst
 );
 
 reg [3:0] state;
@@ -63,96 +65,85 @@ localparam DATA_TRANSFER = 4'b1000;
 
 reg [`DATA_TIMEOUT_W-1:0] watchdog;
 reg watchdog_enable;
-reg watchdog_alarm;
-reg tx_cycle;
 
 always @(posedge clock) begin
-    if (rst) begin
-        start_tx_fifo_o <= 0;
-        start_rx_fifo_o <= 0;
-        d_write_o <= 0;
-        d_read_o <= 0;
-        tx_cycle <= 0;
-        int_status_o <= 0;
+    if (reset) begin
+        en_tx_fifo <= 0;
+        en_rx_fifo <= 0;
+        d_write <= 0;
+        d_read <= 0;
+        int_status <= 0;
         watchdog <= 0;
         watchdog_enable <= 0;
-        watchdog_alarm <= 0;
         state <= IDLE;
     end else if (clock_posedge) begin
         case (state)
             IDLE: begin
-                start_tx_fifo_o <= 0;
-                start_rx_fifo_o <= 0;
-                d_write_o <= 0;
-                d_read_o <= 0;
-                tx_cycle <= 0;
+                en_tx_fifo <= 0;
+                en_rx_fifo <= 0;
+                d_write <= 0;
+                d_read <= 0;
                 watchdog <= 0;
-                watchdog_enable <= timeout_i != 0;
-                watchdog_alarm <= 0;
-                if (start_tx_i) state <= START_TX_FIFO;
-                else if (start_rx_i) state <= START_RX_FIFO;
+                watchdog_enable <= timeout != 0;
+                if (start_tx) state <= START_TX_FIFO;
+                else if (start_rx) state <= START_RX_FIFO;
             end
             START_RX_FIFO: begin
-                start_rx_fifo_o <= 1;
-                start_tx_fifo_o <= 0;
-                tx_cycle <= 0;
-                d_read_o <= 1;
-                if (!xfr_complete_i) state <= DATA_TRANSFER;
+                en_rx_fifo <= 1;
+                en_tx_fifo <= 0;
+                d_read <= 1;
+                if (!xfr_complete) state <= DATA_TRANSFER;
             end
             START_TX_FIFO:  begin
-                start_rx_fifo_o <= 0;
-                start_tx_fifo_o <= 1;
-                tx_cycle <= 1;
-                if (tx_fifo_ready_i) begin
-                    d_write_o <= 1;
-                    if (!xfr_complete_i) state <= DATA_TRANSFER;
+                en_rx_fifo <= 0;
+                en_tx_fifo <= 1;
+                if (fifo_ready) begin
+                    d_write <= 1;
+                    if (!xfr_complete) state <= DATA_TRANSFER;
                 end
             end
             DATA_TRANSFER: begin
-                d_read_o <= 0;
-                d_write_o <= 0;
-                if (tx_cycle) begin
-                    if (tx_fifo_empty_i) begin
-                        int_status_o[`INT_DATA_CFE] <= 1;
-                        int_status_o[`INT_DATA_EI] <= 1;
-                        state <= IDLE;
-                        // stop sd_data_serial_host
-                        d_write_o <= 1;
-                        d_read_o <= 1;
-                    end
-                end else begin
-                    if (rx_fifo_full_i) begin
-                        int_status_o[`INT_DATA_CFE] <= 1;
-                        int_status_o[`INT_DATA_EI] <= 1;
-                        state <= IDLE;
-                        // stop sd_data_serial_host
-                        d_write_o <= 1;
-                        d_read_o <= 1;
-                    end
-                end
-                if (watchdog_alarm) begin
-                    int_status_o[`INT_DATA_CTE] <= 1;
-                    int_status_o[`INT_DATA_EI] <= 1;
+                d_read <= 0;
+                d_write <= 0;
+                if (en_tx_fifo && fifo_empty) begin
+                    int_status[`INT_DATA_CFE] <= 1;
+                    int_status[`INT_DATA_EI] <= 1;
                     state <= IDLE;
                     // stop sd_data_serial_host
-                    d_write_o <= 1;
-                    d_read_o <= 1;
-                end else if (xfr_complete_i) begin
+                    d_write <= 1;
+                    d_read <= 1;
+                end else if (en_rx_fifo && fifo_full) begin
+                    int_status[`INT_DATA_CFE] <= 1;
+                    int_status[`INT_DATA_EI] <= 1;
                     state <= IDLE;
-                    if (!crc_ok_i) begin
-                        int_status_o[`INT_DATA_CCRCE] <= 1;
-                        int_status_o[`INT_DATA_EI] <= 1;
-                    end else begin
-                        int_status_o[`INT_DATA_CC] <= 1;
+                    // stop sd_data_serial_host
+                    d_write <= 1;
+                    d_read <= 1;
+                end else if (watchdog_enable && watchdog >= timeout) begin
+                    int_status[`INT_DATA_CTE] <= 1;
+                    int_status[`INT_DATA_EI] <= 1;
+                    state <= IDLE;
+                    // stop sd_data_serial_host
+                    d_write <= 1;
+                    d_read <= 1;
+                end else if (xfr_complete && !bus_cycle && (en_tx_fifo || fifo_empty)) begin
+                    state <= IDLE;
+                    if (crc_error) begin
+                        int_status[`INT_DATA_CCRCE] <= 1;
+                        int_status[`INT_DATA_EI] <= 1;
                     end
+                    if (bus_error) begin
+                        int_status[`INT_DATA_CBE] <= 1;
+                        int_status[`INT_DATA_EI] <= 1;
+                    end
+                    int_status[`INT_DATA_CC] <= 1;
                 end else if (watchdog_enable) begin
                     watchdog <= watchdog + 1;
-                    if (watchdog >= timeout_i) watchdog_alarm <= 1;
                 end
             end
         endcase
-        if (int_status_rst_i)
-            int_status_o <= 0;
+        if (int_status_rst)
+            int_status <= 0;
     end
 end
 
