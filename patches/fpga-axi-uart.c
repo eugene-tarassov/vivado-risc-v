@@ -50,10 +50,10 @@ static struct uart_port axi_uart_ports[MAX_PORTS];
 #define MAX_CHARS_PER_INTERRUPT 32
 
 #ifdef CONFIG_SERIAL_AXI_UART_CONSOLE
-static void axi_uart_console_putchar(struct uart_port * port, int ch) {
+static void axi_uart_console_putchar(struct uart_port * port, unsigned char ch) {
     struct uart_regs __iomem * regs = (struct uart_regs __iomem *)port->membase;
     while (regs->status & SR_TX_FIFO_FULL) {}
-    regs->tx_fifo = ch & 0xff;
+    regs->tx_fifo = ch;
 }
 
 static void axi_uart_console_write(struct console * con, const char * s, unsigned n) {
