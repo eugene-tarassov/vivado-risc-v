@@ -1,0 +1,246 @@
+diff --git a/design/craft/inclusivecache/src/BankedStore.scala b/design/craft/inclusivecache/src/BankedStore.scala
+index 9019128..eb0eb56 100644
+--- a/design/craft/inclusivecache/src/BankedStore.scala
++++ b/design/craft/inclusivecache/src/BankedStore.scala
+@@ -160,7 +160,7 @@ class BankedStore(params: InclusiveCacheParameters) extends Module
+     req.bankSel | sum
+   }
+   // Access the banks
+-  val regout = Vec(cc_banks.zipWithIndex.map { case ((b, omSRAM), i) =>
++  val regout = Vec(cc_banks.zipWithIndex.map { case (b, i) =>
+     val en  = reqs.map(_.bankEn(i)).reduce(_||_)
+     val sel = reqs.map(_.bankSel(i))
+     val wen = PriorityMux(sel, reqs.map(_.wen))
+@@ -186,7 +186,4 @@ class BankedStore(params: InclusiveCacheParameters) extends Module
+   }.grouped(innerBytes/params.micro.writeBytes).toList.transpose.map(s => s.reduce(_|_))
+ 
+   io.sourceD_rdat.data := Cat(decodeD.reverse)
+-
+-  private def banks = cc_banks.map("\"" + _._1.pathName + "\"").mkString(",")
+-  def json: String = s"""{"widthBytes":${params.micro.writeBytes},"mem":[${banks}]}"""
+ }
+diff --git a/design/craft/inclusivecache/src/Configs.scala b/design/craft/inclusivecache/src/Configs.scala
+index b764732..d527ef6 100644
+--- a/design/craft/inclusivecache/src/Configs.scala
++++ b/design/craft/inclusivecache/src/Configs.scala
+@@ -88,8 +88,6 @@ class WithInclusiveCache(
+         address = InclusiveCacheParameters.L2ControlAddress,
+         beatBytes = cbus.beatBytes))))
+ 
+-    context.addLogicalTreeNode(l2.logicalTreeNode)
+-
+     def skipMMIO(x: TLClientParameters) = {
+       val dcacheMMIO =
+         x.requestFifo &&
+@@ -127,7 +125,6 @@ class WithInclusiveCache(
+       _ := cbus.coupleTo("l2_ctrl") { TLBuffer(1) := TLFragmenter(cbus) := _ }
+     }
+ 
+-    ElaborationArtefacts.add("l2.json", l2.module.json)
+     (filter.node, lastLevelNode, None)
+   })
+ })
+diff --git a/design/craft/inclusivecache/src/Directory.scala b/design/craft/inclusivecache/src/Directory.scala
+index 4a4d20e..613c553 100644
+--- a/design/craft/inclusivecache/src/Directory.scala
++++ b/design/craft/inclusivecache/src/Directory.scala
+@@ -62,7 +62,7 @@ class Directory(params: InclusiveCacheParameters) extends Module
+ 
+   val codeBits = new DirectoryEntry(params).getWidth
+ 
+-  val (cc_dir, omSRAM) =  DescribedSRAM(
++  val cc_dir =  DescribedSRAM(
+     name = "cc_dir",
+     desc = "Directory RAM",
+     size = params.cache.sets,
+diff --git a/design/craft/inclusivecache/src/InclusiveCache.scala b/design/craft/inclusivecache/src/InclusiveCache.scala
+index 3318db2..898e24b 100644
+--- a/design/craft/inclusivecache/src/InclusiveCache.scala
++++ b/design/craft/inclusivecache/src/InclusiveCache.scala
+@@ -18,11 +18,11 @@
+ package sifive.blocks.inclusivecache
+ 
+ import Chisel._
+-import diplomaticobjectmodel.model.OMCacheMaster
++
+ import freechips.rocketchip.config._
+ import freechips.rocketchip.diplomacy._
+-import freechips.rocketchip.diplomaticobjectmodel.logicaltree.InclusiveCacheLogicalTreeNode
+-import freechips.rocketchip.diplomaticobjectmodel.model.OMRegisterMap
++
++
+ import freechips.rocketchip.regmapper._
+ import freechips.rocketchip.tilelink._
+ import freechips.rocketchip.subsystem.BankedL2Key
+@@ -123,19 +123,6 @@ class InclusiveCache(
+       println("")
+     }
+ 
+-    def getMasters(): Seq[OMCacheMaster] = {
+-      // Use the natural ordering of clients (just like in Directory)
+-      node.edges.in.headOption.map { n =>
+-        n.client.clients.zipWithIndex.map {
+-          case (c, i) =>
+-            OMCacheMaster(
+-              id = i,
+-              documentationName = c.name
+-            )
+-        }
+-      }.getOrElse(Nil)
+-    }
+-
+     // Flush directive
+     val flushInValid   = RegInit(Bool(false))
+     val flushInReady   = Wire(init = Bool(false))
+@@ -221,16 +208,5 @@ class InclusiveCache(
+ 
+       scheduler
+     }
+-
+-    def json = s"""{"banks":[${mods.map(_.json).mkString(",")}]"""
+   }
+-
+-  def logicalTreeNode: InclusiveCacheLogicalTreeNode = new InclusiveCacheLogicalTreeNode(
+-    device = device,
+-    cache = cache,
+-    micro = micro,
+-    nBanks = p(BankedL2Key).nBanks,
+-    node = node,
+-    regMap = module.regmap
+-  )
+ }
+diff --git a/design/craft/inclusivecache/src/InclusiveCacheLogicalTreeNode.scala b/design/craft/inclusivecache/src/InclusiveCacheLogicalTreeNode.scala
+deleted file mode 100644
+index 45b603a..0000000
+--- a/design/craft/inclusivecache/src/InclusiveCacheLogicalTreeNode.scala
++++ /dev/null
+@@ -1,54 +0,0 @@
+-/*
+- * Copyright 2019 SiFive, Inc.
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You should have received a copy of LICENSE.Apache2 along with
+- * this software. If not, you may obtain a copy at
+- *
+- *    https://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-package freechips.rocketchip.diplomaticobjectmodel.logicaltree
+-
+-import diplomaticobjectmodel.model.{OMCacheMaster, OMInclusiveCache}
+-import freechips.rocketchip.diplomacy.{Edges, ResourceBindings, ResourceBindingsMap, SimpleDevice}
+-import freechips.rocketchip.diplomaticobjectmodel._
+-import freechips.rocketchip.diplomaticobjectmodel.model._
+-import sifive.blocks.inclusivecache.{InclusiveCache, CacheParameters, InclusiveCacheMicroParameters}
+-import freechips.rocketchip.tilelink.{TLAdapterNode, TLEdgeIn, TLEdgeOut}
+-
+-
+-class InclusiveCacheLogicalTreeNode(
+-  device: SimpleDevice,
+-  cache: CacheParameters,
+-  micro: InclusiveCacheMicroParameters,
+-  nBanks: Int,
+-  node: TLAdapterNode,
+-  regMap: => Option[OMRegisterMap]
+-) extends LogicalTreeNode(() => Some(device)) {
+-
+-  def getOMInclusiveCache(resourceBindings: ResourceBindings): Seq[OMComponent] = {
+-    val memRegions= DiplomaticObjectModelAddressing.getOMMemoryRegions("InclusiveCache", resourceBindings, regMap)
+-    Seq(OMInclusiveCache (
+-      memoryRegions = memRegions,
+-      nSets = cache.sets,
+-      nWays = cache.ways,
+-      blockSizeBytes = cache.blockBytes,
+-      dataMemorySizeBytes = cache.sets * cache.ways * cache.blockBytes * nBanks,
+-      nBanks = nBanks,
+-      innerBytes = node.edges.in.head.manager.beatBytes,
+-      outerBytes = node.edges.out.head.manager.beatBytes
+-    ))
+-  }
+-
+-  override def getOMComponents(resourceBindings: ResourceBindings, children: Seq[OMComponent]): Seq[OMComponent] = {
+-    DiplomaticObjectModelAddressing.getOMComponentHelper(resourceBindings, getOMInclusiveCache)
+-  }
+-}
+diff --git a/design/craft/inclusivecache/src/OMCacheMaster.scala b/design/craft/inclusivecache/src/OMCacheMaster.scala
+deleted file mode 100644
+index 92274fc..0000000
+--- a/design/craft/inclusivecache/src/OMCacheMaster.scala
++++ /dev/null
+@@ -1,12 +0,0 @@
+-package diplomaticobjectmodel.model
+-
+-import freechips.rocketchip.diplomacy.ResourceBindings
+-import freechips.rocketchip.diplomaticobjectmodel.{DiplomaticObjectModelAddressing, DiplomaticObjectModelUtils}
+-import freechips.rocketchip.diplomaticobjectmodel.model._
+-import freechips.rocketchip.util.Code
+-
+-case class OMCacheMaster(
+-  id: Int,  // The ID of the master
+-  documentationName: String,
+-  _types: Seq[String] = Seq("OMCacheMaster", "OMCompoundType")
+-) extends OMCompoundType
+diff --git a/design/craft/inclusivecache/src/OMInclusiveCache.scala b/design/craft/inclusivecache/src/OMInclusiveCache.scala
+deleted file mode 100644
+index c9d120b..0000000
+--- a/design/craft/inclusivecache/src/OMInclusiveCache.scala
++++ /dev/null
+@@ -1,41 +0,0 @@
+-/*
+- * Copyright 2019 SiFive, Inc.
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You should have received a copy of LICENSE.Apache2 along with
+- * this software. If not, you may obtain a copy at
+- *
+- *    https://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-package diplomaticobjectmodel.model
+-
+-import freechips.rocketchip.diplomacy.ResourceBindings
+-import freechips.rocketchip.diplomaticobjectmodel.{DiplomaticObjectModelAddressing, DiplomaticObjectModelUtils}
+-import freechips.rocketchip.diplomaticobjectmodel.model._
+-import sifive.blocks.inclusivecache.{CacheParameters, InclusiveCacheMicroParameters}
+-
+-case class OMInclusiveCache (
+-  memoryRegions: Seq[OMMemoryRegion],
+-  nSets: Int,
+-  nWays: Int,
+-  blockSizeBytes: Int,
+-  dataMemorySizeBytes: Int,
+-  nBanks: Int,
+-  innerBytes: Int,
+-  outerBytes: Int,
+-  _types: Seq[String] = Seq("OMInclusiveCache", "OMCache", "OMDevice", "OMComponent", "OMCompoundType")
+-) extends OMCache {
+-  // Unsupported
+-  def interrupts() = Nil
+-  def dataECC = None
+-  def tagECC = None
+-  def memories = Nil
+-}
+diff --git a/design/craft/inclusivecache/src/Scheduler.scala b/design/craft/inclusivecache/src/Scheduler.scala
+index bd13d37..4a950d0 100644
+--- a/design/craft/inclusivecache/src/Scheduler.scala
++++ b/design/craft/inclusivecache/src/Scheduler.scala
+@@ -337,5 +337,4 @@ class Scheduler(params: InclusiveCacheParameters) extends Module
+   private def setBits = params.addressMapping.drop(params.offsetBits).take(params.setBits).mkString(",")
+   private def tagBits = params.addressMapping.drop(params.offsetBits + params.setBits).take(params.tagBits).mkString(",")
+   private def simple = s""""reset":"${reset.pathName}","tagBits":[${tagBits}],"setBits":[${setBits}],"blockBytes":${params.cache.blockBytes},"ways":${params.cache.ways}"""
+-  def json: String = s"""{"addresses":[${addresses}],${simple},"directory":${directory.json},"subbanks":${bankedStore.json}}"""
+ }

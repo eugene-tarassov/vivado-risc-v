@@ -1,0 +1,113 @@
+diff --git a/src/main/scala/common/tile.scala b/src/main/scala/common/tile.scala
+index df4b51ea..03e91952 100644
+--- a/src/main/scala/common/tile.scala
++++ b/src/main/scala/common/tile.scala
+@@ -14,7 +14,7 @@ import freechips.rocketchip.config._
+ import freechips.rocketchip.subsystem._
+ import freechips.rocketchip.devices.tilelink._
+ import freechips.rocketchip.diplomacy._
+-import freechips.rocketchip.diplomaticobjectmodel.logicaltree.{LogicalTreeNode }
++
+ import freechips.rocketchip.rocket._
+ import freechips.rocketchip.subsystem.{RocketCrossingParams}
+ import freechips.rocketchip.tilelink._
+diff --git a/src/main/scala/ifu/bpd/ras.scala b/src/main/scala/ifu/bpd/ras.scala
+index 90092322..e8640aae 100644
+--- a/src/main/scala/ifu/bpd/ras.scala
++++ b/src/main/scala/ifu/bpd/ras.scala
+@@ -17,7 +17,7 @@ import freechips.rocketchip.tilelink._
+ import freechips.rocketchip.tile._
+ import freechips.rocketchip.util._
+ import freechips.rocketchip.util.property._
+-import freechips.rocketchip.diplomaticobjectmodel.logicaltree.{ICacheLogicalTreeNode}
++
+ 
+ import boom.common._
+ import boom.exu.{CommitExceptionSignals, BranchDecode, BrUpdateInfo}
+diff --git a/src/main/scala/ifu/icache.scala b/src/main/scala/ifu/icache.scala
+index 5867c3e5..4abc7222 100644
+--- a/src/main/scala/ifu/icache.scala
++++ b/src/main/scala/ifu/icache.scala
+@@ -25,9 +25,9 @@ import freechips.rocketchip.tilelink._
+ import freechips.rocketchip.util._
+ import freechips.rocketchip.util.property._
+ import freechips.rocketchip.rocket.{HasL1ICacheParameters, ICacheParams, ICacheErrors, ICacheReq}
+-import freechips.rocketchip.diplomaticobjectmodel.logicaltree.{LogicalTreeNode}
+-import freechips.rocketchip.diplomaticobjectmodel.DiplomaticObjectModelAddressing
+-import freechips.rocketchip.diplomaticobjectmodel.model.{OMComponent, OMICache, OMECC}
++
++
++
+ 
+ import boom.common._
+ import boom.util.{BoomCoreStringPrefix}
+@@ -52,27 +52,6 @@ class ICache(
+   val size = icacheParams.nSets * icacheParams.nWays * icacheParams.blockBytes
+   private val wordBytes = icacheParams.fetchBytes
+ }
+-class BoomICacheLogicalTreeNode(icache: ICache, deviceOpt: Option[SimpleDevice], params: ICacheParams) extends LogicalTreeNode(() => deviceOpt) {
+-  override def getOMComponents(resourceBindings: ResourceBindings, children: Seq[OMComponent] = Nil): Seq[OMComponent] = {
+-    Seq(
+-      OMICache(
+-        memoryRegions = DiplomaticObjectModelAddressing.getOMMemoryRegions("ITIM", resourceBindings),
+-        interrupts = Nil,
+-        nSets = params.nSets,
+-        nWays = params.nWays,
+-        blockSizeBytes = params.blockBytes,
+-        dataMemorySizeBytes = params.nSets * params.nWays * params.blockBytes,
+-        dataECC = params.dataECC.map(OMECC.fromString),
+-        tagECC = params.tagECC.map(OMECC.fromString),
+-        nTLBEntries = params.nTLBSets * params.nTLBWays,
+-        nTLBSets = params.nTLBSets,
+-        nTLBWays = params.nTLBWays,
+-        maxTimSize = params.nSets * (params.nWays-1) * params.blockBytes,
+-        memories = icache.module.asInstanceOf[ICacheModule].dataArrays.map(_._2)
+-      )
+-    )
+-  }
+-}
+ 
+ /**
+  * IO Signals leaving the ICache
+@@ -241,7 +220,7 @@ class ICacheModule(outer: ICache) extends LazyModuleImp(outer)
+   if (nBanks == 1) {
+     // Use unbanked icache for narrow accesses.
+     s1_bankid := 0.U
+-    for ((dataArray, i) <- dataArrays.map(_._1) zipWithIndex) {
++    for ((dataArray, i) <- dataArrays.zipWithIndex) {
+       def row(addr: UInt) = addr(untagBits-1, blockOffBits-log2Ceil(refillCycles))
+       val s0_ren = s0_valid
+ 
+@@ -259,8 +238,8 @@ class ICacheModule(outer: ICache) extends LazyModuleImp(outer)
+     }
+   } else {
+     // Use two banks, interleaved.
+-    val dataArraysB0 = dataArrays.map(_._1).take(nWays)
+-    val dataArraysB1 = dataArrays.map(_._1).drop(nWays)
++    val dataArraysB0 = dataArrays.take(nWays)
++    val dataArraysB1 = dataArrays.drop(nWays)
+     require (nBanks == 2)
+ 
+     // Bank0 row's id wraps around if Bank1 is the starting bank.
+diff --git a/src/main/scala/lsu/dcache.scala b/src/main/scala/lsu/dcache.scala
+index d0b0f102..4fe322ba 100644
+--- a/src/main/scala/lsu/dcache.scala
++++ b/src/main/scala/lsu/dcache.scala
+@@ -284,7 +284,7 @@ class BoomDuplicatedDataArray(implicit p: Parameters) extends AbstractBoomDataAr
+ 
+     val raddr = io.read(j).bits.addr >> rowOffBits
+     for (w <- 0 until nWays) {
+-      val (array, omSRAM) = DescribedSRAM(
++      val array = DescribedSRAM(
+         name = s"array_${w}_${j}",
+         desc = "Non-blocking DCache Data Array",
+         size = nSets * refillCycles,
+@@ -347,7 +347,7 @@ class BoomBankedDataArray(implicit p: Parameters) extends AbstractBoomDataArray
+     val s2_bank_reads = Reg(Vec(nBanks, Bits(encRowBits.W)))
+ 
+     for (b <- 0 until nBanks) {
+-      val (array, omSRAM) = DescribedSRAM(
++      val array = DescribedSRAM(
+         name = s"array_${w}_${b}",
+         desc = "Non-blocking DCache Data Array",
+         size = bankSize,
