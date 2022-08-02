@@ -265,7 +265,7 @@ vivado      = env XILINX_LOCAL_USER_DATA=no vivado -mode batch -nojournal -nolog
 
 workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl
 	echo "set vivado_board_name $(BOARD)" >$@
-	echo "set vivado_board_part $(BOARD_PART)" >>$@
+	if [ ! "$(BOARD_PART)" = "NONE" ] ; then echo "set vivado_board_part $(BOARD_PART)" >>$@ ; fi
 	echo "set xilinx_part $(XILINX_PART)" >>$@
 	echo "set rocket_module_name $(CONFIG_SCALA)" >>$@
 	echo "set riscv_clock_frequency $(ROCKET_FREQ_MHZ)" >>$@
