@@ -8,6 +8,7 @@ BOARD ?= nexys-video
 CONFIG ?= rocket64b2
 HW_SERVER_ADDR ?= localhost:3121
 JAVA_OPTIONS ?=
+CFG_FORMAT ?= mcs
 
 include board/$(BOARD)/Makefile.inc
 
@@ -252,15 +253,15 @@ rocket-sbt:
 
 FPGA_FNM    ?= riscv_wrapper.bit
 
-proj_name = $(BOARD)-riscv
-proj_path = workspace/$(CONFIG)/vivado-$(proj_name)
-proj_file = $(proj_path)/$(proj_name).xpr
-proj_time = $(proj_path)/timestamp.txt
-synthesis = $(proj_path)/$(proj_name).runs/synth_1/riscv_wrapper.dcp
-bitstream = $(proj_path)/$(proj_name).runs/impl_1/$(FPGA_FNM)
-mcs_file  = workspace/$(CONFIG)/$(proj_name).mcs
-prm_file  = workspace/$(CONFIG)/$(proj_name).prm
-vivado    = env XILINX_LOCAL_USER_DATA=no vivado -mode batch -nojournal -nolog -notrace -quiet
+proj_name   = $(BOARD)-riscv
+proj_path   = workspace/$(CONFIG)/vivado-$(proj_name)
+proj_file   = $(proj_path)/$(proj_name).xpr
+proj_time   = $(proj_path)/timestamp.txt
+synthesis   = $(proj_path)/$(proj_name).runs/synth_1/riscv_wrapper.dcp
+bitstream   = $(proj_path)/$(proj_name).runs/impl_1/$(FPGA_FNM)
+memcfg_file = workspace/$(CONFIG)/$(proj_name).$(CFG_FORMAT)
+prm_file    = workspace/$(CONFIG)/$(proj_name).prm
+vivado      = env XILINX_LOCAL_USER_DATA=no vivado -mode batch -nojournal -nolog -notrace -quiet
 
 workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl
 	echo "set vivado_board_name $(BOARD)" >$@
@@ -303,21 +304,21 @@ $(bitstream): $(synthesis)
 	$(vivado) -source $(proj_path)/make-bitstream.tcl
 	if find $(proj_path) -name "*.log" -exec cat {} \; | grep 'ERROR: ' ; then exit 1 ; fi
 
-$(mcs_file) $(prm_file): $(bitstream) workspace/boot.elf
+$(memcfg_file) $(prm_file): $(bitstream) workspace/boot.elf
 	echo "open_project $(proj_file)" >$(proj_path)/make-mcs.tcl
-	echo "write_cfgmem -format mcs -interface $(CFG_DEVICE) -loadbit {up 0x0 $(bitstream)} $(CFG_BOOT) -file $(mcs_file) -force" >>$(proj_path)/make-mcs.tcl
+	echo "write_cfgmem -format $(CFG_FORMAT) -interface $(CFG_DEVICE) -loadbit {up 0x0 $(bitstream)} $(CFG_BOOT) -file $(memcfg_file) -force" >>$(proj_path)/make-mcs.tcl
 	$(vivado) -source $(proj_path)/make-mcs.tcl
 
-bitstream: $(bitstream) $(mcs_file)
+bitstream: $(bitstream) $(memcfg_file)
 
 # --- program flash memory ---
 
-flash: $(mcs_file) $(prm_file)
+flash: $(memcfg_file) $(prm_file)
 	env HW_SERVER_URL=tcp:$(HW_SERVER_ADDR) \
 	 xsdb -quiet board/jtag-freq.tcl
 	env HW_SERVER_ADDR=$(HW_SERVER_ADDR) \
 	env CFG_PART=$(CFG_PART) \
-	env mcs_file=$(mcs_file) \
+	env mcs_file=$(memcfg_file) \
 	env prm_file=$(prm_file) \
 	 $(vivado) -source board/program-flash.tcl
 
