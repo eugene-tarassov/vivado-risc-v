@@ -25,7 +25,7 @@ index 65856c2c1..9efac7231 100644
    val part_number = Input(UInt(16.W))
    val version = Input(UInt(4.W))
 diff --git a/src/main/scala/devices/debug/Periphery.scala b/src/main/scala/devices/debug/Periphery.scala
-index 3aca36ad2..fa4a4ba49 100644
+index f3fbba9a6..d9ee8ee79 100644
 --- a/src/main/scala/devices/debug/Periphery.scala
 +++ b/src/main/scala/devices/debug/Periphery.scala
 @@ -44,7 +44,7 @@ class ClockedAPBBundle(params: APBBundleParameters) extends APBBundle(params) {
