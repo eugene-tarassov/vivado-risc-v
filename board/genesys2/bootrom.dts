@@ -32,6 +32,9 @@
             interrupts = <2>;
             max-frequency = <50000000>;
             cap-sd-highspeed;
+            cap-mmc-highspeed;
+            cap-mmc-hw-reset;
+            no-sdio;
         };
 
         eth: eth0@60020000 {

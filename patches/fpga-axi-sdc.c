@@ -290,6 +290,21 @@ static void sdc_reset(struct mmc_host * mmc) {
     spin_unlock_irq(&host->lock);
 }
 
+static void sdc_card_reset(struct mmc_host * mmc) {
+    struct sdc_host * host = mmc_priv(mmc);
+    uint32_t control = 0;
+
+    spin_lock_irq(&host->lock);
+
+    control = host->regs->control;
+    host->regs->control = control | SDC_CONTROL_SD_RESET;
+    udelay(10);
+    host->regs->control = control & ~(uint32_t)SDC_CONTROL_SD_RESET;
+    udelay(10);
+
+    spin_unlock_irq(&host->lock);
+}
+
 static int sdc_get_cd(struct mmc_host * mmc) {
     struct sdc_host * host = mmc_priv(mmc);
     uint32_t card_detect = host->regs->card_detect;
@@ -351,7 +366,7 @@ static const struct mmc_host_ops axi_sdc_ops = {
     .request = sdc_request,
     .set_ios = sdc_set_ios,
     .get_cd = sdc_get_cd,
-    .hw_reset = sdc_reset,
+    .card_hw_reset = sdc_card_reset,
 };
 
 static int axi_sdc_probe(struct platform_device * pdev) {
@@ -390,8 +405,11 @@ static int axi_sdc_probe(struct platform_device * pdev) {
 
     if (mmc->f_min == 0) mmc->f_min = host->clk_freq / 0x200; /* maximum clock division 256 * 2 */
     if (mmc->f_max == 0) mmc->f_max = host->clk_freq / 2; /* minimum clock division 2 */
-    mmc->caps |= MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED;
-    mmc->caps2 |= MMC_CAP2_NO_SDIO;
+    if ((mmc->caps2 & MMC_CAP2_NO_SDIO) == 0) {
+        /* TODO: deprecated 10/19/2022, set in DTS */
+        mmc->caps |= MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED;
+        mmc->caps2 |= MMC_CAP2_NO_SDIO;
+    }
     mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
     mmc->max_segs = 1;
     mmc->max_req_size = 0x2000000;

@@ -1,8 +1,8 @@
 diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 00fd9c548f26..0436c74cf0d1 100644
+index 1f02f1556974..bbaa37ab8c68 100644
 --- a/arch/riscv/Kconfig
 +++ b/arch/riscv/Kconfig
-@@ -239,7 +239,6 @@ config ARCH_RV64I
+@@ -248,7 +248,6 @@ config ARCH_RV64I
  	select HAVE_FTRACE_MCOUNT_RECORD if !XIP_KERNEL
  	select HAVE_FUNCTION_GRAPH_TRACER
  	select HAVE_FUNCTION_TRACER if !XIP_KERNEL
@@ -11,7 +11,7 @@ index 00fd9c548f26..0436c74cf0d1 100644
  endchoice
  
 diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
-index af6c3c329076..435b09de7088 100644
+index d6144978e32d..2efdb065c812 100644
 --- a/drivers/mmc/host/Kconfig
 +++ b/drivers/mmc/host/Kconfig
 @@ -1084,6 +1084,14 @@ config MMC_SDHCI_AM654
@@ -42,7 +42,7 @@ index 4e4ceb32c4b4..d67ddd8eec40 100644
  
  obj-$(CONFIG_MMC_REALTEK_PCI)	+= rtsx_pci_sdmmc.o
 diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
-index 827993022386..58b6cd140202 100644
+index 955abbc5490e..d2fcfeee0c16 100644
 --- a/drivers/net/ethernet/Kconfig
 +++ b/drivers/net/ethernet/Kconfig
 @@ -159,6 +159,14 @@ config ETHOC
@@ -61,7 +61,7 @@ index 827993022386..58b6cd140202 100644
  source "drivers/net/ethernet/pasemi/Kconfig"
  source "drivers/net/ethernet/pensando/Kconfig"
 diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
-index 8ef43e0c33c0..3da632fc888b 100644
+index 9eb01169957f..08a5461e30fc 100644
 --- a/drivers/net/ethernet/Makefile
 +++ b/drivers/net/ethernet/Makefile
 @@ -72,6 +72,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
@@ -73,7 +73,7 @@ index 8ef43e0c33c0..3da632fc888b 100644
  obj-$(CONFIG_NET_VENDOR_PASEMI) += pasemi/
  obj-$(CONFIG_NET_VENDOR_QLOGIC) += qlogic/
 diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index 6949e883ffab..9cd5ed766f8c 100644
+index a452748c69b2..1051f977a0e5 100644
 --- a/drivers/tty/serial/Kconfig
 +++ b/drivers/tty/serial/Kconfig
 @@ -538,6 +538,32 @@ config SERIAL_UARTLITE_NR_UARTS
