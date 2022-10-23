@@ -88,6 +88,9 @@ struct eth_pkt_regs {
 #define NIC_CAPABILITY_MDIO     0x0100
 #define NIC_CAPABILITY_ADDR     0xfc00
 
+#define PKT_STATUS_BAD_FRAME    (1 << 0)
+#define PKT_STATUS_BUS_ERROR    (1 << 1)
+
 struct axi_eth_ring_item {
     struct sk_buff * skb;
     dma_addr_t dma_addr;
@@ -254,11 +257,11 @@ static void axi_eth_rx_done(struct net_device * net_dev, struct axi_eth_ring_ite
     struct sk_buff * skb = i->skb;
     uint32_t status = priv->rx_pkt_regs[priv->rx_out].status;
     dma_unmap_single(&priv->pdev->dev, i->dma_addr, i->dma_size, DMA_FROM_DEVICE);
-    if (status & 1) {
+    if (status & PKT_STATUS_BAD_FRAME) {
         dev_kfree_skb_any(skb);
         net_dev->stats.rx_dropped++;
     }
-    else if (status & 2) {
+    else if (status & PKT_STATUS_BUS_ERROR) {
         dev_kfree_skb_any(skb);
         net_dev->stats.rx_errors++;
     }
