@@ -1,7 +1,7 @@
 module ethernet_nexys_a7_100t (
     (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 reset RST" *)
     (* X_INTERFACE_PARAMETER = "POLARITY ACTIVE_HIGH" *)
-    input reset,
+    input wire reset,
 
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clock50 CLK" *)
     (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF TX_AXIS:RX_AXIS, ASSOCIATED_RESET reset, FREQ_HZ 50000000" *)
@@ -33,7 +33,7 @@ module ethernet_nexys_a7_100t (
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TUSER" *)
     output wire rx_axis_tuser,
 
-    output wire [15:0]status_vector,
+    output wire [15:0] status_vector,
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:rmii:1.0 RMII CRS_DV" *)
     input wire rmii_crs_dv, // Carrier sence, Receive data valid (required)
@@ -41,11 +41,15 @@ module ethernet_nexys_a7_100t (
     input wire rmii_rx_er, // Receive error (required)
     (* X_INTERFACE_INFO = "xilinx.com:interface:rmii:1.0 RMII RXD" *)
     input wire [1:0] rmii_rxd, // Receive data (required)
+    (* IOB = "TRUE" *)
     (* X_INTERFACE_INFO = "xilinx.com:interface:rmii:1.0 RMII TX_EN" *)
     output reg rmii_tx_en, // Transmit enable (required)
+    (* IOB = "TRUE" *)
     (* X_INTERFACE_INFO = "xilinx.com:interface:rmii:1.0 RMII TXD" *)
     output reg [1:0] rmii_txd // Transmit data (required)
 );
+
+`default_nettype none
 
 assign status_vector = 0;
 
