@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2021 Eugene Tarassov
+Copyright (c) 2021-2022 Eugene Tarassov
 Copyright (c) 2014-2018 Alex Forencich
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -98,19 +98,11 @@ localparam IF_PTP_PERIOD_NS = 6'h6;
 localparam IF_PTP_PERIOD_FNS = 16'h6666;
 
 // Interface configuration (port)
-localparam TX_CHECKSUM_ENABLE = 1;
-localparam RX_RSS_ENABLE = 1;
-localparam RX_HASH_ENABLE = 1;
-localparam RX_CHECKSUM_ENABLE = 1;
 localparam ENABLE_PADDING = 1;
 localparam ENABLE_DIC = 1;
 localparam MIN_FRAME_LENGTH = 64;
-localparam TX_FIFO_DEPTH = 32768;
-localparam RX_FIFO_DEPTH = 32768;
-localparam MAX_TX_SIZE = 9214;
-localparam MAX_RX_SIZE = 9214;
-localparam TX_RAM_SIZE = 32768;
-localparam RX_RAM_SIZE = 32768;
+localparam TX_FIFO_DEPTH = 4096;
+localparam RX_FIFO_DEPTH = 4096;
 
 // Ethernet interface configuration
 localparam XGMII_DATA_WIDTH = 64;
@@ -354,9 +346,9 @@ eth_mac_10g_fifo #(
     .TX_PTP_TS_ENABLE(PTP_TS_ENABLE),
     .TX_PTP_TAG_ENABLE(PTP_TS_ENABLE),
     .RX_PTP_TS_ENABLE(PTP_TS_ENABLE),
-    .TX_FIFO_DEPTH(4096),
+    .TX_FIFO_DEPTH(TX_FIFO_DEPTH),
     .TX_FRAME_FIFO(1),
-    .RX_FIFO_DEPTH(4096),
+    .RX_FIFO_DEPTH(RX_FIFO_DEPTH),
     .RX_FRAME_FIFO(1)
 )
 eth_mac_10g_fifo_inst (
