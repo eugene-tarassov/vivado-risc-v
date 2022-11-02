@@ -1,6 +1,5 @@
 module mem_reset_control (
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clock CLK" *)
-    (* X_INTERFACE_PARAMETER = "FREQ_HZ 200000000" *)
     input wire clock,
 
     input wire clock_ok,       // Main PLL is stable

@@ -19,8 +19,13 @@ if { [llength [get_pins -quiet -hier Ethernet/clock]] } {
 
   if { [llength [get_ports -quiet eth_mdio_data]] } {
     set_max_delay -from $eth_clock -to [get_ports {eth_mdio_clock eth_mdio_data eth_mdio_reset}] -datapath_only 40.0
-    set_max_delay -from [get_ports {eth_mdio_data eth_mdio_int}] -to $eth_clock -datapath_only 40.0
-    set_min_delay -from [get_ports {eth_mdio_data eth_mdio_int}] -to $eth_clock 0.0
+    set_max_delay -from [get_ports eth_mdio_data] -to $eth_clock -datapath_only 40.0
+    set_min_delay -from [get_ports eth_mdio_data] -to $eth_clock 0.0
+  }
+
+  if { [llength [get_ports -quiet eth_mdio_int]] } {
+    set_max_delay -from [get_ports eth_mdio_int] -to $eth_clock -datapath_only 40.0
+    set_min_delay -from [get_ports eth_mdio_int] -to $eth_clock 0.0
   }
 
   if { [llength [get_pins -quiet -hier Ethernet/async_resetn]] } {

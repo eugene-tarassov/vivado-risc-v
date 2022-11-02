@@ -1,0 +1,48 @@
+/ {
+
+    aliases {
+        serial0 = &uart0;
+    };
+
+    chosen {
+        stdout-path = "serial0";
+    };
+
+    io-bus {
+        #address-cells = <1>;
+        #size-cells = <1>;
+        compatible = "rocketchip-vivado-io", "simple-bus";
+        ranges;
+
+        uart0: uart@60010000 {
+            compatible = "riscv,axi-uart-1.0";
+            reg = <0x60010000 0x10000>;
+            interrupt-parent = <&{/soc/interrupt-controller@c000000}>;
+            interrupts = <1>;
+            port-number = <0>;
+        };
+
+        mmc: mmc0@60000000 {
+            compatible = "riscv,axi-sd-card-1.0";
+            clock = <100000000>;
+            reg = <0x60000000 0x10000>;
+            bus-width = <4>;
+            fifo-depth = <256>;
+            interrupt-parent = <&{/soc/interrupt-controller@c000000}>;
+            interrupts = <2>;
+            max-frequency = <12500000>;
+            cap-sd-highspeed;
+            cap-mmc-highspeed;
+            no-sdio;
+        };
+
+        eth: eth0@60020000 {
+            compatible = "riscv,axi-ethernet-1.0";
+            reg = <0x60020000 0x10000>;
+            phy-mode = "mii";
+            local-mac-address = [00 0a 35 00 00 06];
+            interrupt-parent = <&{/soc/interrupt-controller@c000000}>;
+            interrupts = <3>;
+        };
+    };
+};

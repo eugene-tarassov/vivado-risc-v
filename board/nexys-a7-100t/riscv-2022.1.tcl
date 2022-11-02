@@ -221,9 +221,6 @@ proc write_mig_file_riscv_mig_7series_0_0 { str_mig_prj_filepath } {
    puts $mig_prj_file {  <InternalVref>1</InternalVref>}
    puts $mig_prj_file {  <dci_hr_inouts_inputs>50 Ohms</dci_hr_inouts_inputs>}
    puts $mig_prj_file {  <dci_cascade>0</dci_cascade>}
-   puts $mig_prj_file {  <FPGADevice>}
-   puts $mig_prj_file {    <selected>7a/xc7a50t-csg324</selected>}
-   puts $mig_prj_file {  </FPGADevice>}
    puts $mig_prj_file {  <Controller number="0">}
    puts $mig_prj_file {    <MemoryDevice>DDR2_SDRAM/Components/MT47H64M16HR-25E</MemoryDevice>}
    puts $mig_prj_file {    <TimePeriod>4000</TimePeriod>}
