@@ -2,7 +2,7 @@
 set list_projs [get_projects -quiet]
 if { $list_projs eq "" } {
    create_project ${vivado_board_name}-riscv vivado-${vivado_board_name}-riscv -part ${xilinx_part}
-   # Allow projects with no BOART_PART set. xilinx_part and /board constraints can suffice.
+   # Allow projects with no BOARD_PART set. xilinx_part and /board constraints can suffice.
    if {[info exists vivado_board_part]} {
       set_property BOARD_PART ${vivado_board_part} [current_project]
    }
