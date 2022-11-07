@@ -20,7 +20,7 @@ set script_folder [_tcl::get_script_folder]
 ################################################################
 # Check if script is running in correct Vivado version.
 ################################################################
-set scripts_vivado_version 2022.1
+set scripts_vivado_version 2022.2
 set current_vivado_version [version -short]
 
 if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
@@ -138,7 +138,7 @@ xilinx.com:ip:smartconnect:1.0\
 xilinx.com:ip:util_reduced_logic:2.0\
 xilinx.com:ip:xlconcat:2.1\
 xilinx.com:ip:axi_iic:2.1\
-xilinx.com:ip:qdma:4.0\
+xilinx.com:ip:qdma:5.0\
 xilinx.com:ip:util_ds_buf:2.2\
 xilinx.com:ip:xlconstant:1.1\
 "
@@ -298,7 +298,7 @@ proc create_hier_cell_IO { parentCell nameHier } {
    }
 
   # Create instance: qdma_0, and set properties
-  set qdma_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:qdma:4.0 qdma_0 ]
+  set qdma_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:qdma:5.0 qdma_0 ]
   set_property -dict [ list \
    CONFIG.PCIE_BOARD_INTERFACE {pci_express_x8} \
    CONFIG.PF0_MSIX_CAP_TABLE_SIZE_qdma {000} \

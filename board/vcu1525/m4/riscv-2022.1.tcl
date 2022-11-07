@@ -508,6 +508,7 @@ proc create_hier_cell_DDR { parentCell nameHier } {
    CONFIG.ADDN_UI_CLKOUT1_FREQ_HZ {None} \
    CONFIG.C0_CLOCK_BOARD_INTERFACE {default_300mhz_clk0} \
    CONFIG.C0_DDR4_BOARD_INTERFACE {ddr4_sdram_c0} \
+   CONFIG.C0.DDR4_AxiIDWidth {4} \
  ] $ddr4_0
 
   # Create instance: ddr4_1, and set properties
@@ -516,6 +517,7 @@ proc create_hier_cell_DDR { parentCell nameHier } {
    CONFIG.ADDN_UI_CLKOUT1_FREQ_HZ {None} \
    CONFIG.C0_CLOCK_BOARD_INTERFACE {default_300mhz_clk1} \
    CONFIG.C0_DDR4_BOARD_INTERFACE {ddr4_sdram_c1} \
+   CONFIG.C0.DDR4_AxiIDWidth {4} \
  ] $ddr4_1
 
   # Create instance: ddr4_2, and set properties
@@ -524,6 +526,7 @@ proc create_hier_cell_DDR { parentCell nameHier } {
    CONFIG.ADDN_UI_CLKOUT1_FREQ_HZ {None} \
    CONFIG.C0_CLOCK_BOARD_INTERFACE {default_300mhz_clk2} \
    CONFIG.C0_DDR4_BOARD_INTERFACE {ddr4_sdram_c2} \
+   CONFIG.C0.DDR4_AxiIDWidth {4} \
  ] $ddr4_2
 
   # Create instance: ddr4_3, and set properties
@@ -532,6 +535,7 @@ proc create_hier_cell_DDR { parentCell nameHier } {
    CONFIG.ADDN_UI_CLKOUT1_FREQ_HZ {None} \
    CONFIG.C0_CLOCK_BOARD_INTERFACE {default_300mhz_clk3} \
    CONFIG.C0_DDR4_BOARD_INTERFACE {ddr4_sdram_c3} \
+   CONFIG.C0.DDR4_AxiIDWidth {4} \
  ] $ddr4_3
 
   # Create instance: smartconnect_0, and set properties

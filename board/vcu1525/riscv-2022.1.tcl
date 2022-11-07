@@ -475,6 +475,7 @@ proc create_hier_cell_DDR { parentCell nameHier } {
    CONFIG.ADDN_UI_CLKOUT1_FREQ_HZ {None} \
    CONFIG.C0_CLOCK_BOARD_INTERFACE {default_300mhz_clk0} \
    CONFIG.C0_DDR4_BOARD_INTERFACE {ddr4_sdram_c0} \
+   CONFIG.C0.DDR4_AxiIDWidth {4} \
  ] $ddr4_0
 
   # Create instance: smartconnect_1, and set properties
