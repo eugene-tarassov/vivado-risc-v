@@ -1,29 +1,3 @@
-diff --git a/rtl/eth_phy_10g_rx_ber_mon.v b/rtl/eth_phy_10g_rx_ber_mon.v
-index f2ba8d4..5194a55 100644
---- a/rtl/eth_phy_10g_rx_ber_mon.v
-+++ b/rtl/eth_phy_10g_rx_ber_mon.v
-@@ -59,7 +59,7 @@ initial begin
-     end
- end
- 
--parameter COUNT_WIDTH = $clog2(COUNT_125US);
-+parameter COUNT_WIDTH = 16; // $clog2(COUNT_125US); - [Synth 8-9566] illegal argument of type real in math function 'clog2()', expected integral type
- 
- localparam [1:0]
-     SYNC_DATA = 2'b10,
-diff --git a/rtl/eth_phy_10g_rx_watchdog.v b/rtl/eth_phy_10g_rx_watchdog.v
-index c644de4..a882d0d 100644
---- a/rtl/eth_phy_10g_rx_watchdog.v
-+++ b/rtl/eth_phy_10g_rx_watchdog.v
-@@ -68,7 +68,7 @@ initial begin
-     end
- end
- 
--parameter COUNT_WIDTH = $clog2(COUNT_125US);
-+parameter COUNT_WIDTH = 16; // $clog2(COUNT_125US); - [Synth 8-9566] illegal argument of type real in math function 'clog2()', expected integral type
- 
- localparam [1:0]
-     SYNC_DATA = 2'b10,
 diff --git a/rtl/rgmii_phy_if.v b/rtl/rgmii_phy_if.v
 index ca82572..273799b 100644
 --- a/rtl/rgmii_phy_if.v
