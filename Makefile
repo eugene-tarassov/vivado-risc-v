@@ -24,6 +24,7 @@ apt-install:
 SKIP_SUBMODULES = torture software/gemmini-rocc-tests software/onnxruntime-riscv
 
 update-submodules:
+	git submodule sync --recursive
 	git $(foreach m,$(SKIP_SUBMODULES),-c submodule.$(m).update=none) submodule update --init --force --recursive
 
 clean-submodules:
@@ -219,11 +220,14 @@ workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir: workspace/$(CONF
 # Generate Rocket SoC HDL
 workspace/$(CONFIG)/system-$(BOARD).v: workspace/$(CONFIG)/system-$(BOARD)/Vivado.$(CONFIG_SCALA).fir
 	$(FIRRTL) -i $< -o system-$(BOARD).v -X verilog --infer-rw RocketSystem --repl-seq-mem \
-	  -c:RocketSystem:-o:`realpath workspace/$(CONFIG)/system.conf` \
+	  -c:RocketSystem:-o:`realpath workspace/$(CONFIG)/srams.conf` \
 	  -faf `realpath workspace/$(CONFIG)/system.anno.json` \
 	  -td workspace/$(CONFIG)/ \
 	  -fct firrtl.passes.InlineInstances
-	rocket-chip/scripts/vlsi_mem_gen workspace/$(CONFIG)/system.conf >workspace/$(CONFIG)/srams.v
+
+# Generate HDL for Rocket Chip RAM blocks
+workspace/$(CONFIG)/srams.v: workspace/$(CONFIG)/system-$(BOARD).v
+	./mk-srams workspace/$(CONFIG)/srams.conf >workspace/$(CONFIG)/srams.v
 
 # Generate Rocket SoC wrapper for Vivado
 workspace/$(CONFIG)/rocket.vhdl: workspace/$(CONFIG)/system-$(BOARD).v
@@ -263,9 +267,10 @@ memcfg_file = workspace/$(CONFIG)/$(proj_name).$(CFG_FORMAT)
 prm_file    = workspace/$(CONFIG)/$(proj_name).prm
 vivado      = env XILINX_LOCAL_USER_DATA=no vivado -mode batch -nojournal -nolog -notrace -quiet
 
-workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl
+workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl workspace/$(CONFIG)/srams.v
 	echo "set vivado_board_name $(BOARD)" >$@
-	if [ ! "$(BOARD_PART)" = "NONE" ] ; then echo "set vivado_board_part $(BOARD_PART)" >>$@ ; fi
+	if [ "$(BOARD_PART)" != "" -a "$(BOARD_PART)" != "NONE" ] ; then echo "set vivado_board_part $(BOARD_PART)" >>$@ ; fi
+	if [ "$(BOARD_CONFIG)" != "" ] ; then echo "set board_config $(BOARD_CONFIG)" >>$@ ; fi
 	echo "set xilinx_part $(XILINX_PART)" >>$@
 	echo "set rocket_module_name $(CONFIG_SCALA)" >>$@
 	echo "set riscv_clock_frequency $(ROCKET_FREQ_MHZ)" >>$@
