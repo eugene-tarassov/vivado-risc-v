@@ -40,7 +40,7 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 
 # The design that will be created by this Tcl script contains the following
 # module references:
-# $rocket_module_name, ethernet, fan_control, sdc_controller, uart, ethernet_kc705
+# $rocket_module_name, mem_reset_control, ethernet, fan_control, sdc_controller, uart, ethernet_kc705
 
 # Please add the sources of those modules before sourcing this Tcl script.
 
@@ -484,6 +484,9 @@ proc create_hier_cell_IO { parentCell nameHier } {
      catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    }
+    set_property -dict [ list \
+   CONFIG.dma_addr_bits {40} \
+ ] $Ethernet
 
   # Create instance: SD, and set properties
   set block_name sdc_controller
@@ -497,6 +500,7 @@ proc create_hier_cell_IO { parentCell nameHier } {
    }
     set_property -dict [ list \
    CONFIG.capabilies_reg {0x0001} \
+   CONFIG.dma_addr_bits {40} \
  ] $SD
 
   # Create instance: XADC, and set properties

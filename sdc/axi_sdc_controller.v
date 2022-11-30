@@ -30,7 +30,13 @@
 ////                                                              ////
 //////////////////////////////////////////////////////////////////////
 
-module sdc_controller (
+module sdc_controller #(
+    parameter dma_addr_bits = 32,
+    parameter fifo_addr_bits = 7,
+    parameter sdio_card_detect_level = 1,
+    parameter voltage_controll_reg = 3300,
+    parameter capabilies_reg = 16'b0000_0000_0000_0011
+) (
     input wire async_resetn,
 
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clock CLK" *)
@@ -73,7 +79,7 @@ module sdc_controller (
 
     (* X_INTERFACE_PARAMETER = "CLK_DOMAIN clock, ID_WIDTH 0, PROTOCOL AXI4, DATA_WIDTH 32" *)
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI AWADDR" *)
-    output reg  [31:0] m_axi_awaddr,
+    output reg  [dma_addr_bits-1:0] m_axi_awaddr,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI AWLEN" *)
     output reg  [7:0] m_axi_awlen,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI AWVALID" *)
@@ -95,7 +101,7 @@ module sdc_controller (
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI BREADY" *)
     output wire m_axi_bready,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI ARADDR" *)
-    output reg  [31:0] m_axi_araddr,
+    output reg  [dma_addr_bits-1:0] m_axi_araddr,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI ARLEN" *)
     output reg  [7:0] m_axi_arlen,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI ARVALID" *)
@@ -129,8 +135,6 @@ module sdc_controller (
 );
 
 `include "sd_defines.h"
-
-parameter fifo_addr_bits = 7;
 
 wire reset;
 
@@ -180,7 +184,7 @@ wire [`INT_DATA_SIZE-1:0] data_int_status;
 reg  [`INT_CMD_SIZE-1:0] cmd_int_enable_reg;
 reg  [`INT_DATA_SIZE-1:0] data_int_enable_reg;
 reg  [`BLKCNT_W-1:0] block_count_reg;
-reg  [31:0] dma_addr_reg;
+reg  [dma_addr_bits-1:0] dma_addr_reg;
 reg  [7:0] clock_divider_reg = 124; // 400KHz
 
 // ------ Clocks and resets
@@ -196,6 +200,8 @@ reg [7:0] clock_cnt;
 reg clock_state;
 reg clock_posedge;
 reg clock_data_in;
+wire fifo_almost_full;
+wire fifo_almost_empty;
 
 always @(posedge clock) begin
     if (reset) begin
@@ -207,12 +213,12 @@ always @(posedge clock) begin
         clock_posedge <= 0;
         clock_data_in <= 0;
         clock_cnt <= clock_cnt + 1;
-    end else if (clock_cnt < 124 && data_busy && en_rx_fifo && fifo_data_len > (1 << fifo_addr_bits) * 3 / 4) begin
+    end else if (clock_cnt < 124 && data_busy && en_rx_fifo && fifo_almost_full) begin
         // Prevent Rx FIFO overflow
         clock_posedge <= 0;
         clock_data_in <= 0;
         clock_cnt <= clock_cnt + 1;
-    end else if (clock_cnt < 124 && data_busy && en_tx_fifo && fifo_free_len > (1 << fifo_addr_bits) * 3 / 4) begin
+    end else if (clock_cnt < 124 && data_busy && en_tx_fifo && fifo_almost_empty) begin
         // Prevent Tx FIFO underflow
         clock_posedge <= 0;
         clock_data_in <= 0;
@@ -269,7 +275,6 @@ end
 
 // ------ SD card detect
 
-parameter sdio_card_detect_level = 1;
 reg [25:0] sd_detect_cnt;
 wire sd_insert_int = sd_detect_cnt[25];
 wire sd_remove_int = !sd_detect_cnt[25];
@@ -295,9 +300,6 @@ reg [1:0] wr_req;
 assign s_axi_arready = !rd_req && !s_axi_rvalid;
 assign s_axi_awready = !wr_req[0] && !s_axi_bvalid;
 assign s_axi_wready = !wr_req[1] && !s_axi_bvalid;
-
-parameter voltage_controll_reg = `SUPPLY_VOLTAGE_mV;
-parameter capabilies_reg = 16'b0000_0000_0000_0011;
 
 always @(posedge clock) begin
     if (reset) begin
@@ -355,7 +357,7 @@ always @(posedge clock) begin
                     `controller   : s_axi_rdata <= controller_setting_reg;
                     `blksize      : s_axi_rdata <= block_size_reg;
                     `voltage      : s_axi_rdata <= voltage_controll_reg;
-                    `capa         : s_axi_rdata <= capabilies_reg;
+                    `capa         : s_axi_rdata <= capabilies_reg | (dma_addr_bits << 8);
                     `clock_d      : s_axi_rdata <= clock_divider_reg;
                     `reset        : s_axi_rdata <= { cmd_start, data_int_rst, cmd_int_rst, ctrl_rst };
                     `cmd_timeout  : s_axi_rdata <= cmd_timeout_reg;
@@ -366,7 +368,8 @@ always @(posedge clock) begin
                     `data_iser    : s_axi_rdata <= data_int_enable_reg;
                     `blkcnt       : s_axi_rdata <= block_count_reg;
                     `card_detect  : s_axi_rdata <= { sd_remove_int, sd_remove_ie, sd_insert_int, sd_insert_ie };
-                    `dst_src_addr : s_axi_rdata <= dma_addr_reg;
+                    `dst_src_addr : s_axi_rdata <= dma_addr_reg[31:0];
+                    `dst_src_addr_high : if (dma_addr_bits > 32) s_axi_rdata <= dma_addr_reg[dma_addr_bits-1:32];
                 endcase
             end
             s_axi_rresp <= 0;
@@ -400,7 +403,8 @@ always @(posedge clock) begin
                     `data_iser    : data_int_enable_reg <= write_data;
                     `blkcnt       : block_count_reg <= write_data;
                     `card_detect  : begin sd_remove_ie <= write_data[2]; sd_insert_ie <= write_data[0]; end
-                    `dst_src_addr : dma_addr_reg <= write_data;
+                    `dst_src_addr : dma_addr_reg[31:0] <= write_data;
+                    `dst_src_addr_high : if (dma_addr_bits > 32) dma_addr_reg[dma_addr_bits-1:32] <= write_data;
                 endcase
             end
             s_axi_bresp <= 0;
@@ -422,10 +426,13 @@ wire [fifo_addr_bits-1:0] fifo_free_len = fifo_out_pos - fifo_inp_nxt;
 wire fifo_full = fifo_inp_nxt == fifo_out_pos;
 wire fifo_empty = fifo_inp_pos == fifo_out_pos;
 wire fifo_ready = fifo_data_len >= (1 << fifo_addr_bits) / 2;
-wire [31:0] fifo_din = m_axi_write ? data_in_rx_fifo : m_bus_dat_i;
-wire fifo_we = m_axi_write ? rx_fifo_we && clock_posedge : m_axi_rready && m_axi_rvalid;
-wire fifo_re = m_axi_write ? m_axi_wready && m_axi_wvalid : tx_fifo_re && clock_posedge;
+wire [31:0] fifo_din = en_rx_fifo ? data_in_rx_fifo : m_bus_dat_i;
+wire fifo_we = en_rx_fifo ? rx_fifo_we && clock_posedge : m_axi_rready && m_axi_rvalid;
+wire fifo_re = en_rx_fifo ? m_axi_wready && m_axi_wvalid : tx_fifo_re && clock_posedge;
 reg [31:0] fifo_dout;
+
+assign fifo_almost_full = fifo_data_len > (1 << fifo_addr_bits) * 3 / 4;
+assign fifo_almost_empty = fifo_free_len > (1 << fifo_addr_bits) * 3 / 4;
 
 wire tx_stb = en_tx_fifo && fifo_free_len >= (1 << fifo_addr_bits) / 3;
 wire rx_stb = en_rx_fifo && m_axi_bresp_cnt != 3'b111 && (fifo_data_len >= (1 << fifo_addr_bits) / 3 || (!fifo_empty && !data_busy));
@@ -455,7 +462,7 @@ always @(posedge clock)
 reg m_axi_cyc;
 wire m_axi_write = en_rx_fifo;
 reg [7:0] m_axi_wcnt;
-reg [31:2] m_bus_adr_o;
+reg [dma_addr_bits-1:2] m_bus_adr_o;
 wire [31:0] m_bus_dat_i;
 reg [2:0] m_axi_bresp_cnt;
 reg m_bus_error;
@@ -519,7 +526,7 @@ always @(posedge clock) begin
     end else if ((m_axi_wready && m_axi_wvalid) || (m_axi_rready && m_axi_rvalid)) begin
         m_bus_adr_o <= m_bus_adr_o + 1;
     end else if (!m_axi_cyc && !en_rx_fifo && !en_tx_fifo) begin
-        m_bus_adr_o <= dma_addr_reg[31:2];
+        m_bus_adr_o <= dma_addr_reg[dma_addr_bits-1:2];
     end
     if (reset | ctrl_rst) begin
         m_axi_bresp_cnt <= 0;
@@ -639,7 +646,7 @@ sd_data_serial_host sd_data_serial_host0(
     .bus_4bit         (controller_setting_reg[0]),
     .blkcnt           (block_count_reg),
     .start            ({d_read, d_write}),
-    .byte_alignment   (dma_addr_reg),
+    .byte_alignment   (dma_addr_reg[1:0]),
     .sd_data_busy     (sd_data_busy),
     .busy             (data_busy),
     .crc_ok           (data_crc_ok)

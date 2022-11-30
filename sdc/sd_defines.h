@@ -84,8 +84,8 @@
 `define blkcnt 8'h48
 `define card_detect 8'h4c
 `define dst_src_addr 8'h60
+`define dst_src_addr_high 8'h64
 
 // register contents
 `define RESET_BLOCK_SIZE 12'd511
 `define RESET_CLOCK_DIV 124
-`define SUPPLY_VOLTAGE_mV 3300
