@@ -15,10 +15,10 @@ set_property CLOCK_DEDICATED_ROUTE BACKBONE [get_nets -of_objects [get_pins -hie
 create_clock -period 5.000 -name sys_clock_bufds [get_pins -hier clk_wiz_0/clk_in1]
 
 # CPU reset button
-set_property -dict { PACKAGE_PIN AB7 IOSTANDARD LVCMOS15 } [get_ports reset];
+set_property -dict { PACKAGE_PIN AB7 IOSTANDARD LVCMOS15 } [get_ports reset]
 
 # DDR OK LED
-set_property -dict { PACKAGE_PIN AB8 IOSTANDARD LVCMOS15 } [get_ports LED0];
+set_property -dict { PACKAGE_PIN AB8 IOSTANDARD LVCMOS15 } [get_ports LED0]
 
 # Cooling fan
 set_property -dict { PACKAGE_PIN L26 IOSTANDARD LVCMOS25 } [get_ports fan_en]

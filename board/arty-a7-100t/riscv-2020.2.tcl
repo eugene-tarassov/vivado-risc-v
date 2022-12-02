@@ -313,7 +313,7 @@ proc write_mig_file_riscv_mig_7series_0_0 { str_mig_prj_filepath } {
    puts $mig_prj_file {    <mrDllReset name="DLL Reset">No</mrDllReset>}
    puts $mig_prj_file {    <mrPdMode name="DLL control for precharge PD">Slow Exit</mrPdMode>}
    puts $mig_prj_file {    <emrDllEnable name="DLL Enable">Enable</emrDllEnable>}
-   puts $mig_prj_file {    <emrOutputDriveStrength name="Output Driver Impedance Control">RZQ/6</emrOutputDriveStrength>}
+   puts $mig_prj_file {    <emrOutputDriveStrength name="Output Driver Impedance Control">RZQ/7</emrOutputDriveStrength>}
    puts $mig_prj_file {    <emrMirrorSelection name="Address Mirroring">Disable</emrMirrorSelection>}
    puts $mig_prj_file {    <emrCSSelection name="Controller Chip Select Pin">Enable</emrCSSelection>}
    puts $mig_prj_file {    <emrRTT name="RTT (nominal) - On Die Termination (ODT)">RZQ/6</emrRTT>}
