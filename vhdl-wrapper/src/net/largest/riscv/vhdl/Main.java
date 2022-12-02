@@ -301,11 +301,11 @@ public class Main {
                     }
                     else {
                         if (bus_name.startsWith("mem_axi4")) {
-                            if (sig.xilinx_name.equals("AWADDR") && getRangeLength(sig.range) > 32) {
+                            if (sig.xilinx_name.equals("AWADDR")) {
                                 sig.addr_offs_name = sig.bus_name + "_awaddr_sys";
                                 mem_addr_offset = true;
                             }
-                            if (sig.xilinx_name.equals("ARADDR") && getRangeLength(sig.range) > 32) {
+                            if (sig.xilinx_name.equals("ARADDR")) {
                                 sig.addr_offs_name = sig.bus_name + "_araddr_sys";
                                 mem_addr_offset = true;
                             }
