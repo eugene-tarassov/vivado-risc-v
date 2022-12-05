@@ -1,6 +1,6 @@
-qemu-system-riscv64 -machine virt -m 60G -nographic \
--bios ../opensbi/build/platform/vivado-risc-v/firmware/payloads/fw_payload.bin \
--smp cores=8 \
+qemu-system-riscv64 -machine virt -m 8G -nographic \
+-bios ./opensbi/build/platform/generic/firmware/fw_payload.bin \
+-smp cores=1 \
 -device virtio-net-device,netdev=net0 \
 -netdev user,id=net0,tftp=tftp,hostfwd=tcp::2222-:22  \
 -drive if=none,file=../debian-riscv64/debian-riscv64.sd.img,format=raw,id=mydisk \

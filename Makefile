@@ -143,10 +143,8 @@ opensbi/build/platform/vivado-risc-v/firmware/fw_payload.elf: $(wildcard patches
 	 FW_PAYLOAD_PATH=`realpath u-boot/u-boot-nodtb.bin`
 
 opensbi-qemu:
-	mkdir -p opensbi/platform/generic
-	cd opensbi && make clean
-	make -C opensbi platform=generic CROSS_COMPILE=$(CROSS_COMPILE_LINUX) \
-	 FW_PAYLOAD_PATH=`realpath qemu/u-boot/u-boot.bin`
+	cd qemu && if [ ! -d opensbi ]; then git clone ../opensbi; fi
+	cd qemu && make -C opensbi clean && make -C opensbi PLATFORM=generic CROSS_COMPILE=$(CROSS_COMPILE_LINUX) FW_PAYLOAD_PATH=../u-boot/u-boot.bin
 
 # --- generate HDL ---
 
