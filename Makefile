@@ -20,6 +20,9 @@ apt-install:
 	sudo apt install default-jdk device-tree-compiler python curl gawk \
 	 libtinfo5 libmpc-dev gcc gcc-riscv64-linux-gnu gcc-8-riscv64-linux-gnu flex bison
 
+apt-install-qemi:
+	sudo apt install qemu-system-misc opensbi u-boot-qemu qemu-utils
+
 # skip submodules which are not needed and take long time to update
 SKIP_SUBMODULES = torture software/gemmini-rocc-tests software/onnxruntime-riscv
 
@@ -121,6 +124,9 @@ u-boot/u-boot-nodtb.bin: u-boot-patch $(U_BOOT_SRC)
 	  KCFLAGS='-O1 -gno-column-info' \
 	  all
 
+u-boot-qemu:
+	cd qemu/ && if [ ! -d u-boot ]; then git clone ../u-boot; fi && cd u-boot && git checkout v2022.01
+	cd qemu/u-boot && make CROSS_COMPILE=$(CROSS_COMPILE_LINUX) qemu-riscv64_smode_defconfig && make -j$(nproc)
 
 # --- build RISC-V Open Source Supervisor Binary Interface (OpenSBI) ---
 
@@ -136,6 +142,11 @@ opensbi/build/platform/vivado-risc-v/firmware/fw_payload.elf: $(wildcard patches
 	make -C opensbi CROSS_COMPILE=$(CROSS_COMPILE_LINUX) PLATFORM=vivado-risc-v \
 	 FW_PAYLOAD_PATH=`realpath u-boot/u-boot-nodtb.bin`
 
+opensbi-qemu:
+	mkdir -p opensbi/platform/generic
+	cd opensbi && make clean
+	make -C opensbi platform=generic CROSS_COMPILE=$(CROSS_COMPILE_LINUX) \
+	 FW_PAYLOAD_PATH=`realpath qemu/u-boot/u-boot.bin`
 
 # --- generate HDL ---
 
