@@ -3,7 +3,9 @@
 set -e
 cd `dirname $0`
 
-./mk-sd-image
+if [ "$1" != "skip_mk_img" ]; then
+  ./mk-sd-image
+fi
 
 # --- copy SD card image to physical media ---
 
