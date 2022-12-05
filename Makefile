@@ -32,10 +32,11 @@ update-submodules:
 
 clean-submodules:
 	git submodule foreach --recursive git clean -xfdq
+	rm -rf workspace/patch-*-done
 
 clean:
 	git submodule foreach --recursive git clean -xfdq
-	sudo rm -rf debian-riscv64
+	sudo rm -rf debian-riscv64 workspace/patch-*-done
 
 # --- download gcc, initrd and rootfs from github.com ---
 
@@ -66,20 +67,20 @@ debian-riscv64/rootfs.tar.gz:
 
 # --- build Linux kernel ---
 
-.PHONY: linux linux-patch
-
+.PHONY: linux
 linux: linux-stable/arch/riscv/boot/Image
 
 CROSS_COMPILE_LINUX = /usr/bin/riscv64-linux-gnu-
 
-linux-patch: patches/linux.patch patches/fpga-axi-sdc.c patches/fpga-axi-eth.c patches/linux.config
+workspace/patch-linux-done: patches/linux.patch patches/fpga-axi-sdc.c patches/fpga-axi-eth.c patches/linux.config
 	if [ -s patches/linux.patch ] ; then cd linux-stable && ( git apply -R --check ../patches/linux.patch 2>/dev/null || git apply ../patches/linux.patch ) ; fi
 	cp -p patches/fpga-axi-eth.c  linux-stable/drivers/net/ethernet
 	cp -p patches/fpga-axi-sdc.c  linux-stable/drivers/mmc/host
 	cp -p patches/fpga-axi-uart.c linux-stable/drivers/tty/serial
 	cp -p patches/linux.config linux-stable/.config
+	mkdir -p workspace && touch workspace/patch-linux-done
 
-linux-stable/arch/riscv/boot/Image: linux-patch
+linux-stable/arch/riscv/boot/Image: workspace/patch-linux-done
 	make -C linux-stable ARCH=riscv CROSS_COMPILE=$(CROSS_COMPILE_LINUX) oldconfig
 	make -C linux-stable ARCH=riscv CROSS_COMPILE=$(CROSS_COMPILE_LINUX) all
 
@@ -89,8 +90,7 @@ linux-stable/arch/riscv/boot/Image: linux-patch
 ROOTFS ?= SD
 ROOTFS_URL ?= 192.168.0.100:/home/nfsroot/192.168.0.243
 
-.PHONY: u-boot u-boot-patch
-
+.PHONY: u-boot
 u-boot: u-boot/u-boot-nodtb.bin
 
 U_BOOT_SRC = $(wildcard patches/u-boot/*/*) \
@@ -110,12 +110,13 @@ else ifeq ($(JTAG_BOOT),1)
 	echo 'CONFIG_BOOTARGS="ro root=UUID=68d82fa1-1bb5-435f-a5e3-862176586eec earlycon initramfs.runsize=24M locale.LANG=en_US.UTF-8"' >>u-boot/configs/vivado_riscv64_defconfig
 endif
 
-u-boot-patch: u-boot/configs/vivado_riscv64_defconfig
+workspace/patch-u-boot-done: u-boot/configs/vivado_riscv64_defconfig
 	if [ -s patches/u-boot.patch ] ; then cd u-boot && ( git apply -R --check ../patches/u-boot.patch 2>/dev/null || git apply ../patches/u-boot.patch ) ; fi
 	cp -p -r patches/u-boot/vivado_riscv64 u-boot/board/xilinx
 	cp -p patches/u-boot/vivado_riscv64.h u-boot/include/configs
+	mkdir -p workspace && touch workspace/patch-u-boot-done
 
-u-boot/u-boot-nodtb.bin: u-boot-patch $(U_BOOT_SRC)
+u-boot/u-boot-nodtb.bin: workspace/patch-u-boot-done $(U_BOOT_SRC)
 	make -C u-boot CROSS_COMPILE=$(CROSS_COMPILE_LINUX) BOARD=vivado_riscv64 vivado_riscv64_config
 	make -C u-boot \
 	  BOARD=vivado_riscv64 \
@@ -190,17 +191,16 @@ CHISEL_SRC_DIRS = \
 CHISEL_SRC := $(foreach path, $(CHISEL_SRC_DIRS), $(shell test -d $(path) && find $(path) -iname "*.scala"))
 FIRRTL = java -Xmx12G -Xss8M $(JAVA_OPTIONS) -cp target/scala-2.12/classes:rocket-chip/rocketchip.jar firrtl.stage.FirrtlMain
 
-.PHONY: hdl-patch
-
-hdl-patch:
+workspace/patch-hdl-done:
 	if [ -s patches/ethernet.patch ] ; then cd ethernet/verilog-ethernet && ( git apply -R --check ../../patches/ethernet.patch 2>/dev/null || git apply ../../patches/ethernet.patch ) ; fi
 	if [ -s patches/rocket-chip.patch ] ; then cd rocket-chip && ( git apply -R --check ../patches/rocket-chip.patch 2>/dev/null || git apply ../patches/rocket-chip.patch ) ; fi
 	if [ -s patches/riscv-boom.patch ] ; then cd generators/riscv-boom && ( git apply -R --check ../../patches/riscv-boom.patch 2>/dev/null || git apply ../../patches/riscv-boom.patch ) ; fi
 	if [ -s patches/sifive-cache.patch ] ; then cd generators/sifive-cache && ( git apply -R --check ../../patches/sifive-cache.patch 2>/dev/null || git apply ../../patches/sifive-cache.patch ) ; fi
 	if [ -s patches/gemmini.patch ] ; then cd generators/gemmini && ( git apply -R --check ../../patches/gemmini.patch 2>/dev/null || git apply ../../patches/gemmini.patch ) ; fi
+	mkdir -p workspace && touch workspace/patch-hdl-done
 
 # Generate default device tree - not including peripheral devices or board specific data
-workspace/$(CONFIG)/system.dts: $(CHISEL_SRC) rocket-chip/bootrom/bootrom.img hdl-patch
+workspace/$(CONFIG)/system.dts: $(CHISEL_SRC) rocket-chip/bootrom/bootrom.img workspace/patch-hdl-done
 	mkdir -p workspace/$(CONFIG)/tmp
 	cp rocket-chip/bootrom/bootrom.img workspace/bootrom.img
 	$(SBT) "runMain freechips.rocketchip.system.Generator -td workspace/$(CONFIG)/tmp -T Vivado.RocketSystem -C Vivado.$(CONFIG_SCALA)"
@@ -283,6 +283,7 @@ workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl workspa
 	echo "set xilinx_part $(XILINX_PART)" >>$@
 	echo "set rocket_module_name $(CONFIG_SCALA)" >>$@
 	echo "set riscv_clock_frequency $(ROCKET_FREQ_MHZ)" >>$@
+	echo "set memory_size $(MEMORY_SIZE)" >>$@
 	echo 'cd [file dirname [file normalize [info script]]]' >>$@
 	echo 'source ../../vivado.tcl' >>$@
 
