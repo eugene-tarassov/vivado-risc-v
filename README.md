@@ -47,7 +47,7 @@ Vitis
 [2021.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2021-1.html) or
 [2020.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/archive-vitis.html) or
 [2020.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/archive-vitis.html).
-Vitis installation includes Vivado Design Suite – there is no need to install Vivado separately.
+Vitis installation includes Vivado Design Suite - there is no need to install Vivado separately.
 
 Nexys Video, Nexys A7 100T and Arty A7 100T are supported by free version of Vivado. KC705, VC707 and Genesys 2 require Vivado license.
 
@@ -115,6 +115,26 @@ Use USB SD card reader to connect SD card to the workstation, and run:
 ```
 The script looks for USB memory device and asks confirmation before using it.
 Make sure to confirm right SD card device - all old data will be erased.
+
+## Booting Linux with QEMU
+In come cases when Linux runs slow on the FPGA (especially designs with lower clock speeds or no ethernet access), it might be worth it to first install the dependencies quickly before running it on FPGA. 
+
+You can run the following:
+```
+./qemu/boot_qemu.sh
+```
+
+The script will check for the existance of a debian image under `debian-riscv64/` and run `./mk-sd-image` as needed. Then it will clone and make a suitable version of u-boot and opensbi for QEMU before finally booting Linux.
+
+Once Linux has booted successfully on QEMU, you can also easily ssh and scp too:
+```
+ssh -p2222 debian@localhost
+```
+
+Once all this is done, you can make the sd card without making the image:
+```
+./mk-sd-card skip_mk_img
+```
 
 ## Program the FPGA flash memory
 ```
