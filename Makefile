@@ -175,7 +175,9 @@ ifeq ($(shell echo $$(($(MEMORY_SIZE) <= 0x80000000))),1)
   MEMORY_ADDR_RANGE64 = 0x0 0x80000000 0x0 $(MEMORY_SIZE)
 else
   MEMORY_ADDR_RANGE32 = 0x80000000 0x80000000
-  MEMORY_ADDR_RANGE64 = 0x0 0x80000000 $(shell echo - | awk '{printf "0x%x", $(MEMORY_SIZE) / 0x100000000}') $(shell echo - | awk '{printf "0x%x", $(MEMORY_SIZE) % 0x100000000}')
+  MEMORY_SIZE_CPU = ${shell cat workspace/$(CONFIG)/system.dts | sed -n 's/.*reg = <0x0 0x80000000 *\(0x[0-9A-Fa-f]*\) *0x\([0-9A-Fa-f]*\)>.*/\1\2/p'}
+  MEMORY_SIZE_AWK = if (CPU < DDR) SIZE=CPU; else SIZE=DDR; printf "0x%x 0x%x", SIZE / 0x100000000, SIZE % 0x100000000
+  MEMORY_ADDR_RANGE64 = 0x0 0x80000000 $(shell echo - | awk '{CPU=$(MEMORY_SIZE_CPU); DDR=$(MEMORY_SIZE); $(MEMORY_SIZE_AWK)}')
 endif
 
 SBT := java -Xmx12G -Xss8M $(JAVA_OPTIONS) -Dsbt.io.virtual=false -Dsbt.server.autostart=false -jar $(realpath rocket-chip/sbt-launch.jar)
