@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: BSD-2-Clause
+
+config PLATFORM_VIVADO_RISC_V
+	bool
+	select FDT
+	select IPI_MSWI
+	select IRQCHIP_PLIC
+	select TIMER_MTIMER
+        select FDT_TIMER
+	default y

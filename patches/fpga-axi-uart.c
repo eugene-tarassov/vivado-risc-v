@@ -32,7 +32,7 @@
 #define CR_RESET_TX_FIFO    (1 << 1) /* reset transmit FIFO    */
 #define CR_IE_RX_READY      (1 << 4) /* enable receive ready interrupt  */
 #define CR_IE_TX_READY      (1 << 5) /* enable transmit ready interrupt */
-#define CR_TX_STOP          (1 << 6) /* stop transmit */
+#define CR_TX_STOP          (1 << 6) /* stop transmit          */
 
 struct uart_regs {
     volatile uint32_t rx_fifo;

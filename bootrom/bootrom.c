@@ -53,6 +53,7 @@
 // Capability bits
 #define SDC_CAPABILITY_SD_4BIT  0x0001
 #define SDC_CAPABILITY_SD_RESET 0x0002
+#define SDC_CAPABILITY_ADDR     0xff00
 
 // Control bits
 #define SDC_CONTROL_SD_4BIT     0x0001
@@ -113,7 +114,7 @@ struct sdc_regs {
     volatile uint32_t res_54;
     volatile uint32_t res_58;
     volatile uint32_t res_5c;
-    volatile uint32_t dma_addres;
+    volatile uint64_t dma_addres;
 };
 
 #define MAX_BLOCK_CNT 0x1000
@@ -291,7 +292,7 @@ static int send_data_cmd(unsigned cmd, unsigned arg, void * buf, unsigned blocks
             errno = ERR_BUF_ALIGNMENT;
             return -1;
         }
-        regs->dma_addres = (uint32_t)(intptr_t)buf;
+        regs->dma_addres = (uint64_t)(intptr_t)buf;
         regs->block_size = 511;
         regs->block_count = blocks - 1;
         regs->data_timeout = 0xFFFFFF;

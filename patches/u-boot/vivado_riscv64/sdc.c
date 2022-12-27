@@ -46,6 +46,7 @@
 // Capability bits
 #define SDC_CAPABILITY_SD_4BIT  0x0001
 #define SDC_CAPABILITY_SD_RESET 0x0002
+#define SDC_CAPABILITY_ADDR     0xff00
 
 // Control bits
 #define SDC_CONTROL_SD_4BIT     0x0001
@@ -98,12 +99,13 @@ struct sdc_regs {
     volatile uint32_t res_54;
     volatile uint32_t res_58;
     volatile uint32_t res_5c;
-    volatile uint32_t dma_addres;
+    volatile uint64_t dma_addres;
 };
 
 struct sdc_priv {
     struct sdc_regs * regs;
-    u32 clk_freq;
+    uint32_t dma_addr_bits;
+    uint32_t clk_freq;
     int acmd;
 };
 
@@ -178,14 +180,14 @@ static int sdc_setup_data_xfer(struct sdc_priv * dev, struct mmc * mmc, struct m
     if (data->blocksize < 4) return -1;
     if (data->blocksize > 0x1000) return -1;
     if (data->blocks > 0x10000) return -1;
-    if (addr + data->blocksize * data->blocks > 0x100000000) return -1;
+    if (addr + data->blocksize * data->blocks > ((uint64_t)1 << dev->dma_addr_bits)) return -1;
 
     uint64_t timeout = (uint64_t)data->blocks * data->blocksize * 8 / mmc->bus_width;
     timeout += (uint64_t)mmc->clock / 1000 * data->blocks;
     timeout += (uint64_t)mmc->clock / 100; // 10ms
     if (timeout > 0xffffff) timeout = 0;
 
-    dev->regs->dma_addres = (uint32_t)addr;
+    dev->regs->dma_addres = addr;
     dev->regs->block_size = data->blocksize - 1;
     dev->regs->block_count = data->blocks - 1;
     dev->regs->data_timeout = (uint32_t)timeout;
@@ -198,6 +200,7 @@ static int sdc_probe(struct udevice * udev) {
     struct sdc_plat * plat = dev_get_plat(udev);
     struct mmc_uclass_priv * upriv = dev_get_uclass_priv(udev);
     struct mmc_config * cfg = &plat->cfg;
+    uint32_t capability;
 
     fdt_addr_t addr = dev_read_addr(udev);
     if (addr == FDT_ADDR_T_NONE) {
@@ -220,6 +223,12 @@ static int sdc_probe(struct udevice * udev) {
     cfg->voltages = MMC_VDD_32_33 | MMC_VDD_33_34;
     if (cfg->host_caps == 0) cfg->host_caps = MMC_MODE_4BIT | MMC_MODE_HS;
     cfg->b_max = 0x10000;
+
+    priv->dma_addr_bits = 32;
+    capability = priv->regs->capability;
+    if (capability & SDC_CAPABILITY_ADDR) {
+        priv->dma_addr_bits = (capability & SDC_CAPABILITY_ADDR) >> __builtin_ctz(SDC_CAPABILITY_ADDR);
+    }
 
     sdc_set_clock(priv, 400000);
 

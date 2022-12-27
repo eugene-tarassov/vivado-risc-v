@@ -139,7 +139,7 @@ workspace/boot.elf: opensbi/build/platform/vivado-risc-v/firmware/fw_payload.elf
 
 opensbi/build/platform/vivado-risc-v/firmware/fw_payload.elf: $(wildcard patches/opensbi/*) u-boot/u-boot-nodtb.bin
 	mkdir -p opensbi/platform/vivado-risc-v
-	cp -p patches/opensbi/* opensbi/platform/vivado-risc-v
+	cp -p -r patches/opensbi/* opensbi/platform/vivado-risc-v
 	make -C opensbi CROSS_COMPILE=$(CROSS_COMPILE_LINUX) PLATFORM=vivado-risc-v \
 	 FW_PAYLOAD_PATH=`realpath u-boot/u-boot-nodtb.bin`
 

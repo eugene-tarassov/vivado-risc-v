@@ -111,6 +111,7 @@ struct axi_eth_priv {
     struct net_device * net_dev;
     struct phy_device * phy_dev;
     struct mii_bus * mdio_bus;
+    unsigned dma_addr_bits;
     spinlock_t lock;
     int irq;
 
@@ -315,6 +316,10 @@ static netdev_tx_t axi_eth_xmit(struct sk_buff * skb, struct net_device * net_de
         if (dma_mapping_error(&priv->pdev->dev, dma_addr)) {
             err = "DMA mapping error\n";
         }
+        else if (dma_addr + pkt_size > ((uint64_t)1 << priv->dma_addr_bits)) {
+            dma_unmap_single(&priv->pdev->dev, dma_addr, pkt_size, DMA_TO_DEVICE);
+            err = "DMA mapping error: address overflow\n";
+        }
     }
 
     if (err) {
@@ -375,9 +380,12 @@ static void axi_eth_add_rx_buffers(struct net_device * net_dev) {
     unsigned pkt_size = net_dev->mtu + ETH_HLEN;
     if (pkt_size > 0x3fff) pkt_size = 0x3fff;
     for (;;) {
+        const char * err = NULL;
         struct axi_eth_ring_item * i;
         struct sk_buff * skb;
+        dma_addr_t dma_addr;
         uint32_t rx_next = (priv->rx_inp + 1) & AXI_ETH_RING_MASK;
+
         if (rx_next == priv->rx_out) break;
         i = priv->rx_ring + priv->rx_inp;
         skb = netdev_alloc_skb_ip_align(net_dev, pkt_size);
@@ -386,15 +394,23 @@ static void axi_eth_add_rx_buffers(struct net_device * net_dev) {
             net_dev->stats.rx_errors++;
             return;
         }
-        i->dma_size = pkt_size;
-        i->dma_addr = dma_map_single(&priv->pdev->dev, skb->data, pkt_size, DMA_FROM_DEVICE);
-        if (dma_mapping_error(&priv->pdev->dev, i->dma_addr)) {
-            netdev_err(net_dev, "DMA mapping error\n");
+        dma_addr = dma_map_single(&priv->pdev->dev, skb->data, pkt_size, DMA_FROM_DEVICE);
+        if (dma_mapping_error(&priv->pdev->dev, dma_addr)) {
+            err = "DMA mapping error\n";
+        }
+        else if (dma_addr + pkt_size > ((uint64_t)1 << priv->dma_addr_bits)) {
+            dma_unmap_single(&priv->pdev->dev, dma_addr, pkt_size, DMA_FROM_DEVICE);
+            err = "DMA mapping error: address overflow\n";
+        }
+        if (err) {
+            netdev_err(net_dev, err);
             net_dev->stats.rx_errors++;
             dev_kfree_skb_any(skb);
             return;
         }
         i->skb = skb;
+        i->dma_size = pkt_size;
+        i->dma_addr = dma_addr;
         priv->rx_pkt_regs[priv->rx_inp].addr = i->dma_addr; wmb();
         priv->rx_pkt_regs[priv->rx_inp].size = i->dma_size | ((i->dma_addr >> 32) << 16); wmb();
         priv->regs->rx_inp = priv->rx_inp = rx_next;
@@ -687,10 +703,11 @@ static int axi_eth_probe(struct platform_device * pdev) {
         goto out;
     }
 
+    priv->dma_addr_bits = 32;
     capability = priv->regs->capability;
     if (capability & NIC_CAPABILITY_ADDR) {
-        unsigned addr_bits = (capability & NIC_CAPABILITY_ADDR) >> __builtin_ctz(NIC_CAPABILITY_ADDR);
-        err = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(addr_bits));
+        priv->dma_addr_bits = (capability & NIC_CAPABILITY_ADDR) >> __builtin_ctz(NIC_CAPABILITY_ADDR);
+        err = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(priv->dma_addr_bits));
         if (err) {
             printk(KERN_ERR "AXI-ETH: Can't set DMA mask\n");
             goto out;
