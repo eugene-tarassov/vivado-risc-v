@@ -18,7 +18,7 @@ apt-install:
 	sudo apt update
 	sudo apt upgrade
 	sudo apt install default-jdk device-tree-compiler python curl gawk \
-	 libtinfo5 libmpc-dev gcc gcc-riscv64-linux-gnu gcc-8-riscv64-linux-gnu flex bison
+	 libtinfo5 libmpc-dev libssl-dev gcc gcc-riscv64-linux-gnu gcc-8-riscv64-linux-gnu flex bison
 
 apt-install-qemi:
 	sudo apt install qemu-system-misc opensbi u-boot-qemu qemu-utils
