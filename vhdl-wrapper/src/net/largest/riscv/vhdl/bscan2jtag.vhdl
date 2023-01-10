@@ -82,7 +82,6 @@ architecture Behavioral of bscan2jtag is
     signal mode_reg   : std_logic;
     signal tms_reg    : std_logic;
     signal tms_ok     : std_logic;
-    signal tck_int    : std_logic;
 
     subtype bit_cnt_type is integer range 0 to 31;
     signal id_cnt     : bit_cnt_type;
@@ -93,18 +92,33 @@ architecture Behavioral of bscan2jtag is
 begin
 
     tck_buf_1 : if enable_tck_bufg generate
-        tck_buf : BUFG
+        tck_buf : BUFGCTRL
+        generic map (
+            INIT_OUT => 1,
+            PRESELECT_I0 => FALSE,
+            PRESELECT_I1 => FALSE,
+            IS_S0_INVERTED => '1',
+            IS_S1_INVERTED => '0'
+        )
         port map (
-            O => jtag_tck,
-            I => tck_int
+            CE0 => '1',
+            CE1 => '1',
+            IGNORE0 => '1',
+            IGNORE1 => '1',
+            S0 => tms_ok,
+            S1 => tms_ok,
+            I0 => '1',
+            I1 => S_BSCAN_tck,
+            O => jtag_tck
         );
     end generate tck_buf_1;
     tck_buf_2 : if not enable_tck_bufg generate
-        jtag_tck <= tck_int;
+        -- Note: it is not recommended to have LUT cells on the clock path
+        -- enable_tck_bufg=true is preffered
+        jtag_tck <= S_BSCAN_tck or not tms_ok;
     end generate tck_buf_2;
 
     jtag_tdi <= S_BSCAN_tdi;
-    tck_int <= S_BSCAN_tck or not tms_ok;
     S_BSCAN_tdo <= id_tdo when S_BSCAN_bscanid_en = '1' else jtag_tdo;
 
     jtag_ctrl : process (S_BSCAN_tck)
