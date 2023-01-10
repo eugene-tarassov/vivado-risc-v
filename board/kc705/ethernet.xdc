@@ -33,8 +33,19 @@ set_property -dict { PACKAGE_PIN K26   IOSTANDARD LVCMOS25 SLEW FAST DRIVE 16 } 
 set_property -dict { PACKAGE_PIN L30   IOSTANDARD LVCMOS25 SLEW FAST DRIVE 16 } [get_ports { gmii_txd[6] }];
 set_property -dict { PACKAGE_PIN J28   IOSTANDARD LVCMOS25 SLEW FAST DRIVE 16 } [get_ports { gmii_txd[7] }];
 
-create_clock -period 8.000 -name gmii_rx_clk [get_ports gmii_rx_clk]
-create_clock -period 40.000 -name gmii_tx_clk [get_ports gmii_tx_clk]
+set gmii_rx_clk [create_clock -period 8.000 -name gmii_rx_clk [get_ports gmii_rx_clk]]
+set gmii_tx_clk [create_clock -period 40.000 -name gmii_tx_clk [get_ports gmii_tx_clk]]
+
+set eth_clock [get_clocks -of_objects [get_pins -hier Ethernet/clock]]
+set eth_clock_period [get_property -min PERIOD $eth_clock]
+set rx_clock_period [get_property -min PERIOD $gmii_rx_clk]
+set tx_clock_period [get_property -min PERIOD $gmii_tx_clk]
+
+set_max_delay -from $eth_clock -to $gmii_tx_clk -datapath_only $tx_clock_period
+set_max_delay -from $gmii_tx_clk -to $eth_clock -datapath_only $eth_clock_period
+
+set_max_delay -from $eth_clock -to $gmii_rx_clk -datapath_only $rx_clock_period
+set_max_delay -from $gmii_rx_clk -to $eth_clock -datapath_only $eth_clock_period
 
 # KC705 board uses Marvell Alaska 88E1111 PHY, 2.5V signaling
 
