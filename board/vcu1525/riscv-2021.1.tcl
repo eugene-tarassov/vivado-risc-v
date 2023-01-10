@@ -293,7 +293,6 @@ proc create_hier_cell_IO { parentCell nameHier } {
    CONFIG.axis_word_bits {64} \
    CONFIG.burst_size {64} \
    CONFIG.dma_word_bits {64} \
-   CONFIG.dma_addr_bits {40} \
    CONFIG.enable_mdio {0} \
  ] $Ethernet
 
@@ -672,7 +671,10 @@ proc create_root_design { parentCell } {
   connect_bd_net -net usb_uart_txd [get_bd_ports usb_uart_txd] [get_bd_pins IO/usb_uart_txd]
 
   # Create address segments
-  set addr_range [expr 1 << [get_property CONFIG.ADDR_WIDTH [get_bd_intf_pins RocketChip/MEM_AXI4]]]
+  set addr_bits [get_property CONFIG.ADDR_WIDTH [get_bd_intf_pins RocketChip/DMA_AXI4]]
+  set_property CONFIG.dma_addr_bits $addr_bits [get_bd_cells IO/Ethernet]
+
+  set addr_range [expr 1 << $addr_bits]
   assign_bd_address -offset 0x00000000 -range $addr_range -target_address_space [get_bd_addr_spaces RocketChip/MEM_AXI4] [get_bd_addr_segs DDR/ddr4_0/C0_DDR4_MEMORY_MAP/C0_DDR4_ADDRESS_BLOCK] -force
   assign_bd_address -offset 0x00000000 -range $addr_range -target_address_space [get_bd_addr_spaces IO/Ethernet/M_AXI] [get_bd_addr_segs RocketChip/DMA_AXI4/reg0] -force
   assign_bd_address -offset 0x00000000 -range $addr_range -target_address_space [get_bd_addr_spaces IO/qdma_0/M_AXI] [get_bd_addr_segs RocketChip/DMA_AXI4/reg0] -force

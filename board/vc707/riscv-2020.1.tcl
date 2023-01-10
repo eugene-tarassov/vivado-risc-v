@@ -754,7 +754,7 @@ proc create_root_design { parentCell } {
   assign_bd_address -offset 0x60020000 -range 0x00010000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/Ethernet/S_AXI_LITE/reg0] -force
   assign_bd_address -offset 0x60030000 -range 0x00010000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/XADC/s_axi_lite/reg0] -force
 
-  set addr_bits [get_property CONFIG.ADDR_WIDTH [get_bd_intf_pins RocketChip/MEM_AXI4]]
+  set addr_bits [get_property CONFIG.ADDR_WIDTH [get_bd_intf_pins RocketChip/DMA_AXI4]]
   set_property CONFIG.dma_addr_bits $addr_bits [get_bd_cells IO/Ethernet]
   set_property CONFIG.dma_addr_bits $addr_bits [get_bd_cells IO/SD]
 

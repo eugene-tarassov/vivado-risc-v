@@ -531,7 +531,7 @@ public class Main {
         }
         ln("");
         if (mem_addr_offset) {
-            ln("    signal mem_start_addr : std_logic_vector(31 downto 0) := x\"80000000\";");
+            ln("    constant mem_start_addr : unsigned(31 downto 0) := X\"80000000\";");
             for (BusSignal sig : axi_signals) {
                 if (sig.addr_offs_name != null) {
                     ln("    signal " + sig.addr_offs_name + " : std_logic_vector(" + getRangeString(sig.range) + ");");
@@ -590,13 +590,15 @@ public class Main {
     private static void generateRocketSystemComponent() {
         Verilog2001Parser.List_of_port_declarationsContext port_decls = rocket_system.list_of_port_declarations();
         if (port_decls == null) throw new Error("Cannot find a port declaration of RocketSystem module");
-        ln("");
-        for (BusSignal sig : axi_signals) {
-            if (sig.addr_offs_name != null) {
-                int h = getRangeHigh(sig.range);
-                ln("    " + sig.signal_name + " <= std_logic_vector(unsigned(" +
-                    sig.addr_offs_name + ") - unsigned(mem_start_addr) + " +
-                    "shift_left(to_unsigned(RAM_ADDR_OFFSET_MB, " + (h + 1) + "), 20));");
+        if (mem_addr_offset) {
+            ln("");
+            for (BusSignal sig : axi_signals) {
+                if (sig.addr_offs_name != null) {
+                    int h = getRangeHigh(sig.range);
+                    ln("    " + sig.signal_name + " <= std_logic_vector(unsigned(" +
+                        sig.addr_offs_name + ") - mem_start_addr + " +
+                        "shift_left(to_unsigned(RAM_ADDR_OFFSET_MB, " + (h + 1) + "), 20));");
+                }
             }
         }
         ln("");
