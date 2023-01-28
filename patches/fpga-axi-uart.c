@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <linux/version.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/interrupt.h>
@@ -269,7 +270,11 @@ static void axi_uart_shutdown(struct uart_port * port) {
     free_irq(port->irq, port);
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,1,0)
 static void axi_uart_set_termios(struct uart_port * port, struct ktermios * termios, struct ktermios * old) {
+#else
+static void axi_uart_set_termios(struct uart_port * port, struct ktermios * termios, const struct ktermios * old) {
+#endif
 }
 
 static const char * axi_uart_type(struct uart_port * port) {
@@ -358,7 +363,9 @@ static int axi_uart_assign(struct device * dev, int id, u32 mapbase, void __iome
 
     spin_lock_init(&port->lock);
     port->fifosize = 0; /* disable timeout in uart_wait_until_sent() */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,0,0)
     port->timeout = HZ / 50; /* must not be 0 to avoid interger overflow in uart_wait_until_sent() */
+#endif
     port->regshift = 2; /* 2 means 32-bit registers */
     port->iotype = UPIO_MEM;
     port->iobase = 1; /* mark port in use */
