@@ -127,7 +127,7 @@ u-boot/u-boot-nodtb.bin: workspace/patch-u-boot-done $(U_BOOT_SRC)
 
 u-boot-qemu:
 	cd qemu/ && if [ ! -d u-boot ]; then git clone ../u-boot; fi && cd u-boot && git checkout v2022.01
-	cd qemu/u-boot && make CROSS_COMPILE=$(CROSS_COMPILE_LINUX) qemu-riscv64_smode_defconfig && make -j$(nproc)
+	cd qemu/u-boot && export CROSS_COMPILE=$(CROSS_COMPILE_LINUX) && make qemu-riscv64_smode_defconfig && make -j$(nproc)
 
 # --- build RISC-V Open Source Supervisor Binary Interface (OpenSBI) ---
 
