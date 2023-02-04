@@ -27,6 +27,7 @@ apt-install-qemi:
 SKIP_SUBMODULES = torture software/gemmini-rocc-tests software/onnxruntime-riscv
 
 update-submodules:
+	rm -rf workspace/patch-*-done
 	git submodule sync --recursive
 	git $(foreach m,$(SKIP_SUBMODULES),-c submodule.$(m).update=none) submodule update --init --force --recursive
 
