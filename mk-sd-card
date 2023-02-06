@@ -21,7 +21,7 @@ for DEVICE in `ls /dev/disk/by-path/*-usb-*-scsi-*` ; do
   echo
   DEVICE=`realpath $DEVICE`
   echo "Copy disk image to:"
-  sudo sfdisk -l $DEVICE
+  sudo sfdisk -l $DEVICE || continue
   read -r -p "Are you sure? [y/N] " response
   case "$response" in
   [yY][eE][sS]|[yY])
