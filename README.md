@@ -194,9 +194,9 @@ Such changes are lost when the project is rebuilt.
 
 For details on Xilinx drivers, see [Linux Drivers](https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18841873/Linux%2BDrivers).
 
-### Edit bootrom/bootrom.dts
+### Edit board/nexys-video/bootrom.dts
 
-Add device description in the "soc {...}" section.
+Add device description in the "io-bus {...}" section.
 For example, GPIO description can look like this:
 ```
         gpio: gpio@60030000 {
