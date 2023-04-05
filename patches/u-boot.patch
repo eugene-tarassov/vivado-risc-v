@@ -1,5 +1,5 @@
 diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index ba29e70acf..f029e7573a 100644
+index ba29e70acf..a572610f2a 100644
 --- a/arch/riscv/Kconfig
 +++ b/arch/riscv/Kconfig
 @@ -24,6 +24,9 @@ config TARGET_SIFIVE_UNMATCHED
@@ -16,7 +16,7 @@ index ba29e70acf..f029e7573a 100644
  source "board/AndesTech/ax25-ae350/Kconfig"
  source "board/emulation/qemu-riscv/Kconfig"
  source "board/microchip/mpfs_icicle/Kconfig"
-+source "board/xilinx/vivado_riscv64/Kconfig"
++source "board/vivado_riscv/vivado_riscv64/Kconfig"
  source "board/sifive/unleashed/Kconfig"
  source "board/sifive/unmatched/Kconfig"
  source "board/openpiton/riscv64/Kconfig"

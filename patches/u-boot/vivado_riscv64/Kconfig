@@ -4,7 +4,7 @@ config SYS_BOARD
 	default "vivado_riscv64"
 
 config SYS_VENDOR
-	default "xilinx"
+	default "vivado_riscv"
 
 config SYS_CPU
 	default "generic"
