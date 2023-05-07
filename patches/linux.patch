@@ -1,20 +1,8 @@
-diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index 696279ce03c9..2b884ac6da8d 100644
---- a/arch/riscv/Kconfig
-+++ b/arch/riscv/Kconfig
-@@ -248,7 +248,6 @@ config ARCH_RV64I
- 	select HAVE_FTRACE_MCOUNT_RECORD if !XIP_KERNEL
- 	select HAVE_FUNCTION_GRAPH_TRACER
- 	select HAVE_FUNCTION_TRACER if !XIP_KERNEL
--	select SWIOTLB if MMU
- 
- endchoice
- 
 diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
-index d6144978e32d..2efdb065c812 100644
+index 5e19a961c34d..3b89ed391688 100644
 --- a/drivers/mmc/host/Kconfig
 +++ b/drivers/mmc/host/Kconfig
-@@ -1084,6 +1084,14 @@ config MMC_SDHCI_AM654
+@@ -1097,6 +1097,14 @@ config MMC_SDHCI_AM654
  
  	  If unsure, say N.
  
@@ -30,7 +18,7 @@ index d6144978e32d..2efdb065c812 100644
  	tristate "Actions Semi Owl SD/MMC Host Controller support"
  	depends on HAS_DMA
 diff --git a/drivers/mmc/host/Makefile b/drivers/mmc/host/Makefile
-index 4e4ceb32c4b4..d67ddd8eec40 100644
+index ba0c6d0cd85d..8d732823b9d6 100644
 --- a/drivers/mmc/host/Makefile
 +++ b/drivers/mmc/host/Makefile
 @@ -70,6 +70,7 @@ obj-$(CONFIG_MMC_SUNXI)		+= sunxi-mmc.o
@@ -42,10 +30,10 @@ index 4e4ceb32c4b4..d67ddd8eec40 100644
  
  obj-$(CONFIG_MMC_REALTEK_PCI)	+= rtsx_pci_sdmmc.o
 diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
-index 955abbc5490e..d2fcfeee0c16 100644
+index 1917da784191..153ad7be135d 100644
 --- a/drivers/net/ethernet/Kconfig
 +++ b/drivers/net/ethernet/Kconfig
-@@ -159,6 +159,14 @@ config ETHOC
+@@ -161,6 +161,14 @@ config ETHOC
  	help
  	  Say Y here if you want to use the OpenCores 10/100 Mbps Ethernet MAC.
  
@@ -61,10 +49,10 @@ index 955abbc5490e..d2fcfeee0c16 100644
  source "drivers/net/ethernet/pasemi/Kconfig"
  source "drivers/net/ethernet/pensando/Kconfig"
 diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
-index 9eb01169957f..08a5461e30fc 100644
+index 0d872d4efcd1..d1412a971926 100644
 --- a/drivers/net/ethernet/Makefile
 +++ b/drivers/net/ethernet/Makefile
-@@ -72,6 +72,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
+@@ -73,6 +73,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
  obj-$(CONFIG_LPC_ENET) += nxp/
  obj-$(CONFIG_NET_VENDOR_OKI) += oki-semi/
  obj-$(CONFIG_ETHOC) += ethoc.o
@@ -73,10 +61,10 @@ index 9eb01169957f..08a5461e30fc 100644
  obj-$(CONFIG_NET_VENDOR_PASEMI) += pasemi/
  obj-$(CONFIG_NET_VENDOR_QLOGIC) += qlogic/
 diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index a452748c69b2..1051f977a0e5 100644
+index 8cbf73f86059..2fb9da1f9cfd 100644
 --- a/drivers/tty/serial/Kconfig
 +++ b/drivers/tty/serial/Kconfig
-@@ -538,6 +538,32 @@ config SERIAL_UARTLITE_NR_UARTS
+@@ -540,6 +540,32 @@ config SERIAL_UARTLITE_NR_UARTS
  	  Set this to the number of uartlites in your system, or the number
  	  you think you might implement.
  
@@ -110,11 +98,11 @@ index a452748c69b2..1051f977a0e5 100644
  	bool
  	depends on SPARC
 diff --git a/drivers/tty/serial/Makefile b/drivers/tty/serial/Makefile
-index 61cc8de95571..af6044473f93 100644
+index 238a9557b487..554bb2f5ea78 100644
 --- a/drivers/tty/serial/Makefile
 +++ b/drivers/tty/serial/Makefile
-@@ -54,6 +54,7 @@ obj-$(CONFIG_SERIAL_TXX9) += serial_txx9.o
- obj-$(CONFIG_SERIAL_VR41XX) += vr41xx_siu.o
+@@ -53,6 +53,7 @@ obj-$(CONFIG_SERIAL_JSM) += jsm/
+ obj-$(CONFIG_SERIAL_TXX9) += serial_txx9.o
  obj-$(CONFIG_SERIAL_ATMEL) += atmel_serial.o
  obj-$(CONFIG_SERIAL_UARTLITE) += uartlite.o
 +obj-$(CONFIG_SERIAL_AXI_UART) += fpga-axi-uart.o
