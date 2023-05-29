@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <linux/version.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/interrupt.h>
@@ -24,8 +25,7 @@
 #define AXI_ETH_MIN_MTU (ETH_ZLEN + ETH_HLEN)
 #define AXI_ETH_MAX_MTU 9000
 
-#define AXI_ETH_RING_MASK 0xf
-#define AXI_ETH_RING_SIZE (AXI_ETH_RING_MASK + 1)
+#define AXI_ETH_MAX_RING_SIZE 0x40
 
 struct eth_regs {
     volatile uint32_t mac_status;
@@ -112,12 +112,13 @@ struct axi_eth_priv {
     struct phy_device * phy_dev;
     struct mii_bus * mdio_bus;
     unsigned dma_addr_bits;
+    unsigned ring_mask;
     spinlock_t lock;
     int irq;
 
     uint32_t int_enable;
-    struct axi_eth_ring_item rx_ring[AXI_ETH_RING_SIZE];
-    struct axi_eth_ring_item tx_ring[AXI_ETH_RING_SIZE];
+    struct axi_eth_ring_item rx_ring[AXI_ETH_MAX_RING_SIZE];
+    struct axi_eth_ring_item tx_ring[AXI_ETH_MAX_RING_SIZE];
     uint32_t rx_inp;
     uint32_t rx_out;
     uint32_t tx_inp;
@@ -127,7 +128,7 @@ struct axi_eth_priv {
     struct axi_eth_stats tx_stats;
 };
 
-#define tx_ring_free(p) ((p->tx_out - p->tx_inp - 1) & AXI_ETH_RING_MASK)
+#define tx_ring_free(p) ((p->tx_out - p->tx_inp - 1) & p->ring_mask)
 
 #define DRIVER_NAME "riscv-axi-eth"
 #define MDIO_BUS_NAME "axi-eth-mdio"
@@ -328,13 +329,13 @@ static netdev_tx_t axi_eth_xmit(struct sk_buff * skb, struct net_device * net_de
         dev_kfree_skb_any(skb);
     }
     else {
-        uint32_t tx_next = (priv->tx_inp + 1) & AXI_ETH_RING_MASK;
+        uint32_t tx_next = (priv->tx_inp + 1) & priv->ring_mask;
         struct axi_eth_ring_item * i = priv->tx_ring + priv->tx_inp;
         if (tx_next == priv->tx_out) {
             struct axi_eth_ring_item * i = priv->tx_ring + priv->tx_out;
             while (priv->tx_out == priv->regs->tx_out) {}
             if (i->skb) axi_eth_tx_done(net_dev, i);
-            priv->tx_out = (priv->tx_out + 1) & AXI_ETH_RING_MASK;
+            priv->tx_out = (priv->tx_out + 1) & priv->ring_mask;
         }
 
         skb_tx_timestamp(skb);
@@ -349,6 +350,10 @@ static netdev_tx_t axi_eth_xmit(struct sk_buff * skb, struct net_device * net_de
         if (tx_ring_free(priv) == 0) netif_stop_queue(net_dev);
     }
 
+    if (netif_queue_stopped(net_dev) &&
+        tx_ring_free(priv) >= priv->ring_mask / 2)
+        netif_wake_queue(net_dev);
+
     spin_unlock_irq(&priv->lock);
 
     return NETDEV_TX_OK;
@@ -360,6 +365,7 @@ static void axi_eth_get_stats64(struct net_device * net_dev, struct rtnl_link_st
 
     netdev_stats_to_stats64(stats, &net_dev->stats);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,0,0)
     do {
         start = u64_stats_fetch_begin_irq(&priv->rx_stats.syncp);
         stats->rx_packets = priv->rx_stats.packets;
@@ -373,6 +379,21 @@ static void axi_eth_get_stats64(struct net_device * net_dev, struct rtnl_link_st
         stats->tx_bytes = priv->tx_stats.bytes;
     }
     while (u64_stats_fetch_retry_irq(&priv->tx_stats.syncp, start));
+#else
+    do {
+        start = u64_stats_fetch_begin(&priv->rx_stats.syncp);
+        stats->rx_packets = priv->rx_stats.packets;
+        stats->rx_bytes = priv->rx_stats.bytes;
+    }
+    while (u64_stats_fetch_retry(&priv->rx_stats.syncp, start));
+
+    do {
+        start = u64_stats_fetch_begin(&priv->tx_stats.syncp);
+        stats->tx_packets = priv->tx_stats.packets;
+        stats->tx_bytes = priv->tx_stats.bytes;
+    }
+    while (u64_stats_fetch_retry(&priv->tx_stats.syncp, start));
+#endif
 }
 
 static void axi_eth_add_rx_buffers(struct net_device * net_dev) {
@@ -384,7 +405,7 @@ static void axi_eth_add_rx_buffers(struct net_device * net_dev) {
         struct axi_eth_ring_item * i;
         struct sk_buff * skb;
         dma_addr_t dma_addr;
-        uint32_t rx_next = (priv->rx_inp + 1) & AXI_ETH_RING_MASK;
+        uint32_t rx_next = (priv->rx_inp + 1) & priv->ring_mask;
 
         if (rx_next == priv->rx_out) break;
         i = priv->rx_ring + priv->rx_inp;
@@ -436,7 +457,7 @@ static int axi_eth_change_mtu(struct net_device * net_dev, int new_mtu) {
                 dma_unmap_single(&priv->pdev->dev, i->dma_addr, i->dma_size, DMA_FROM_DEVICE);
                 i->skb = NULL;
             }
-            priv->rx_out = (priv->rx_out + 1) & AXI_ETH_RING_MASK;
+            priv->rx_out = (priv->rx_out + 1) & priv->ring_mask;
         }
         priv->regs->rx_out = priv->rx_out;
         axi_eth_add_rx_buffers(net_dev);
@@ -465,20 +486,20 @@ static irqreturn_t axi_eth_isr(int irq, void * dev_id) {
             struct axi_eth_ring_item * i = priv->rx_ring + priv->rx_out;
             wmb();
             if (i->skb) axi_eth_rx_done(net_dev, i);
-            priv->rx_out = (priv->rx_out + 1) & AXI_ETH_RING_MASK;
+            priv->rx_out = (priv->rx_out + 1) & priv->ring_mask;
             cont = 1;
         }
         if (priv->tx_out != priv->regs->tx_out) {
             struct axi_eth_ring_item * i = priv->tx_ring + priv->tx_out;
             if (i->skb) axi_eth_tx_done(net_dev, i);
-            priv->tx_out = (priv->tx_out + 1) & AXI_ETH_RING_MASK;
+            priv->tx_out = (priv->tx_out + 1) & priv->ring_mask;
             cont = 1;
         }
         if (!cont) break;
     }
 
     if (netif_queue_stopped(net_dev) &&
-        tx_ring_free(priv) >= AXI_ETH_RING_SIZE / 2)
+        tx_ring_free(priv) >= priv->ring_mask / 2)
         netif_wake_queue(net_dev);
 
     spin_unlock_irqrestore(&priv->lock, flags);
@@ -577,7 +598,7 @@ static int axi_eth_dev_close(struct net_device * net_dev) {
             dma_unmap_single(&priv->pdev->dev, i->dma_addr, i->dma_size, DMA_FROM_DEVICE);
             i->skb = NULL;
         }
-        priv->rx_out = (priv->rx_out + 1) & AXI_ETH_RING_MASK;
+        priv->rx_out = (priv->rx_out + 1) & priv->ring_mask;
     }
     priv->regs->rx_out = priv->rx_out;
 
@@ -585,7 +606,7 @@ static int axi_eth_dev_close(struct net_device * net_dev) {
         struct axi_eth_ring_item * i = priv->tx_ring + priv->tx_out;
         while (priv->tx_out == priv->regs->tx_out) {}
         if (i->skb) axi_eth_tx_done(net_dev, i);
-        priv->tx_out = (priv->tx_out + 1) & AXI_ETH_RING_MASK;
+        priv->tx_out = (priv->tx_out + 1) & priv->ring_mask;
     }
     priv->regs->tx_out = priv->tx_out;
 
@@ -628,6 +649,8 @@ static int axi_eth_dev_open(struct net_device * net_dev) {
 
     /* Enable RX, TX, clear MDIO reset */
     priv->regs->nic_control = NIC_CONTROL_EN_RX | NIC_CONTROL_EN_TX;
+
+    netif_start_queue(net_dev);
 
     spin_unlock_irq(&priv->lock);
 
@@ -703,14 +726,26 @@ static int axi_eth_probe(struct platform_device * pdev) {
         goto out;
     }
 
+    priv->ring_mask = 0xf;
     priv->dma_addr_bits = 32;
     capability = priv->regs->capability;
+
     if (capability & NIC_CAPABILITY_ADDR) {
         priv->dma_addr_bits = (capability & NIC_CAPABILITY_ADDR) >> __builtin_ctz(NIC_CAPABILITY_ADDR);
         err = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(priv->dma_addr_bits));
         if (err) {
             printk(KERN_ERR "AXI-ETH: Can't set DMA mask\n");
             goto out;
+        }
+    }
+
+    if (capability & NIC_CAPABILITY_RING) {
+        unsigned ring_bits = (capability & NIC_CAPABILITY_RING) >> __builtin_ctz(NIC_CAPABILITY_RING);
+        if ((1u << ring_bits) > AXI_ETH_MAX_RING_SIZE) {
+            priv->ring_mask = AXI_ETH_MAX_RING_SIZE - 1;
+        }
+        else {
+            priv->ring_mask = (1u << ring_bits) - 1;
         }
     }
 

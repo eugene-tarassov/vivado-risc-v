@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2020-2021 Eugene Tarassov
+Copyright (c) 2020-2023 Eugene Tarassov
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@ module ethernet #(
     parameter dma_word_bits = 32,
     parameter dma_addr_bits = 32,
     parameter axis_word_bits = 8,
+    parameter pkt_ptr_bits = 4, /* max is 6 */
     parameter enable_mdio = 1
 ) (
     input wire async_resetn,
@@ -182,8 +183,7 @@ always @(posedge clock)
 
 // ------ AXI LITE Slave Interface
 
-`define pkt_ptr_bits 4 /* max is 6 */
-`define pkt_ptr_max ((1 << `pkt_ptr_bits) - 1)
+`define pkt_ptr_max ((1 << pkt_ptr_bits) - 1)
 `define min_burst (1 << (`burst_size_log2 - 1))
 
 reg rd_req;
@@ -191,22 +191,22 @@ reg [1:0] wr_req;
 reg [11:0] read_addr;
 reg [11:0] write_addr;
 reg [31:0] write_data;
-wire [`pkt_ptr_bits-1:0] read_pkt_no = read_addr[4+:`pkt_ptr_bits];
-wire [`pkt_ptr_bits-1:0] write_pkt_no = write_addr[4+:`pkt_ptr_bits];
+wire [pkt_ptr_bits-1:0] read_pkt_no = read_addr[4+:pkt_ptr_bits];
+wire [pkt_ptr_bits-1:0] write_pkt_no = write_addr[4+:pkt_ptr_bits];
 
 assign s_axi_arready = !rd_req && !s_axi_rvalid;
 assign s_axi_awready = !wr_req[0] && !s_axi_bvalid;
 assign s_axi_wready = !wr_req[1] && !s_axi_bvalid;
 
-reg [`pkt_ptr_bits-1:0] rx_pkt_inp;
-reg [`pkt_ptr_bits-1:0] rx_pkt_out;
+reg [pkt_ptr_bits-1:0] rx_pkt_inp;
+reg [pkt_ptr_bits-1:0] rx_pkt_out;
 reg [`pkt_addr_bits_range] rx_addr[`pkt_ptr_max:0];
 reg [`pkt_size_bits_range] rx_size[`pkt_ptr_max:0];
 reg [`pkt_size_bits_range] rx_done[`pkt_ptr_max:0];
 reg [1:0] rx_status[`pkt_ptr_max:0];
 
-reg [`pkt_ptr_bits-1:0] tx_pkt_inp;
-reg [`pkt_ptr_bits-1:0] tx_pkt_out;
+reg [pkt_ptr_bits-1:0] tx_pkt_inp;
+reg [pkt_ptr_bits-1:0] tx_pkt_out;
 reg [`pkt_addr_bits_range] tx_addr[`pkt_ptr_max:0];
 reg [`pkt_size_bits_range] tx_size[`pkt_ptr_max:0];
 
@@ -292,7 +292,7 @@ always @(posedge clock) begin
                 10'h02c: begin
                   s_axi_rdata[15:10] <= dma_addr_bits;
                   s_axi_rdata[8] <= enable_mdio;
-                  s_axi_rdata[7:4] <= `pkt_ptr_bits;
+                  s_axi_rdata[7:4] <= pkt_ptr_bits;
                   s_axi_rdata[3:0] <= `burst_size_log2;
                 end
                 endcase
