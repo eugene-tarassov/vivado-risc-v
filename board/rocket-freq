@@ -15,22 +15,22 @@ vc707         Rocket.*          100.0
 
 vcu1525       Rocket64.*gem.*       31.25
 vcu1525       Rocket64[xyz].*       31.25
-vcu1525       Rocket.*m4            40.0
+vcu1525       Rocket.*m4            31.25
 vcu1525       Rocket.*b[2-9][0-9].* 62.5
 vcu1525       Rocket.*b1[0-9].*     80.0
 vcu1525       Rocket.*m2            100.0
 vcu1525       Rocket.*              125.0
 
 u250          Rocket64.*gem.*       31.25
-u250          Rocket64[xyz].*       40.0
-u250          Rocket.*m4            50.0
+u250          Rocket64[xyz].*       31.25
+u250          Rocket.*m4            31.25
 u250          Rocket.*b[2-9][0-9].* 80.0
 u250          Rocket.*b1[0-9].*     100.0
 u250          Rocket.*              125.0
 
 u200          Rocket64.*gem.*       31.25
-u200          Rocket64[xyz].*       40.0
-u200          Rocket.*m4            50.0
+u200          Rocket64[xyz].*       31.25
+u200          Rocket.*m4            31.25
 u200          Rocket.*b[2-9][0-9].* 80.0
 u200          Rocket.*b1[0-9].*     100.0
 u200          Rocket.*              125.0
