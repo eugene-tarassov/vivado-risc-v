@@ -1,8 +1,8 @@
 diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
-index 5e19a961c34d..3b89ed391688 100644
+index 4745fe217ade..c43e78ead8a7 100644
 --- a/drivers/mmc/host/Kconfig
 +++ b/drivers/mmc/host/Kconfig
-@@ -1097,6 +1097,14 @@ config MMC_SDHCI_AM654
+@@ -1044,6 +1044,14 @@ config MMC_SDHCI_AM654
  
  	  If unsure, say N.
  
@@ -18,10 +18,10 @@ index 5e19a961c34d..3b89ed391688 100644
  	tristate "Actions Semi Owl SD/MMC Host Controller support"
  	depends on HAS_DMA
 diff --git a/drivers/mmc/host/Makefile b/drivers/mmc/host/Makefile
-index ba0c6d0cd85d..8d732823b9d6 100644
+index a693fa3d3f1c..104b068139e0 100644
 --- a/drivers/mmc/host/Makefile
 +++ b/drivers/mmc/host/Makefile
-@@ -70,6 +70,7 @@ obj-$(CONFIG_MMC_SUNXI)		+= sunxi-mmc.o
+@@ -69,6 +69,7 @@ obj-$(CONFIG_MMC_SUNXI)		+= sunxi-mmc.o
  obj-$(CONFIG_MMC_USDHI6ROL0)	+= usdhi6rol0.o
  obj-$(CONFIG_MMC_TOSHIBA_PCI)	+= toshsd.o
  obj-$(CONFIG_MMC_BCM2835)	+= bcm2835.o
@@ -61,7 +61,7 @@ index 0d872d4efcd1..d1412a971926 100644
  obj-$(CONFIG_NET_VENDOR_PASEMI) += pasemi/
  obj-$(CONFIG_NET_VENDOR_QLOGIC) += qlogic/
 diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index 8cbf73f86059..2fb9da1f9cfd 100644
+index 0072892ca7fc..cf8a316a84f1 100644
 --- a/drivers/tty/serial/Kconfig
 +++ b/drivers/tty/serial/Kconfig
 @@ -540,6 +540,32 @@ config SERIAL_UARTLITE_NR_UARTS
@@ -98,7 +98,7 @@ index 8cbf73f86059..2fb9da1f9cfd 100644
  	bool
  	depends on SPARC
 diff --git a/drivers/tty/serial/Makefile b/drivers/tty/serial/Makefile
-index 238a9557b487..554bb2f5ea78 100644
+index cd9afd9e3018..dea8ac9a6c87 100644
 --- a/drivers/tty/serial/Makefile
 +++ b/drivers/tty/serial/Makefile
 @@ -53,6 +53,7 @@ obj-$(CONFIG_SERIAL_JSM) += jsm/
