@@ -61,7 +61,7 @@ index 0d872d4efcd1..d1412a971926 100644
  obj-$(CONFIG_NET_VENDOR_PASEMI) += pasemi/
  obj-$(CONFIG_NET_VENDOR_QLOGIC) += qlogic/
 diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index 0072892ca7fc..cf8a316a84f1 100644
+index b00e7c52aa16..b178ea8b87a6 100644
 --- a/drivers/tty/serial/Kconfig
 +++ b/drivers/tty/serial/Kconfig
 @@ -540,6 +540,32 @@ config SERIAL_UARTLITE_NR_UARTS
