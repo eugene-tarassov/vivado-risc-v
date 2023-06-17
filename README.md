@@ -40,20 +40,14 @@ sudo access required.
 Alternatively, a Windows 10 machine with Ubuntu on Windows can be used to run the tools, see [Running RISC-V tools on Windows](docs/ubuntu-on-windows.md).
 
 ## Software
-Vitis
-[2022.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2022-2.html) or
-[2022.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2022-1.html) or
-[2021.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2021-2.html) or
-[2021.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/2021-1.html) or
-[2020.2](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/archive-vitis.html) or
-[2020.1](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis/archive-vitis.html).
+Download and install AMD Xilinx
+[Vitis](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis.html).
+Supported Vitis versions are 2020.1, 2020.2, 2021.1, 2021.2, 2022.1, 2022.2, 2023.1.
 Vitis installation includes Vivado Design Suite - there is no need to install Vivado separately.
 
 Nexys Video, Nexys A7 100T and Arty A7 100T are supported by free version of Vivado. KC705, VC707 and Genesys 2 require Vivado license.
 
 If using a Digilent board, install [Vivado Board Files for Digilent FPGA Boards](https://github.com/Digilent/vivado-boards).
-Note: installation instructions tell to "navigate to its 'data/boards/board_files' directory".
-The directory does not exist in the latest Vivado, you have to create it first.
 
 # Usage
 
