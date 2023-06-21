@@ -4,8 +4,6 @@ library unisim;
 use unisim.Vcomponents.all;
 
 entity JtagExtBscan is
-generic (
-    JTAG_CHAIN : integer := 2);       -- Chain number.
 port (
     clock    : in std_logic;
     reset    : in std_logic;
