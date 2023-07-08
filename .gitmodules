@@ -12,7 +12,7 @@
 	url = https://github.com/alexforencich/verilog-ethernet.git
 [submodule "generators/sifive-cache"]
 	path = generators/sifive-cache
-	url = https://github.com/sifive/block-inclusivecache-sifive.git
+	url = https://github.com/chipsalliance/rocket-chip-inclusive-cache.git
 [submodule "generators/testchipip"]
 	path = generators/testchipip
 	url = https://github.com/ucb-bar/testchipip.git

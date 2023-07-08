@@ -1,5 +1,5 @@
 diff --git a/src/main/scala/devices/debug/DMI.scala b/src/main/scala/devices/debug/DMI.scala
-index 67164fb43..43a7f50c6 100644
+index 014b838bf..b2966497b 100644
 --- a/src/main/scala/devices/debug/DMI.scala
 +++ b/src/main/scala/devices/debug/DMI.scala
 @@ -69,7 +69,7 @@ class DMIIO(implicit val p: Parameters) extends ParameterizedBundle()(p) {
@@ -12,7 +12,7 @@ index 67164fb43..43a7f50c6 100644
  
  /** Convert DMI to TL. Avoids using special DMI synchronizers and register accesses
 diff --git a/src/main/scala/devices/debug/DebugTransport.scala b/src/main/scala/devices/debug/DebugTransport.scala
-index 65856c2c1..9efac7231 100644
+index 33ce392b2..c61066407 100644
 --- a/src/main/scala/devices/debug/DebugTransport.scala
 +++ b/src/main/scala/devices/debug/DebugTransport.scala
 @@ -63,7 +63,7 @@ class DTMInfo extends Bundle {
@@ -25,10 +25,10 @@ index 65856c2c1..9efac7231 100644
    val part_number = Input(UInt(16.W))
    val version = Input(UInt(4.W))
 diff --git a/src/main/scala/devices/debug/Periphery.scala b/src/main/scala/devices/debug/Periphery.scala
-index f3fbba9a6..d9ee8ee79 100644
+index 8d015a081..7dc6ee1fa 100644
 --- a/src/main/scala/devices/debug/Periphery.scala
 +++ b/src/main/scala/devices/debug/Periphery.scala
-@@ -44,7 +44,7 @@ class ClockedAPBBundle(params: APBBundleParameters) extends APBBundle(params) {
+@@ -46,7 +46,7 @@ class ClockedAPBBundle(params: APBBundleParameters) extends APBBundle(params) {
  
  class DebugIO(implicit val p: Parameters) extends Bundle {
    val clock = Input(Clock())
@@ -37,8 +37,8 @@ index f3fbba9a6..d9ee8ee79 100644
    val clockeddmi = p(ExportDebug).dmi.option(Flipped(new ClockedDMIIO()))
    val systemjtag = p(ExportDebug).jtag.option(new SystemJTAGIO)
    val apb = p(ExportDebug).apb.option(Flipped(new ClockedAPBBundle(APBBundleParameters(addrBits=12, dataBits=32))))
-@@ -170,7 +170,7 @@ trait HasPeripheryDebugModuleImp extends LazyModuleImp {
-     outer.debugOpt.map { outerdebug => 
+@@ -175,7 +175,7 @@ trait HasPeripheryDebug { this: BaseSubsystem =>
+     debugOpt.map { outerdebug =>
        outerdebug.module.io.dmi.get.dmi <> dtm.io.dmi
        outerdebug.module.io.dmi.get.dmiClock := sj.jtag.TCK
 -      outerdebug.module.io.dmi.get.dmiReset := sj.reset

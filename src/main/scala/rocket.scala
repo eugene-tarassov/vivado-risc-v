@@ -1,7 +1,7 @@
 package Vivado
 
 import Chisel._
-import freechips.rocketchip.config.{Field, Config, Parameters}
+import org.chipsalliance.cde.config.{Config, Parameters}
 import freechips.rocketchip.devices.debug.DebugModuleKey
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.subsystem._
@@ -243,8 +243,8 @@ class Rocket64b1gem8 extends Config(
 
 /* With Gemmini 16x16 */
 class Rocket64b1gem16 extends Config(
-  new WithGemmini(16, 64)  ++
-  new WithInclusiveCache() ++
+  new WithGemmini(16, 64) ++
+  new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
   new WithNBigCores(1)    ++
   new RocketBaseConfig)
@@ -267,8 +267,8 @@ class Rocket64b2gem8 extends Config(
 
 /* With Gemmini 16x16, 2 big cores */
 class Rocket64b2gem16 extends Config(
-  new WithGemmini(16, 64)  ++
-  new WithInclusiveCache() ++
+  new WithGemmini(16, 64) ++
+  new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
   new WithNBigCores(2)    ++
   new RocketBaseConfig)
