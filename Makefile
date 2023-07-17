@@ -125,7 +125,7 @@ u-boot/u-boot-nodtb.bin: workspace/patch-u-boot-done $(U_BOOT_SRC)
 	  CC=$(CROSS_COMPILE_LINUX)gcc \
 	  CROSS_COMPILE=$(CROSS_COMPILE_LINUX) \
 	  KCFLAGS='-O1 -gno-column-info' \
-	  all
+	  u-boot-nodtb.bin
 
 u-boot-qemu:
 	cd qemu/ && if [ ! -d u-boot ]; then git clone ../u-boot; fi && cd u-boot && git checkout v2022.01
