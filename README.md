@@ -111,7 +111,7 @@ The script looks for USB memory device and asks confirmation before using it.
 Make sure to confirm right SD card device - all old data will be erased.
 
 ## Booting Linux with QEMU
-In come cases when Linux runs slow on the FPGA (especially designs with lower clock speeds or no ethernet access), it might be worth it to first install the dependencies quickly before running it on FPGA.
+In some cases when Linux runs slow on the FPGA (especially designs with lower clock speeds or no ethernet access), it might be worth it to first install the dependencies quickly before running it on FPGA.
 
 You can run the following:
 ```
