@@ -1,10 +1,10 @@
 # vivado-risc-v
 
-# Xilinx Vivado block designs for FPGA RISC-V SoC running Debian Linux distro.
+# AMD/Xilinx Vivado block designs for FPGA RISC-V SoC running Debian Linux distro.
 
 This repository contains FPGA prototype of fully functional [RISC-V](https://riscv.org/) Linux server
 with networking, online Linux package repository and daily package updates.
-It includes scripts and sources to generate RISC-V SoC HDL, Xilinx Vivado project, FPGA bitstream, and bootable SD card.
+It includes scripts and sources to generate RISC-V SoC HDL, AMD/Xilinx Vivado project, FPGA bitstream, and bootable SD card.
 The SD card contains [RISC-V Open Source Supervisor Binary Interface (OpenSBI)](https://github.com/riscv/opensbi), [U-Boot](https://github.com/u-boot/u-boot), [Linux kernel](https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/) and [Debian root FS](https://wiki.debian.org/RISC-V).
 Linux package repositories and regular updates are provided by [Debian](https://wiki.debian.org/RISC-V).
 Over 90% of packages of the whole Debian collection are available for download.
@@ -13,13 +13,13 @@ Also can be used to run [bare-metal](https://github.com/eugene-tarassov/vivado-r
 
 The project is used as a reference design to validate RISC-V support in [Eclipse TCF](https://wiki.eclipse.org/TCF/RISC-V).
 
-Latest Xilinx tools (Ver. 2020.1+) support debugging of RISC-V software over JTAG.
+Latest AMD/Xilinx tools support debugging of RISC-V software over JTAG.
 
 # Prerequisites
 
 ## Hardware
-[Xilinx VC707](https://www.xilinx.com/products/boards-and-kits/ek-v7-vc707-g.html) or
-[Xilinx KC705](https://www.xilinx.com/products/boards-and-kits/ek-k7-kc705-g.html) or
+[AMD VC707](https://www.xilinx.com/products/boards-and-kits/ek-v7-vc707-g.html) or
+[AMD KC705](https://www.xilinx.com/products/boards-and-kits/ek-k7-kc705-g.html) or
 [Digilent Genesys 2](https://digilent.com/reference/programmable-logic/genesys-2/start) or
 [Digilent Nexys Video](https://digilent.com/reference/programmable-logic/nexys-video/start) or
 [Digilent Nexys A7 100T](https://digilent.com/reference/programmable-logic/nexys-a7/start) or
@@ -40,9 +40,9 @@ sudo access required.
 Alternatively, a Windows 10 machine with Ubuntu on Windows can be used to run the tools, see [Running RISC-V tools on Windows](docs/ubuntu-on-windows.md).
 
 ## Software
-Download and install AMD Xilinx
+Download and install AMD/Xilinx
 [Vitis](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis.html).
-Supported Vitis versions are 2020.1, 2020.2, 2021.1, 2021.2, 2022.1, 2022.2, 2023.1.
+Supported Vitis versions are 2020.2, 2021.1, 2021.2, 2022.1, 2022.2, 2023.1, 2023.2.
 Vitis installation includes Vivado Design Suite - there is no need to install Vivado separately.
 
 Nexys Video, Nexys A7 100T and Arty A7 100T are supported by free version of Vivado. KC705, VC707 and Genesys 2 require Vivado license.
@@ -171,7 +171,7 @@ Close Vivado.
 
 ### Check the device driver is enabled in patches/linux.config
 
-For example, for Xilinx GPIO, the config should contain line:
+For example, for AMD/Xilinx GPIO, the config should contain line:
 ```
 CONFIG_GPIO_XILINX=y
 ```
@@ -186,7 +186,7 @@ Copy debian-riscv64-boot/extlinux directory to the SD card.
 Note: don't change files in the project submodules: linux-stable, u-boot, opensbi or rocket-chip.
 Such changes are lost when the project is rebuilt.
 
-For details on Xilinx drivers, see [Linux Drivers](https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18841873/Linux%2BDrivers).
+For details on AMD/Xilinx drivers, see [Linux Drivers](https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/18841873/Linux%2BDrivers).
 
 ### Edit board/nexys-video/bootrom.dts
 
