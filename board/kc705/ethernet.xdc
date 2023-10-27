@@ -34,7 +34,8 @@ set_property -dict { PACKAGE_PIN L30   IOSTANDARD LVCMOS25 SLEW FAST DRIVE 16 } 
 set_property -dict { PACKAGE_PIN J28   IOSTANDARD LVCMOS25 SLEW FAST DRIVE 16 } [get_ports { gmii_txd[7] }];
 
 set gmii_rx_clk [create_clock -period 8.000 -name gmii_rx_clk [get_ports gmii_rx_clk]]
-set gmii_tx_clk [create_clock -period 40.000 -name gmii_tx_clk [get_ports gmii_tx_clk]]
+set gmii_tx_clk [create_clock -period 8.000 -name gmii_tx_clk [get_ports gmii_gtx_clk]]
+#set mii_tx_clk [create_clock -period 40.000 -name mii_tx_clk [get_ports gmii_tx_clk]]
 
 set eth_clock [get_clocks -of_objects [get_pins -hier Ethernet/clock]]
 set eth_clock_period [get_property -min PERIOD $eth_clock]
@@ -44,10 +45,19 @@ set tx_clock_period [get_property -min PERIOD $gmii_tx_clk]
 set_max_delay -from $eth_clock -to $gmii_tx_clk -datapath_only $tx_clock_period
 set_max_delay -from $gmii_tx_clk -to $eth_clock -datapath_only $eth_clock_period
 
+#set_max_delay -from $eth_clock -to $mii_tx_clk -datapath_only $tx_clock_period
+#set_max_delay -from $mii_tx_clk -to $eth_clock -datapath_only $eth_clock_period
+
 set_max_delay -from $eth_clock -to $gmii_rx_clk -datapath_only $rx_clock_period
 set_max_delay -from $gmii_rx_clk -to $eth_clock -datapath_only $eth_clock_period
 
 # KC705 board uses Marvell Alaska 88E1111 PHY, 2.5V signaling
+
+set_input_delay -add_delay -clock gmii_rx_clk -max 6.00 [get_ports { gmii_rxd* gmii_rx_dv gmii_rx_er gmii_crs gmii_col }]
+set_input_delay -add_delay -clock gmii_rx_clk -min 3.00 [get_ports { gmii_rxd* gmii_rx_dv gmii_rx_er gmii_crs gmii_col }]
+
+set_output_delay -add_delay -clock gmii_tx_clk -max 3.00 [get_ports { gmii_txd* gmii_tx_en gmii_tx_er }]
+set_output_delay -add_delay -clock gmii_tx_clk -min 0.00 [get_ports { gmii_txd* gmii_tx_en gmii_tx_er }]
 
 # To see implemented RX timing, run from Vivado Tcl Console:
 # report_timing -from [get_ports {gmii_rxd* gmii_rx_er gmii_rx_dv}] -rise_to gmii_rx_clk -delay_type min_max -max_paths 10 -name gmii_rx  -file gmii_rx.txt

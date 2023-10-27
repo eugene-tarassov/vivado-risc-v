@@ -17,3 +17,14 @@ set_property -dict { PACKAGE_PIN B9   IOSTANDARD LVCMOS33 } [get_ports { rmii_tx
 
 set_property -dict { PACKAGE_PIN D9  IOSTANDARD LVCMOS33 } [get_ports { rmii_crs_dv }];
 set_property -dict { PACKAGE_PIN D5  IOSTANDARD LVCMOS33 SLEW FAST } [get_ports { eth_ref_clock }];
+
+
+set rmii_clk [create_clock -period 20.000 -name rmii_clk [get_ports eth_ref_clock]]
+set eth_clock [get_clocks -of_objects [get_pins -hier Ethernet/clock]]
+set_max_delay -from $eth_clock -to $rmii_clk -datapath_only 18.000
+set_max_delay -from $rmii_clk -to $eth_clock -datapath_only 18.000
+
+set_input_delay -clock rmii_clk -max 14.000 [get_ports { rmii_rxd* rmii_crs_dv rmii_rx_er }]
+set_input_delay -clock rmii_clk -min  5.000 [get_ports { rmii_rxd* rmii_crs_dv rmii_rx_er }]
+set_output_delay -clock rmii_clk -max 6.000 [get_ports { rmii_txd* rmii_tx_en }]
+set_output_delay -clock rmii_clk -min 0.000 [get_ports { rmii_txd* rmii_tx_en }]
