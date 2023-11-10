@@ -283,7 +283,7 @@ module sd_crc_16(
     output reg [15:0] CRC                           // Current output CRC value
 );
 
-assign inv = BITVAL ^ CRC[15];
+wire inv = BITVAL ^ CRC[15];
 
 always @(posedge BITSTRB) begin
     if (CLEAR) begin

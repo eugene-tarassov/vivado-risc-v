@@ -426,16 +426,13 @@ wire [fifo_addr_bits-1:0] fifo_free_len = fifo_out_pos - fifo_inp_nxt;
 wire fifo_full = fifo_inp_nxt == fifo_out_pos;
 wire fifo_empty = fifo_inp_pos == fifo_out_pos;
 wire fifo_ready = fifo_data_len >= (1 << fifo_addr_bits) / 2;
-wire [31:0] fifo_din = en_rx_fifo ? data_in_rx_fifo : m_bus_dat_i;
 wire fifo_we = en_rx_fifo ? rx_fifo_we && clock_posedge : m_axi_rready && m_axi_rvalid;
 wire fifo_re = en_rx_fifo ? m_axi_wready && m_axi_wvalid : tx_fifo_re && clock_posedge;
+wire [31:0] fifo_din;
 reg [31:0] fifo_dout;
 
 assign fifo_almost_full = fifo_data_len > (1 << fifo_addr_bits) * 3 / 4;
 assign fifo_almost_empty = fifo_free_len > (1 << fifo_addr_bits) * 3 / 4;
-
-wire tx_stb = en_tx_fifo && fifo_free_len >= (1 << fifo_addr_bits) / 3;
-wire rx_stb = en_rx_fifo && m_axi_bresp_cnt != 3'b111 && (fifo_data_len >= (1 << fifo_addr_bits) / 3 || (!fifo_empty && !data_busy));
 
 always @(posedge clock)
     if (reset || ctrl_rst || !(en_rx_fifo || en_tx_fifo)) begin
@@ -471,6 +468,10 @@ assign m_axi_bready = m_axi_bresp_cnt != 0;
 assign m_axi_rready = m_axi_cyc & !m_axi_write;
 assign m_bus_dat_i = {m_axi_rdata[7:0],m_axi_rdata[15:8],m_axi_rdata[23:16],m_axi_rdata[31:24]};
 assign m_axi_wdata = {fifo_dout[7:0],fifo_dout[15:8],fifo_dout[23:16],fifo_dout[31:24]};
+assign fifo_din = en_rx_fifo ? data_in_rx_fifo : m_bus_dat_i;
+
+wire tx_stb = en_tx_fifo && fifo_free_len >= (1 << fifo_addr_bits) / 3;
+wire rx_stb = en_rx_fifo && m_axi_bresp_cnt != 3'b111 && (fifo_data_len >= (1 << fifo_addr_bits) / 3 || (!fifo_empty && !data_busy));
 
 // AXI burst cannot cross a 4KB boundary
 wire [fifo_addr_bits-1:0] tx_burst_len;
