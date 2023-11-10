@@ -305,9 +305,9 @@ vivado-project: $(proj_time)
 MAX_THREADS ?= 1
 
 $(synthesis): $(proj_time)
+	echo "set_param general.maxThreads $(MAX_THREADS)" >>$(proj_path)/make-synthesis.tcl
 	echo "open_project $(proj_file)" >$(proj_path)/make-synthesis.tcl
 	echo "update_compile_order -fileset sources_1" >>$(proj_path)/make-synthesis.tcl
-	echo "set_param general.maxThreads $(MAX_THREADS)" >>$(proj_path)/make-synthesis.tcl
 	echo "reset_run synth_1" >>$(proj_path)/make-synthesis.tcl
 	echo "launch_runs -jobs $(MAX_THREADS) synth_1" >>$(proj_path)/make-synthesis.tcl
 	echo "wait_on_run synth_1" >>$(proj_path)/make-synthesis.tcl
@@ -315,8 +315,8 @@ $(synthesis): $(proj_time)
 	if find $(proj_path) -name "*.log" -exec cat {} \; | grep 'ERROR: ' ; then exit 1 ; fi
 
 $(bitstream): $(synthesis)
-	echo "open_project $(proj_file)" >$(proj_path)/make-bitstream.tcl
 	echo "set_param general.maxThreads $(MAX_THREADS)" >>$(proj_path)/make-bitstream.tcl
+	echo "open_project $(proj_file)" >$(proj_path)/make-bitstream.tcl
 	echo "reset_run impl_1" >>$(proj_path)/make-bitstream.tcl
 	echo "launch_runs -to_step write_bitstream -jobs $(MAX_THREADS) impl_1" >>$(proj_path)/make-bitstream.tcl
 	echo "wait_on_run impl_1" >>$(proj_path)/make-bitstream.tcl
