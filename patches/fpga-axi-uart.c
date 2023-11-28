@@ -396,7 +396,10 @@ static int axi_uart_release(struct device * dev) {
     int rc = 0;
 
     if (port) {
-        rc = uart_remove_one_port(&axi_uart_port_driver, port);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,5,0)
+        rc =
+#endif
+            uart_remove_one_port(&axi_uart_port_driver, port);
         dev_set_drvdata(dev, NULL);
         port->mapbase = 0;
     }
