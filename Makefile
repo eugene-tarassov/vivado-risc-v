@@ -12,6 +12,8 @@ CFG_FORMAT ?= mcs
 
 include board/$(BOARD)/Makefile.inc
 
+all: bitstream
+
 # --- packages and repos ---
 
 apt-install:
@@ -187,6 +189,8 @@ SBT := java -Xmx12G -Xss8M $(JAVA_OPTIONS) -Dsbt.io.virtual=false -Dsbt.server.a
 CHISEL_SRC_DIRS = \
   src/main \
   rocket-chip/src/main \
+  rocket-chip/macros/src/main \
+  rocket-chip/hardfloat/src/main \
   generators/gemmini/src/main \
   generators/riscv-boom/src/main \
   generators/sifive-cache/design/craft \
@@ -276,7 +280,7 @@ proj_file   = $(proj_path)/$(proj_name).xpr
 proj_time   = $(proj_path)/timestamp.txt
 synthesis   = $(proj_path)/$(proj_name).runs/synth_1/riscv_wrapper.dcp
 bitstream   = $(proj_path)/$(proj_name).runs/impl_1/$(FPGA_FNM)
-memcfg_file = workspace/$(CONFIG)/$(proj_name).$(CFG_FORMAT)
+cfgmem_file = workspace/$(CONFIG)/$(proj_name).$(CFG_FORMAT)
 prm_file    = workspace/$(CONFIG)/$(proj_name).prm
 vivado      = env XILINX_LOCAL_USER_DATA=no vivado -mode batch -nojournal -nolog -notrace -quiet
 
@@ -323,21 +327,27 @@ $(bitstream): $(synthesis)
 	$(vivado) -source $(proj_path)/make-bitstream.tcl
 	if find $(proj_path) -name "*.log" -exec cat {} \; | grep 'ERROR: ' ; then exit 1 ; fi
 
-$(memcfg_file) $(prm_file): $(bitstream) workspace/boot.elf
+ifeq ($(CFG_BOOT),)
+  CFG_FILES=$(bitstream)
+else
+  CFG_FILES=$(bitstream) workspace/boot.elf
+endif
+
+$(cfgmem_file) $(prm_file): $(CFG_FILES)
 	echo "open_project $(proj_file)" >$(proj_path)/make-mcs.tcl
-	echo "write_cfgmem -format $(CFG_FORMAT) -interface $(CFG_DEVICE) -loadbit {up 0x0 $(bitstream)} $(CFG_BOOT) -file $(memcfg_file) -force" >>$(proj_path)/make-mcs.tcl
+	echo "write_cfgmem -format $(CFG_FORMAT) -interface $(CFG_DEVICE) -loadbit {up 0x0 $(bitstream)} $(CFG_BOOT) -file $(cfgmem_file) -force" >>$(proj_path)/make-mcs.tcl
 	$(vivado) -source $(proj_path)/make-mcs.tcl
 
-bitstream: $(bitstream) $(memcfg_file)
+bitstream: $(bitstream) $(cfgmem_file)
 
 # --- program flash memory ---
 
-flash: $(memcfg_file) $(prm_file)
+flash: $(cfgmem_file) $(prm_file)
 	env HW_SERVER_URL=tcp:$(HW_SERVER_ADDR) \
 	 xsdb -quiet board/jtag-freq.tcl
 	env HW_SERVER_ADDR=$(HW_SERVER_ADDR) \
 	env CFG_PART=$(CFG_PART) \
-	env mcs_file=$(memcfg_file) \
+	env mcs_file=$(cfgmem_file) \
 	env prm_file=$(prm_file) \
 	 $(vivado) -source board/program-flash.tcl
 
