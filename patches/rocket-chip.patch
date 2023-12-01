@@ -12,7 +12,7 @@ index 014b838bf..b2966497b 100644
  
  /** Convert DMI to TL. Avoids using special DMI synchronizers and register accesses
 diff --git a/src/main/scala/devices/debug/DebugTransport.scala b/src/main/scala/devices/debug/DebugTransport.scala
-index 33ce392b2..c61066407 100644
+index 190dff11c..081087dc8 100644
 --- a/src/main/scala/devices/debug/DebugTransport.scala
 +++ b/src/main/scala/devices/debug/DebugTransport.scala
 @@ -63,7 +63,7 @@ class DTMInfo extends Bundle {

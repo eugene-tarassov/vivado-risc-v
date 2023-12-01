@@ -26,7 +26,6 @@ set constraint_fileset [get_filesets constrs_1]
 
 set files [list \
  [file normalize "rocket.vhdl"] \
- [file normalize "srams.v"] \
  [file normalize "system-${vivado_board_name}.v"] \
  [file normalize "../../uart/uart.v"] \
  [file normalize "../../sdc/sd_defines.h"] \

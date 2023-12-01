@@ -1,5 +1,5 @@
 diff --git a/src/main/scala/gemmini/GemminiConfigs.scala b/src/main/scala/gemmini/GemminiConfigs.scala
-index 573581e..ad116a5 100644
+index 9825429..3a2f6f2 100644
 --- a/src/main/scala/gemmini/GemminiConfigs.scala
 +++ b/src/main/scala/gemmini/GemminiConfigs.scala
 @@ -224,11 +224,11 @@ case class GemminiArrayConfig[T <: Data : Arithmetic, U <: Data, V <: Data](
