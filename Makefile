@@ -330,7 +330,12 @@ endif
 
 $(cfgmem_file) $(prm_file): $(CFG_FILES)
 	echo "open_project $(proj_file)" >$(proj_path)/make-mcs.tcl
-	echo "write_cfgmem -format $(CFG_FORMAT) -interface $(CFG_DEVICE) -loadbit {up 0x0 $(bitstream)} $(CFG_BOOT) -file $(cfgmem_file) -force" >>$(proj_path)/make-mcs.tcl
+	if [ "$(BOARD)" = "u200" -o "$(BOARD)" = "u250" ] ; then \
+		echo "write_cfgmem -format $(CFG_FORMAT) -interface $(CFG_DEVICE) -loadbit {up 0x01002000 $(bitstream)} $(CFG_BOOT) -file $(cfgmem_file) -force" >>$(proj_path)/make-mcs.tcl ; \
+	else\
+		echo "write_cfgmem -format $(CFG_FORMAT) -interface $(CFG_DEVICE) -loadbit {up 0x0 $(bitstream)} $(CFG_BOOT) -file $(cfgmem_file) -force" >>$(proj_path)/make-mcs.tcl ; \
+	fi
+	# echo "write_cfgmem -format $(CFG_FORMAT) -interface $(CFG_DEVICE) -loadbit {up 0x0 $(bitstream)} $(CFG_BOOT) -file $(cfgmem_file) -force" >>$(proj_path)/make-mcs.tcl
 	$(vivado) -source $(proj_path)/make-mcs.tcl
 
 bitstream: $(bitstream) $(cfgmem_file)
