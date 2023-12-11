@@ -30,6 +30,7 @@ boot.elf can be downloaded directly into RISC-V memory and started using Xilinx 
 xsdb% connect
 tcfchan#0
 xsdb% targets -set -filter {name =~ "Hart #0*"}
+xsdb% stop
 xsdb% dow -clear boot.elf
 Downloading Program -- boot.elf
         section, .text: 0x80000000 - 0x8000b05f
