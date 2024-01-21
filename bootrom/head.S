@@ -13,6 +13,7 @@ _start_bootrom:
   # a0 - hart ID
   # a1 - Device Tree
   # s0 - start of RAM and trap vector
+  li s2, 0
   sw s2, 0(s0) # clear trap vector
   li sp, BOOTROM_MEM_END
   call main
