@@ -26,14 +26,14 @@ add_files -norecurse -fileset $source_fileset $files
 
 if { [string match "Rocket*m4" $rocket_module_name] } {
   # Four channel memory interface
-  set block_design_tcl "m4/riscv-[version -short].tcl"
+  set block_design_tcl "m4/$block_design_tcl"
   set files [list \
     [file normalize "../../board/${vivado_board_name}/m4/riscv_wrapper.v"] \
   ]
   add_files -norecurse -fileset $source_fileset $files
 } elseif { [string match "Rocket*m2" $rocket_module_name] } {
   # Two channel memory interface
-  set block_design_tcl "m2/riscv-[version -short].tcl"
+  set block_design_tcl "m2/$block_design_tcl"
   set files [list \
     [file normalize "../../board/${vivado_board_name}/m2/riscv_wrapper.v"] \
   ]

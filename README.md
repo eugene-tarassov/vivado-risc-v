@@ -31,7 +31,7 @@ KC705 and Genesys 2 are as fast as VC707, but have slightly smaller FPGA - up to
 
 Nexys Video is several times less expensive, academic discount is avaialble. It supports up to 2 cores, up to 50MHz clock speed.
 
-Nexys A7 100T and Arty A7 100T are least expensive supported boards. They have small FPGA, barely enough to run Linux on a single core RISC-V at 50MHz.
+Nexys A7 100T and Arty A7 100T are least expensive supported boards. They have small and slow FPGA, barely enough to run Linux on a single core RISC-V at 50MHz.
 
 ## Workstation
 [Ubuntu 20 LTS](https://ubuntu.com/download/desktop) machine with min 32GB RAM is recommended.
@@ -110,8 +110,8 @@ Use USB SD card reader to connect SD card to the workstation, and run:
 The script looks for USB memory device and asks confirmation before using it.
 Make sure to confirm right SD card device - all old data will be erased.
 
-## Booting Linux with QEMU
-In some cases when Linux runs slow on the FPGA (especially designs with lower clock speeds or no ethernet access), it might be worth it to first install the dependencies quickly before running it on FPGA.
+## Booting Linux with QEMU (optional)
+In some cases when Linux runs slow on the FPGA, especially designs with lower clock speeds or no ethernet access), it might be worth it to first install the dependencies quickly before running it on FPGA.
 
 You can run the following:
 ```

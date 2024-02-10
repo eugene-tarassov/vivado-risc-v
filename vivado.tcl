@@ -49,7 +49,9 @@ set files [list \
 ]
 add_files -norecurse -fileset $constraint_fileset $files
 
-set block_design_tcl "riscv-[version -short].tcl"
+set block_design_ver [split [version -short] .]
+set block_design_tcl "riscv-[lindex $block_design_ver 0].[lindex $block_design_ver 1].tcl"
+
 source ../../board/${vivado_board_name}/ethernet-${vivado_board_name}.tcl
 
 # Note: timing-constraints.tcl must be last
