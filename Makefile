@@ -14,19 +14,41 @@ include board/$(BOARD)/Makefile.inc
 
 all: bitstream
 
+# --- docker ---------------
+
+DOCKER_VIVADO_VERSION ?= 2023.2
+DOCKER_ARGS ?=
+
+docker-image:
+	cd docker && docker build --build-arg HOST_UID=`id -u` --build-arg HOST_GID=`id -g` --build-arg VIVADO_VERSION=$(DOCKER_VIVADO_VERSION) --tag vivado-risc-v-tools:$(DOCKER_VIVADO_VERSION) .
+
+docker-shell:
+	docker container run --interactive --tty --rm --volume .:/src $(DOCKER_ARGS) --user `id -u`:`id -g` vivado-risc-v-tools:$(DOCKER_VIVADO_VERSION) bash --login || true
+
 # --- packages and repos ---
 
 apt-install:
 	sudo apt update
 	sudo apt upgrade
-	sudo apt install default-jdk device-tree-compiler python curl gawk \
-	 libtinfo5 libmpc-dev libssl-dev gcc gcc-riscv64-linux-gnu flex bison
+	sudo apt install default-jdk device-tree-compiler curl gawk \
+	 libtinfo5 libmpc-dev libssl-dev gcc gcc-riscv64-linux-gnu flex bison bc parted udev dosfstools
+ifeq ($(shell test -r /etc/os-release && . /etc/os-release && echo $$VERSION_CODENAME),jammy)
+	sudo apt install python-is-python3
+else
+	sudo apt install python
+endif
 
 apt-install-qemi:
 	sudo apt install qemu-system-misc opensbi u-boot-qemu qemu-utils
 
 # skip submodules which are not needed and take long time to update
 SKIP_SUBMODULES = torture software/gemmini-rocc-tests software/onnxruntime-riscv
+
+update:
+	git pull --no-recurse-submodules
+	rm -rf workspace/patch-*-done
+	git submodule sync --recursive
+	git $(foreach m,$(SKIP_SUBMODULES),-c submodule.$(m).update=none) submodule update --init --force --recursive
 
 update-submodules:
 	rm -rf workspace/patch-*-done
@@ -37,9 +59,13 @@ clean-submodules:
 	git submodule foreach --recursive git clean -xfdq
 	rm -rf workspace/patch-*-done
 
+clean-sbt:
+	rm -rf ~/.cache ~/.config/jgit ~/.ivy2 ~/.sbt
+
 clean:
+	rm -rf workspace/patch-*-done
 	git submodule foreach --recursive git clean -xfdq
-	sudo rm -rf debian-riscv64 workspace/patch-*-done
+	sudo rm -rf debian-riscv64 target project/target project/project/target generators/targetutils/target vhdl-wrapper/bin
 
 # --- download gcc, initrd and rootfs from github.com ---
 

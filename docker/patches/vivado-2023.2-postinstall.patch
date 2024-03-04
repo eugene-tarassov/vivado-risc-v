@@ -1,0 +1,10 @@
+--- /opt/Xilinx/Vivado/2023.2/lib/scripts/rdi/features/base/base.tcl.orig	2023-11-03 16:01:18.290697388 +0000
++++ /opt/Xilinx/Vivado/2023.2/lib/scripts/rdi/features/base/base.tcl	2023-11-03 16:01:29.638691029 +0000
+@@ -38,6 +38,6 @@
+ rdi::disable_console
+ 
+ # work around x11 XSupportsLocale bug
+-rdi::x11_workaround
++#rdi::x11_workaround
+ 
+ 

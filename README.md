@@ -13,7 +13,7 @@ Also can be used to run [bare-metal](https://github.com/eugene-tarassov/vivado-r
 
 The project is used as a reference design to validate RISC-V support in [Eclipse TCF](https://wiki.eclipse.org/TCF/RISC-V).
 
-Latest AMD/Xilinx tools support debugging of RISC-V software over JTAG.
+AMD/Xilinx tools support debugging of RISC-V software over JTAG.
 
 # Prerequisites
 
@@ -154,7 +154,7 @@ or, after Linux boot, over SSH:
 ssh debian@debian
 ```
 
-## Modding the design: adding a peripheral device
+## Modding the design (optional): adding a peripheral device
 
 ### Use Vivado Block Design to add an IP
 

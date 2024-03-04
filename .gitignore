@@ -4,9 +4,16 @@
 /bootrom/system.dts
 /vhdl-wrapper/bin/
 /debian-riscv64/
-/workspace
+/workspace/
 /target/
 /project/target/
 /project/project/target/
 /generators/targetutils/target/
 /bare-metal/hello-world/boot.elf
+/.bash_history
+/.cache/
+/.config/
+/.flexlmrc
+/.ivy2/
+/.sbt/
+/.Xilinx/
