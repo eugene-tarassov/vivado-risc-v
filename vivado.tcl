@@ -35,11 +35,14 @@ set files [list \
  [file normalize "../../sdc/sd_data_master.v"] \
  [file normalize "../../sdc/sd_data_serial_host.v"] \
  [file normalize "../../vhdl-wrapper/src/net/largest/riscv/vhdl/bscan2jtag.vhdl"] \
- [file normalize "../../board/${vivado_board_name}/ethernet-${vivado_board_name}.v"] \
  [file normalize "../../board/mem-reset-control.v"] \
  [file normalize "../../board/fan-control.v"] \
 ]
 add_files -norecurse -fileset $source_fileset $files
+
+if {[file exists "../../board/${vivado_board_name}/ethernet-${vivado_board_name}.v"]} {
+  add_files -norecurse -fileset $source_fileset [file normalize "../../board/${vivado_board_name}/ethernet-${vivado_board_name}.v"]
+}
 
 # Note: top.xdc must be first - other files depend on clocks defined in top.xdc
 set files [list \
@@ -55,10 +58,7 @@ set block_design_tcl "riscv-[lindex $block_design_ver 0].[lindex $block_design_v
 source ../../board/${vivado_board_name}/ethernet-${vivado_board_name}.tcl
 
 # Note: timing-constraints.tcl must be last
-set files [list \
- [file normalize ../../board/timing-constraints.tcl] \
-]
-add_files -norecurse -fileset $constraint_fileset $files
+add_files -norecurse -fileset $constraint_fileset [file normalize ../../board/timing-constraints.tcl]
 
 # Set file properties
 

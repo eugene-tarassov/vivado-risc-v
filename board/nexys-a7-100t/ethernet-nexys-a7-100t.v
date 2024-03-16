@@ -131,6 +131,7 @@ eth_mac_inst (
     .tx_rst(reset),
     .rx_clk(clock50),
     .rx_rst(reset),
+
     .tx_axis_tdata(tx_fifo_axis_tdata),
     .tx_axis_tvalid(tx_fifo_axis_tvalid),
     .tx_axis_tready(tx_fifo_axis_tready),
@@ -140,22 +141,28 @@ eth_mac_inst (
     .rx_axis_tvalid(rx_fifo_axis_tvalid),
     .rx_axis_tlast(rx_fifo_axis_tlast),
     .rx_axis_tuser(rx_fifo_axis_tuser),
+
     .gmii_rxd(mii_rxd),
     .gmii_rx_dv(mii_rx_dv),
     .gmii_rx_er(mii_rx_er),
     .gmii_txd(mii_txd),
     .gmii_tx_en(mii_tx_en),
     .gmii_tx_er(mii_tx_er),
+
     .rx_clk_enable(!mii_rx_clock),
     .tx_clk_enable(!mii_tx_clock),
     .rx_mii_select(1'b1),
     .tx_mii_select(1'b1),
+
     .tx_start_packet(),
     .tx_error_underflow(),
     .rx_start_packet(),
     .rx_error_bad_frame(),
     .rx_error_bad_fcs(),
-    .ifg_delay(12)
+
+    .cfg_ifg(8'd12),
+    .cfg_tx_enable(1'b1),
+    .cfg_rx_enable(1'b1)
 );
 
 axis_async_fifo_adapter #(

@@ -95,7 +95,7 @@ eth_mac_1g_fifo #(
     .MIN_FRAME_LENGTH(64),
     .TX_FIFO_DEPTH(4096),
     .TX_FRAME_FIFO(1),
-    .RX_FIFO_DEPTH(4096),
+    .RX_FIFO_DEPTH(16384),
     .RX_FRAME_FIFO(1),
     .RX_DROP_BAD_FRAME(0),
     .RX_DROP_WHEN_FULL(1)
@@ -143,7 +143,9 @@ eth_mac_inst (
     .rx_fifo_bad_frame(),
     .rx_fifo_good_frame(),
 
-    .ifg_delay(12)
+    .cfg_ifg(8'd12),
+    .cfg_tx_enable(1'b1),
+    .cfg_rx_enable(1'b1)
 );
 
 // ----------------------- SGMII ---------------------------- //

@@ -11,7 +11,7 @@ Over 90% of packages of the whole Debian collection are available for download.
 
 Also can be used to run [bare-metal](https://github.com/eugene-tarassov/vivado-risc-v/tree/master/bare-metal) or RTOS software.
 
-The project is used as a reference design to validate RISC-V support in [Eclipse TCF](https://wiki.eclipse.org/TCF/RISC-V).
+The project is used as reference design to validate RISC-V support in [Eclipse TCF](https://wiki.eclipse.org/TCF/RISC-V).
 
 AMD/Xilinx tools support debugging of RISC-V software over JTAG.
 

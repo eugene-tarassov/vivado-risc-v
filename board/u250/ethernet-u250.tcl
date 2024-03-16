@@ -21,6 +21,7 @@ set files [list \
   [file normalize "../../ethernet/verilog-ethernet/lib/axis/rtl/axis_async_fifo.v"] \
   [file normalize "../../ethernet/verilog-ethernet/lib/axis/rtl/axis_async_fifo_adapter.v"] \
   [file normalize "../../ethernet/verilog-ethernet/rtl/lfsr.v"] \
+  [file normalize "../../ethernet/ethernet-sfp-10g.v"] \
   [file normalize "../../ethernet/ethernet.v"] \
 ]
 add_files -norecurse -fileset $source_fileset $files

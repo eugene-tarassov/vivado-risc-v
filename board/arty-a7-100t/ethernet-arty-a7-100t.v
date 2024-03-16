@@ -57,7 +57,7 @@ module ethernet_arty_a7_100t (
 
 `default_nettype none
 
-assign status_vector = { mii_col, mii_crs};
+assign status_vector[15:9] = { mii_col, mii_crs, 2'b00 };
 
 eth_mac_mii_fifo #(
     .TARGET("XILINX"),
@@ -100,16 +100,19 @@ eth_mac_inst (
     .mii_tx_en(mii_tx_en),
     .mii_tx_er(),
 
-    .tx_fifo_overflow(),
-    .tx_fifo_bad_frame(),
-    .tx_fifo_good_frame(),
-    .rx_error_bad_frame(),
-    .rx_error_bad_fcs(),
-    .rx_fifo_overflow(),
-    .rx_fifo_bad_frame(),
-    .rx_fifo_good_frame(),
+    .tx_fifo_overflow(status_vector[0]),
+    .tx_fifo_bad_frame(status_vector[1]),
+    .tx_fifo_good_frame(status_vector[2]),
+    .tx_error_underflow(status_vector[3]),
+    .rx_error_bad_frame(status_vector[4]),
+    .rx_error_bad_fcs(status_vector[5]),
+    .rx_fifo_overflow(status_vector[6]),
+    .rx_fifo_bad_frame(status_vector[7]),
+    .rx_fifo_good_frame(status_vector[8]),
 
-    .ifg_delay(12)
+    .cfg_ifg(8'd12),
+    .cfg_tx_enable(1'b1),
+    .cfg_rx_enable(1'b1)
 );
 
 endmodule

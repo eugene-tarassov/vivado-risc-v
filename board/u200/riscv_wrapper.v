@@ -147,41 +147,41 @@ riscv riscv_i (
     .usb_uart_rxd(usb_uart_rxd),
     .usb_uart_txd(usb_uart_txd));
 
-ethernet_u200 ethernet_u200_i (
+ethernet_sfp_10g ethernet_u200_i (
     .clock_ok(eth_clock_ok),
     .clock(eth_clock),
 
     .eth_gt_user_clock(eth_gt_user_clock),
 
     /* Ethernet #0 AXI Stream */
-    .eth0_rx_axis_tdata(eth_rx_axis_tdata),
-    .eth0_rx_axis_tkeep(eth_rx_axis_tkeep),
-    .eth0_rx_axis_tlast(eth_rx_axis_tlast),
-    .eth0_rx_axis_tready(eth_rx_axis_tready),
-    .eth0_rx_axis_tuser(eth_rx_axis_tuser),
-    .eth0_rx_axis_tvalid(eth_rx_axis_tvalid),
-    .eth0_status(eth_status),
-    .eth0_tx_axis_tdata(eth_tx_axis_tdata),
-    .eth0_tx_axis_tkeep(eth_tx_axis_tkeep),
-    .eth0_tx_axis_tlast(eth_tx_axis_tlast),
-    .eth0_tx_axis_tready(eth_tx_axis_tready),
-    .eth0_tx_axis_tuser(eth_tx_axis_tuser),
-    .eth0_tx_axis_tvalid(eth_tx_axis_tvalid),
+    .eth_rx_axis_tdata(eth_rx_axis_tdata),
+    .eth_rx_axis_tkeep(eth_rx_axis_tkeep),
+    .eth_rx_axis_tlast(eth_rx_axis_tlast),
+    .eth_rx_axis_tready(eth_rx_axis_tready),
+    .eth_rx_axis_tuser(eth_rx_axis_tuser),
+    .eth_rx_axis_tvalid(eth_rx_axis_tvalid),
+    .eth_status(eth_status),
+    .eth_tx_axis_tdata(eth_tx_axis_tdata),
+    .eth_tx_axis_tkeep(eth_tx_axis_tkeep),
+    .eth_tx_axis_tlast(eth_tx_axis_tlast),
+    .eth_tx_axis_tready(eth_tx_axis_tready),
+    .eth_tx_axis_tuser(eth_tx_axis_tuser),
+    .eth_tx_axis_tvalid(eth_tx_axis_tvalid),
 
     /* QSFP28 #0 */
-    .qsfp0_tx1_p(qsfp0_tx1_p),
-    .qsfp0_tx1_n(qsfp0_tx1_n),
-    .qsfp0_rx1_p(qsfp0_rx1_p),
-    .qsfp0_rx1_n(qsfp0_rx1_n),
-    .qsfp0_mgt_refclk_1_p(qsfp0_mgt_refclk_1_p),
-    .qsfp0_mgt_refclk_1_n(qsfp0_mgt_refclk_1_n),
-    .qsfp0_modsell(qsfp0_modsell),
-    .qsfp0_resetl(qsfp0_resetl),
-    .qsfp0_modprsl(qsfp0_modprsl),
-    .qsfp0_intl(qsfp0_intl),
-    .qsfp0_lpmode(qsfp0_lpmode),
-    .qsfp0_refclk_reset(qsfp0_refclk_reset),
-    .qsfp0_fs(qsfp0_fs)
+    .sfp_tx_p(qsfp0_tx1_p),
+    .sfp_tx_n(qsfp0_tx1_n),
+    .sfp_rx_p(qsfp0_rx1_p),
+    .sfp_rx_n(qsfp0_rx1_n),
+    .sfp_mgt_refclk_p(qsfp0_mgt_refclk_1_p),
+    .sfp_mgt_refclk_n(qsfp0_mgt_refclk_1_n),
+    .sfp_modsel(qsfp0_modsell),
+    .sfp_reset(qsfp0_resetl),
+    .sfp_modprs(qsfp0_modprsl),
+    .sfp_int(qsfp0_intl),
+    .sfp_lpmode(qsfp0_lpmode),
+    .sfp_refclk_reset(qsfp0_refclk_reset),
+    .sfp_fs(qsfp0_fs)
 
 );
 

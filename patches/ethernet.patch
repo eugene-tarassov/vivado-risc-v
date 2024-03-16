@@ -1,8 +1,8 @@
 diff --git a/rtl/rgmii_phy_if.v b/rtl/rgmii_phy_if.v
-index ca82572..273799b 100644
+index ed50581..73cfa87 100644
 --- a/rtl/rgmii_phy_if.v
 +++ b/rtl/rgmii_phy_if.v
-@@ -215,7 +215,7 @@ oddr #(
+@@ -207,7 +207,7 @@ oddr #(
      .WIDTH(1)
  )
  clk_oddr_inst (
@@ -11,7 +11,7 @@ index ca82572..273799b 100644
      .d1(rgmii_tx_clk_1),
      .d2(rgmii_tx_clk_2),
      .q(phy_rgmii_tx_clk)
-@@ -227,7 +227,7 @@ oddr #(
+@@ -219,7 +219,7 @@ oddr #(
      .WIDTH(5)
  )
  data_oddr_inst (

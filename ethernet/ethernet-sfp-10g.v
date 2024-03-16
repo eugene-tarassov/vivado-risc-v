@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2021-2022 Eugene Tarassov
+Copyright (c) 2021-2024 Eugene Tarassov
 Copyright (c) 2014-2018 Alex Forencich
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,12 +23,9 @@ THE SOFTWARE.
 
 */
 
-module ethernet_vcu1525 #(
-    // Timestamping configuration (port)
-    parameter PTP_TS_ENABLE = 0,
-    parameter TX_PTP_TS_FIFO_DEPTH = 32,
-    parameter RX_PTP_TS_FIFO_DEPTH = 32
-
+module ethernet_sfp_10g #(
+    // Timestamping
+    parameter PTP_TS_ENABLE = 0
 ) (
 
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clock CLK" *)
@@ -39,80 +36,62 @@ module ethernet_vcu1525 #(
 
     output wire eth_gt_user_clock,
 
-    output wire [15:0] eth0_status,
+    output wire [15:0] eth_status,
 
     /* ETH0 AXIS */
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 ETH0_TX_AXIS TDATA" *)
-    input wire [63:0] eth0_tx_axis_tdata,
+    input wire [63:0] eth_tx_axis_tdata,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 ETH0_TX_AXIS TKEEP" *)
-    input wire [7:0] eth0_tx_axis_tkeep,
+    input wire [7:0] eth_tx_axis_tkeep,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 ETH0_TX_AXIS TVALID" *)
-    input wire eth0_tx_axis_tvalid,
+    input wire eth_tx_axis_tvalid,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 ETH0_TX_AXIS TREADY" *)
-    output wire eth0_tx_axis_tready,
+    output wire eth_tx_axis_tready,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 ETH0_TX_AXIS TLAST" *)
-    input wire eth0_tx_axis_tlast,
+    input wire eth_tx_axis_tlast,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 ETH0_TX_AXIS TUSER" *)
-    input wire eth0_tx_axis_tuser,
+    input wire eth_tx_axis_tuser,
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 ETH0_RX_AXIS TDATA" *)
-    output wire [63:0] eth0_rx_axis_tdata,
+    output wire [63:0] eth_rx_axis_tdata,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 ETH0_RX_AXIS TKEEP" *)
-    output wire [7:0] eth0_rx_axis_tkeep,
+    output wire [7:0] eth_rx_axis_tkeep,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 ETH0_RX_AXIS TVALID" *)
-    output wire eth0_rx_axis_tvalid,
+    output wire eth_rx_axis_tvalid,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 ETH0_RX_AXIS TREADY" *)
-    input wire eth0_rx_axis_tready,
+    input wire eth_rx_axis_tready,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 ETH0_RX_AXIS TLAST" *)
-    output wire eth0_rx_axis_tlast,
+    output wire eth_rx_axis_tlast,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 ETH0_RX_AXIS TUSER" *)
-    output wire eth0_rx_axis_tuser,
+    output wire eth_rx_axis_tuser,
 
-    /* QSFP28 #0 */
-    output wire         qsfp0_tx1_p,
-    output wire         qsfp0_tx1_n,
-    input  wire         qsfp0_rx1_p,
-    input  wire         qsfp0_rx1_n,
-    input  wire         qsfp0_mgt_refclk_1_p,
-    input  wire         qsfp0_mgt_refclk_1_n,
-    output wire         qsfp0_modsell,
-    output wire         qsfp0_resetl,
-    input  wire         qsfp0_modprsl,
-    input  wire         qsfp0_intl,
-    output wire         qsfp0_lpmode,
-    output wire         qsfp0_refclk_reset,
-    output wire [1:0]   qsfp0_fs
+    /* SFP */
+    output wire         sfp_tx_p,
+    output wire         sfp_tx_n,
+    input  wire         sfp_rx_p,
+    input  wire         sfp_rx_n,
+    input  wire         sfp_mgt_refclk_p,
+    input  wire         sfp_mgt_refclk_n,
+    output wire         sfp_modsel,
+    output wire         sfp_reset,
+    input  wire         sfp_modprs,
+    input  wire         sfp_int,
+    output wire         sfp_lpmode,
+    output wire         sfp_refclk_reset,
+    output wire [1:0]   sfp_fs
 
 );
-
-// PTP configuration
-localparam PTP_TS_WIDTH = 96;
-localparam PTP_TAG_WIDTH = 16;
-localparam PTP_PERIOD_NS_WIDTH = 4;
-localparam PTP_OFFSET_NS_WIDTH = 32;
-localparam PTP_FNS_WIDTH = 32;
-localparam PTP_PERIOD_NS = 4'd4;
-localparam PTP_PERIOD_FNS = 32'd0;
-localparam PTP_USE_SAMPLE_CLOCK = 0;
-localparam IF_PTP_PERIOD_NS = 6'h6;
-localparam IF_PTP_PERIOD_FNS = 16'h6666;
 
 // Interface configuration (port)
 localparam ENABLE_PADDING = 1;
 localparam ENABLE_DIC = 1;
 localparam MIN_FRAME_LENGTH = 64;
 localparam TX_FIFO_DEPTH = 4096;
-localparam RX_FIFO_DEPTH = 4096;
+localparam RX_FIFO_DEPTH = 16384;
 
 // Ethernet interface configuration
 localparam XGMII_DATA_WIDTH = 64;
 localparam XGMII_CTRL_WIDTH = XGMII_DATA_WIDTH/8;
-localparam AXIS_ETH_DATA_WIDTH = XGMII_DATA_WIDTH;
-localparam AXIS_ETH_KEEP_WIDTH = AXIS_ETH_DATA_WIDTH/8;
-localparam AXIS_ETH_SYNC_DATA_WIDTH = AXIS_ETH_DATA_WIDTH;
-localparam AXIS_ETH_TX_USER_WIDTH = (PTP_TS_ENABLE ? PTP_TAG_WIDTH : 0) + 1;
-localparam AXIS_ETH_RX_USER_WIDTH = (PTP_TS_ENABLE ? PTP_TS_WIDTH : 0) + 1;
-localparam AXIS_ETH_STATUS_WIDTH = 16;
 
 // Internal 125 MHz clock
 wire clk_125mhz_int = clock;
@@ -137,24 +116,24 @@ end
 
 
 // XGMII 10G PHY
-assign qsfp0_modsell = 1'b0;
-assign qsfp0_resetl = 1'b1;
-assign qsfp0_lpmode = 1'b0;
-assign qsfp0_refclk_reset = rst_refclk_int;
-assign qsfp0_fs = 2'b10;
+assign sfp_modsel = 1'b0;
+assign sfp_reset = 1'b1;
+assign sfp_lpmode = 1'b0;
+assign sfp_refclk_reset = rst_refclk_int;
+assign sfp_fs = 2'b10;
 
 wire                         rx_rst;
-wire [XGMII_DATA_WIDTH-1:0]  qsfp0_txd_1;
-wire [XGMII_CTRL_WIDTH-1:0]  qsfp0_txc_1;
-wire [XGMII_DATA_WIDTH-1:0]  qsfp0_rxd_1;
-wire [XGMII_CTRL_WIDTH-1:0]  qsfp0_rxc_1;
-wire [6:0]                   qsfp0_rx_error_count_1;
+wire [XGMII_DATA_WIDTH-1:0]  sfp_txd;
+wire [XGMII_CTRL_WIDTH-1:0]  sfp_txc;
+wire [XGMII_DATA_WIDTH-1:0]  sfp_rxd;
+wire [XGMII_CTRL_WIDTH-1:0]  sfp_rxc;
+wire [6:0]                   sfp_rx_error_count;
 
-wire qsfp0_rx_block_lock_1;
+wire sfp_rx_block_lock;
 
 wire qsfp_gtpowergood;
 
-wire qsfp0_mgt_refclk_1;
+wire sfp_mgt_refclk;
 
 wire sfp_gt_txclkout;
 
@@ -179,11 +158,11 @@ wire gt_rx_reset = ~&gt_rxpmaresetdone;
 reg gt_userclk_tx_active = 1'b0;
 reg gt_userclk_rx_active = 1'b0;
 
-IBUFDS_GTE4 ibufds_gte4_qsfp0_mgt_refclk_1_inst (
-    .I             (qsfp0_mgt_refclk_1_p),
-    .IB            (qsfp0_mgt_refclk_1_n),
+IBUFDS_GTE4 ibufds_gte4_sfp_mgt_refclk_inst (
+    .I             (sfp_mgt_refclk_p),
+    .IB            (sfp_mgt_refclk_n),
     .CEB           (1'b0),
-    .O             (qsfp0_mgt_refclk_1),
+    .O             (sfp_mgt_refclk),
     .ODIV2         ()
 );
 
@@ -232,18 +211,19 @@ sync_reset_156mhz_inst (
     .out(tx_rst)
 );
 
-wire [5:0] qsfp0_gt_txheader_1;
-wire [63:0] qsfp0_gt_txdata_1;
-wire qsfp0_gt_rxgearboxslip_1;
-wire [5:0] qsfp0_gt_rxheader_1;
-wire [1:0] qsfp0_gt_rxheadervalid_1;
-wire [63:0] qsfp0_gt_rxdata_1;
-wire [1:0] qsfp0_gt_rxdatavalid_1;
+wire [5:0] sfp_gt_txheader;
+wire [63:0] sfp_gt_txdata;
+wire sfp_gt_rxgearboxslip;
+wire [5:0] sfp_gt_rxheader;
+wire [1:0] sfp_gt_rxheadervalid;
+wire [63:0] sfp_gt_rxdata;
+wire [1:0] sfp_gt_rxdatavalid;
+wire sfp_rx_reset_req;
 
-assign qsfp0_gt_txheader_1[5:2] = 0;
+assign sfp_gt_txheader[5:2] = 0;
 
 gtwizard_ultrascale_0
-qsfp0_gt1_inst (
+sfp_gt1_inst (
     .gtwiz_userclk_tx_active_in(gt_userclk_tx_active),
     .gtwiz_userclk_rx_active_in(gt_userclk_rx_active),
 
@@ -254,26 +234,26 @@ qsfp0_gt1_inst (
     .gtwiz_reset_tx_datapath_in(1'b0),
 
     .gtwiz_reset_rx_pll_and_datapath_in(1'b0),
-    .gtwiz_reset_rx_datapath_in(1'b0),
+    .gtwiz_reset_rx_datapath_in(sfp_rx_reset_req),
 
     .gtwiz_reset_rx_cdr_stable_out(),
 
     .gtwiz_reset_tx_done_out(gt_reset_tx_done),
     .gtwiz_reset_rx_done_out(gt_reset_rx_done),
 
-    .gtrefclk00_in(qsfp0_mgt_refclk_1),
+    .gtrefclk00_in(sfp_mgt_refclk),
 
     .qpll0outclk_out(),
     .qpll0outrefclk_out(),
 
-    .gtyrxn_in(qsfp0_rx1_n),
-    .gtyrxp_in(qsfp0_rx1_p),
+    .gtyrxn_in(sfp_rx_n),
+    .gtyrxp_in(sfp_rx_p),
 
     .rxusrclk_in(rx_clk),
     .rxusrclk2_in(rx_clk),
 
-    .gtwiz_userdata_tx_in(qsfp0_gt_txdata_1),
-    .txheader_in(qsfp0_gt_txheader_1),
+    .gtwiz_userdata_tx_in(sfp_gt_txdata),
+    .txheader_in(sfp_gt_txheader),
     .txsequence_in(1'b0),
 
     .txusrclk_in(tx_clk),
@@ -281,14 +261,14 @@ qsfp0_gt1_inst (
 
     .gtpowergood_out(qsfp_gtpowergood),
 
-    .gtytxn_out(qsfp0_tx1_n),
-    .gtytxp_out(qsfp0_tx1_p),
+    .gtytxn_out(sfp_tx_n),
+    .gtytxp_out(sfp_tx_p),
 
-    .rxgearboxslip_in(qsfp0_gt_rxgearboxslip_1),
-    .gtwiz_userdata_rx_out(qsfp0_gt_rxdata_1),
-    .rxdatavalid_out(qsfp0_gt_rxdatavalid_1),
-    .rxheader_out(qsfp0_gt_rxheader_1),
-    .rxheadervalid_out(qsfp0_gt_rxheadervalid_1),
+    .rxgearboxslip_in(sfp_gt_rxgearboxslip),
+    .gtwiz_userdata_rx_out(sfp_gt_rxdata),
+    .rxdatavalid_out(sfp_gt_rxdatavalid),
+    .rxheader_out(sfp_gt_rxheader),
+    .rxheadervalid_out(sfp_gt_rxheadervalid),
     .rxoutclk_out(sfp_gt_rxclkout),
     .rxpmaresetdone_out(gt_rxpmaresetdone),
     .rxprgdivresetdone_out(gt_rxprgdivresetdone),
@@ -302,7 +282,7 @@ qsfp0_gt1_inst (
 sync_reset #(
     .N(4)
 )
-qsfp0_rx_rst_1_reset_sync_inst (
+sfp_rx_rst_reset_sync_inst (
     .clk(rx_clk),
     .rst(~gt_reset_rx_done),
     .out(rx_rst)
@@ -311,45 +291,50 @@ qsfp0_rx_rst_1_reset_sync_inst (
 eth_phy_10g #(
     .BIT_REVERSE(1)
 )
-qsfp0_phy_1_inst (
+sfp_phy_inst (
     .tx_clk(tx_clk),
     .tx_rst(tx_rst),
     .rx_clk(rx_clk),
     .rx_rst(rx_rst),
-    .xgmii_txd(qsfp0_txd_1),
-    .xgmii_txc(qsfp0_txc_1),
-    .xgmii_rxd(qsfp0_rxd_1),
-    .xgmii_rxc(qsfp0_rxc_1),
-    .serdes_tx_data(qsfp0_gt_txdata_1),
-    .serdes_tx_hdr(qsfp0_gt_txheader_1[1:0]),
-    .serdes_rx_data(qsfp0_gt_rxdata_1),
-    .serdes_rx_hdr(qsfp0_gt_rxheader_1[1:0]),
-    .serdes_rx_bitslip(qsfp0_gt_rxgearboxslip_1),
-    .rx_error_count(qsfp0_rx_error_count_1),
-    .rx_block_lock(qsfp0_rx_block_lock_1),
+
+    /* XGMII interface */
+    .xgmii_txd(sfp_txd),
+    .xgmii_txc(sfp_txc),
+    .xgmii_rxd(sfp_rxd),
+    .xgmii_rxc(sfp_rxc),
+
+    /* SERDES interface */
+    .serdes_tx_data(sfp_gt_txdata),
+    .serdes_tx_hdr(sfp_gt_txheader[1:0]),
+    .serdes_rx_data(sfp_gt_rxdata),
+    .serdes_rx_hdr(sfp_gt_rxheader[1:0]),
+    .serdes_rx_bitslip(sfp_gt_rxgearboxslip),
+    .serdes_rx_reset_req(sfp_rx_reset_req),
+
+    /* Status */
+    .tx_bad_block(),
+    .rx_error_count(sfp_rx_error_count),
+    .rx_bad_block(),
+    .rx_sequence_error(),
+    .rx_block_lock(sfp_rx_block_lock),
     .rx_high_ber(),
-    .tx_prbs31_enable(0),
-    .rx_prbs31_enable(0)
+    .rx_status(),
+
+    /* Configuration */
+    .cfg_tx_prbs31_enable(0),
+    .cfg_rx_prbs31_enable(0)
 );
 
 assign eth_gt_user_clock = tx_clk;
 
 eth_mac_10g_fifo #(
-    .DATA_WIDTH(AXIS_ETH_DATA_WIDTH),
+    .DATA_WIDTH(XGMII_DATA_WIDTH),
     .ENABLE_PADDING(ENABLE_PADDING),
     .ENABLE_DIC(ENABLE_DIC),
     .MIN_FRAME_LENGTH(MIN_FRAME_LENGTH),
-    .PTP_PERIOD_NS(IF_PTP_PERIOD_NS),
-    .PTP_PERIOD_FNS(IF_PTP_PERIOD_FNS),
-    .PTP_TS_WIDTH(PTP_TS_WIDTH),
-    .PTP_TAG_WIDTH(PTP_TAG_WIDTH),
-    .TX_PTP_TS_ENABLE(PTP_TS_ENABLE),
-    .TX_PTP_TAG_ENABLE(PTP_TS_ENABLE),
-    .RX_PTP_TS_ENABLE(PTP_TS_ENABLE),
+    .PTP_TS_ENABLE(PTP_TS_ENABLE),
     .TX_FIFO_DEPTH(TX_FIFO_DEPTH),
-    .TX_FRAME_FIFO(1),
-    .RX_FIFO_DEPTH(RX_FIFO_DEPTH),
-    .RX_FRAME_FIFO(1)
+    .RX_FIFO_DEPTH(RX_FIFO_DEPTH)
 )
 eth_mac_10g_fifo_inst (
     .rx_clk(rx_clk),
@@ -359,36 +344,38 @@ eth_mac_10g_fifo_inst (
     .logic_clk(tx_clk),
     .logic_rst(tx_rst),
 
-    .tx_axis_tdata(eth0_tx_axis_tdata),
-    .tx_axis_tkeep(eth0_tx_axis_tkeep),
-    .tx_axis_tuser(eth0_tx_axis_tuser),
-    .tx_axis_tvalid(eth0_tx_axis_tvalid),
-    .tx_axis_tready(eth0_tx_axis_tready),
-    .tx_axis_tlast(eth0_tx_axis_tlast),
+    .tx_axis_tdata(eth_tx_axis_tdata),
+    .tx_axis_tkeep(eth_tx_axis_tkeep),
+    .tx_axis_tuser(eth_tx_axis_tuser),
+    .tx_axis_tvalid(eth_tx_axis_tvalid),
+    .tx_axis_tready(eth_tx_axis_tready),
+    .tx_axis_tlast(eth_tx_axis_tlast),
 
-    .rx_axis_tdata(eth0_rx_axis_tdata),
-    .rx_axis_tkeep(eth0_rx_axis_tkeep),
-    .rx_axis_tuser(eth0_rx_axis_tuser),
-    .rx_axis_tvalid(eth0_rx_axis_tvalid),
-    .rx_axis_tready(eth0_rx_axis_tready),
-    .rx_axis_tlast(eth0_rx_axis_tlast),
+    .rx_axis_tdata(eth_rx_axis_tdata),
+    .rx_axis_tkeep(eth_rx_axis_tkeep),
+    .rx_axis_tuser(eth_rx_axis_tuser),
+    .rx_axis_tvalid(eth_rx_axis_tvalid),
+    .rx_axis_tready(eth_rx_axis_tready),
+    .rx_axis_tlast(eth_rx_axis_tlast),
 
-    .xgmii_rxd(qsfp0_rxd_1),
-    .xgmii_rxc(qsfp0_rxc_1),
-    .xgmii_txd(qsfp0_txd_1),
-    .xgmii_txc(qsfp0_txc_1),
+    .xgmii_rxd(sfp_rxd),
+    .xgmii_rxc(sfp_rxc),
+    .xgmii_txd(sfp_txd),
+    .xgmii_txc(sfp_txc),
 
-    .tx_fifo_overflow(eth0_status[0]),
-    .tx_fifo_bad_frame(eth0_status[1]),
-    .tx_fifo_good_frame(eth0_status[2]),
-    .tx_error_underflow(eth0_status[3]),
-    .rx_error_bad_frame(eth0_status[4]),
-    .rx_error_bad_fcs(eth0_status[5]),
-    .rx_fifo_overflow(eth0_status[6]),
-    .rx_fifo_bad_frame(eth0_status[7]),
-    .rx_fifo_good_frame(eth0_status[8]),
+    .tx_fifo_overflow(eth_status[0]),
+    .tx_fifo_bad_frame(eth_status[1]),
+    .tx_fifo_good_frame(eth_status[2]),
+    .tx_error_underflow(eth_status[3]),
+    .rx_error_bad_frame(eth_status[4]),
+    .rx_error_bad_fcs(eth_status[5]),
+    .rx_fifo_overflow(eth_status[6]),
+    .rx_fifo_bad_frame(eth_status[7]),
+    .rx_fifo_good_frame(eth_status[8]),
 
-    .ifg_delay(8'd12)
+    .cfg_ifg(8'd12),
+    .cfg_tx_enable(1'b1),
+    .cfg_rx_enable(1'b1)
 );
 
 endmodule

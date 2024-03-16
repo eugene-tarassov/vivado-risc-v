@@ -20,6 +20,7 @@ set files [list \
   [file normalize "../../ethernet/verilog-ethernet/lib/axis/rtl/axis_async_fifo.v"] \
   [file normalize "../../ethernet/verilog-ethernet/lib/axis/rtl/axis_async_fifo_adapter.v"] \
   [file normalize "../../ethernet/verilog-ethernet/rtl/lfsr.v"] \
+  [file normalize "../../ethernet/ethernet-sfp-10g.v"] \
   [file normalize "../../ethernet/ethernet.v"] \
 ]
 add_files -norecurse -fileset $source_fileset $files
@@ -27,22 +28,13 @@ add_files -norecurse -fileset $source_fileset $files
 if { [string match "Rocket*m4" $rocket_module_name] } {
   # Four channel memory interface
   set block_design_tcl "m4/$block_design_tcl"
-  set files [list \
-    [file normalize "../../board/${vivado_board_name}/m4/riscv_wrapper.v"] \
-  ]
-  add_files -norecurse -fileset $source_fileset $files
+  add_files -norecurse -fileset $source_fileset [file normalize "../../board/${vivado_board_name}/m4/riscv_wrapper.v"]
 } elseif { [string match "Rocket*m2" $rocket_module_name] } {
   # Two channel memory interface
   set block_design_tcl "m2/$block_design_tcl"
-  set files [list \
-    [file normalize "../../board/${vivado_board_name}/m2/riscv_wrapper.v"] \
-  ]
-  add_files -norecurse -fileset $source_fileset $files
+  add_files -norecurse -fileset $source_fileset [file normalize "../../board/${vivado_board_name}/m2/riscv_wrapper.v"]
 } else {
-  set files [list \
-    [file normalize "../../board/${vivado_board_name}/riscv_wrapper.v"] \
-  ]
-  add_files -norecurse -fileset $source_fileset $files
+  add_files -norecurse -fileset $source_fileset [file normalize "../../board/${vivado_board_name}/riscv_wrapper.v"]
 }
 
 set files [list \
