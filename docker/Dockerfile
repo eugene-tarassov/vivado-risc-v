@@ -5,7 +5,7 @@ RUN \
   apt update -y && \
   apt upgrade -y && \
   apt install -y sudo git make default-jdk device-tree-compiler curl gawk python locales lsb-release \
-    libtinfo5 libmpc-dev libssl-dev gcc gcc-riscv64-linux-gnu flex bison bc udev dosfstools pigz wget && \
+    libtinfo5 libmpc-dev libssl-dev gcc gcc-riscv64-linux-gnu flex bison bc udev dosfstools unzip pigz wget && \
   apt autoclean && \
   apt autoremove
 
@@ -63,6 +63,8 @@ RUN \
       --config ${VIVADO_INSTALLER_CONFIG} && \
     rm -r /vivado-installer/update ; \
   fi
+RUN \
+  unzip /vivado-installer/board_files.zip -d /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/boards/board_files
 RUN \
   rm -rf /vivado-installer
 
