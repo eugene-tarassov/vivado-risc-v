@@ -584,7 +584,7 @@ int main(void) {
 
     for (;;) {
         kputs("");
-        kprintf("RISC-V %d, Boot ROM V3.7\n", __riscv_xlen);
+        kprintf("RISC-V %d, Boot ROM V3.8\n", __riscv_xlen);
         drv_status = STA_NOINIT;
         errno = f_mount(&fatfs, "", 1);
         if (errno) {
