@@ -83,14 +83,14 @@ workspace/gcc/riscv: workspace/gcc/tools.tar.gz
 debian-riscv64/initrd:
 	mkdir -p debian-riscv64
 	curl --netrc --location --header 'Accept: application/octet-stream' \
-	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/134982224 \
+	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/158580561 \
 	  -o $@.tmp
 	mv $@.tmp $@
 
 debian-riscv64/rootfs.tar.gz:
 	mkdir -p debian-riscv64
 	curl --netrc --location --header 'Accept: application/octet-stream' \
-	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/134982229 \
+	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/158580569 \
 	  -o $@.tmp
 	mv $@.tmp $@
 
@@ -222,7 +222,7 @@ CHISEL_SRC_DIRS = \
   generators/sifive-cache/design/craft \
   generators/testchipip/src/main
 
-CHISEL_SRC := $(foreach path, $(CHISEL_SRC_DIRS), $(shell test -d $(path) && find $(path) -iname "*.scala"))
+CHISEL_SRC := $(foreach path, $(CHISEL_SRC_DIRS), $(shell test -d $(path) && find $(path) -iname "*.scala" -not -name ".*"))
 FIRRTL = java -Xmx12G -Xss8M $(JAVA_OPTIONS) -cp `realpath target/scala-*/system.jar` firrtl.stage.FirrtlMain
 
 workspace/patch-hdl-done:
