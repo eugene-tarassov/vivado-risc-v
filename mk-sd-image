@@ -63,17 +63,10 @@ done
 
 rm -f $SD_IMG
 dd if=/dev/zero of=$SD_IMG bs=1M count=$SD_SIZE
-sudo losetup -f $SD_IMG
-
-SD_LOOP=$(
-losetup -a | grep `pwd`/ | while IFS=':' read -ra LINE ; do
-  echo ${LINE[0]}
-done
-)
-
+SD_LOOP=$(sudo losetup --find --partscan --show $SD_IMG)
 echo "SD image device: ${SD_LOOP}"
 
-sudo sfdisk --no-tell-kernel ${SD_LOOP} <<-__EOF__
+sudo sfdisk ${SD_LOOP} <<-__EOF__
 1M,${SD_BOOT_SIZE}M,0xE,*
 ,,,-
 __EOF__
