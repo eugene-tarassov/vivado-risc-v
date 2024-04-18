@@ -4,6 +4,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/interrupt.h>
+#include <linux/platform_device.h>
 #include <linux/etherdevice.h>
 #include <linux/ethtool.h>
 #include <linux/of_device.h>
@@ -534,7 +535,7 @@ static int axi_eth_ioctl(struct net_device * net_dev, struct ifreq * ifr, int cm
 }
 
 static void axi_eth_get_drvinfo(struct net_device * dev, struct ethtool_drvinfo * info) {
-    strlcpy(info->driver, DRIVER_NAME, sizeof(info->driver));
+    strscpy(info->driver, DRIVER_NAME, sizeof(info->driver));
 }
 
 static u32 axi_eth_get_msglevel(struct net_device * dev) {
