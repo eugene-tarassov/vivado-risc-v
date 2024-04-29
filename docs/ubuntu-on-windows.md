@@ -31,7 +31,7 @@ Don't use /home to store risc-v repo, the directory has very long Windows path, 
 The best approach is to use separate drive, mount it with metadata option, and clone the repo at the drive root:
 ```
 sudo mount -t drvfs D: /mnt/d -o metadata
-cd /mbt/d
+cd /mnt/d
 sudo apt install git make
 git clone https://github.com/eugene-tarassov/vivado-risc-v.git
 cd vivado-risc-v
