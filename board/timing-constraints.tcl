@@ -10,27 +10,27 @@ set_false_path -through [get_pins -hier RocketChip/sys_reset]
 
 #------------------ Ethernet adapter
 
-if { [llength [get_pins -quiet -hier Ethernet/clock]] } {
-  set eth_clock [get_clocks -of_objects [get_pins -hier Ethernet/clock]]
+set eth_cell_name {.*/IO/Ethernet[_]?[A-Z]?[0-9]?}
+
+if { [llength [get_pins -quiet -hier -regexp "$eth_cell_name/clock"]] } {
+  set eth_clock [get_clocks -of_objects [get_pins -hier -regexp "$eth_cell_name/clock"]]
   set eth_clock_period [get_property -min PERIOD $eth_clock]
 
   set_max_delay -from $eth_clock -to $main_clock -datapath_only $main_clock_period
   set_max_delay -from $main_clock -to $eth_clock -datapath_only $eth_clock_period
 
-  if { [llength [get_ports -quiet eth_mdio_data]] } {
-    set_max_delay -from $eth_clock -to [get_ports {eth_mdio_clock eth_mdio_data eth_mdio_reset}] -datapath_only 40.0
-    set_max_delay -from [get_ports eth_mdio_data] -to $eth_clock -datapath_only 40.0
-    set_min_delay -from [get_ports eth_mdio_data] -to $eth_clock 0.0
+  set_max_delay -from $main_clock -through [get_pins -hier -regexp "$eth_cell_name/async_resetn"] -datapath_only 10.0
+  set_max_delay -from $eth_clock -through [get_pins -hier -regexp "$eth_cell_name/interrupt"] -datapath_only 10.0
+
+  if { [llength [get_ports -quiet eth*_mdio_data]] } {
+    set_max_delay -from $eth_clock -to [get_ports {eth_mdio_clock eth*_mdio_data eth_mdio_reset}] -datapath_only 40.0
+    set_max_delay -from [get_ports eth*_mdio_data] -to $eth_clock -datapath_only 40.0
+    set_min_delay -from [get_ports eth*_mdio_data] -to $eth_clock 0.0
   }
 
-  if { [llength [get_ports -quiet eth_mdio_int]] } {
-    set_max_delay -from [get_ports eth_mdio_int] -to $eth_clock -datapath_only 40.0
-    set_min_delay -from [get_ports eth_mdio_int] -to $eth_clock 0.0
-  }
-
-  if { [llength [get_pins -quiet -hier Ethernet/async_resetn]] } {
-    set_max_delay -from $main_clock -through [get_pins -hier Ethernet/async_resetn] -datapath_only 10.0
-    set_max_delay -from $eth_clock -through [get_pins -hier Ethernet/interrupt] -datapath_only 10.0
+  if { [llength [get_ports -quiet eth*_mdio_int]] } {
+    set_max_delay -from [get_ports eth*_mdio_int] -to $eth_clock -datapath_only 40.0
+    set_min_delay -from [get_ports eth*_mdio_int] -to $eth_clock 0.0
   }
 }
 

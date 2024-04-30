@@ -166,8 +166,6 @@
       <Pin IN_TERM="" IOSTANDARD="SSTL15" PADName="AD9" SLEW="FAST" VCCAUX_IO="NORMAL" name="ddr3_ras_n"/>
       <Pin IN_TERM="" IOSTANDARD="LVCMOS15" PADName="AK3" SLEW="FAST" VCCAUX_IO="NORMAL" name="ddr3_reset_n"/>
       <Pin IN_TERM="" IOSTANDARD="SSTL15" PADName="AE9" SLEW="FAST" VCCAUX_IO="NORMAL" name="ddr3_we_n"/>
-      <Pin IN_TERM="" IOSTANDARD="DIFF_SSTL15" PADName="AD11" SLEW="" VCCAUX_IO="DONTCARE" name="sys_clk_n"/>
-      <Pin IN_TERM="" IOSTANDARD="DIFF_SSTL15" PADName="AD12" SLEW="" VCCAUX_IO="DONTCARE" name="sys_clk_p"/>
     </PinSelection>
     <System_Control>
       <Pin Bank="Select Bank" PADName="No connect" name="sys_rst"/>
