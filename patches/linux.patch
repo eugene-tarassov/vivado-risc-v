@@ -1,5 +1,5 @@
 diff --git a/arch/riscv/include/asm/page.h b/arch/riscv/include/asm/page.h
-index 57e887bfa34c..a0858c536bb8 100644
+index 94b3d6930fc3..1c562822823f 100644
 --- a/arch/riscv/include/asm/page.h
 +++ b/arch/riscv/include/asm/page.h
 @@ -94,7 +94,7 @@ typedef struct page *pgtable_t;
