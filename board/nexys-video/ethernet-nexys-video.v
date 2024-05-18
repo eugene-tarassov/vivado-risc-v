@@ -57,6 +57,8 @@ module ethernet_nexys_video (
     input rgmii_rx_clk // Ethernet receive clock (required)
 );
 
+// Nexys Video board uses RTL8211E-VB phy, TXDLY off, RXDLY off
+
 wire rgmii_rx_clk_delay;
 
 assign status_vector[15:11] = 0;

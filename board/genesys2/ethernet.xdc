@@ -21,7 +21,7 @@ set_property -dict { PACKAGE_PIN AK10  IOSTANDARD LVCMOS15 } [get_ports { rgmii_
 
 create_clock -period 8.000 -name rgmii_rx_clk [get_ports rgmii_rxc]
 
-# Genesys 2 board uses RTL8211E-VL phy, TXDLY off, RXDLY on, 1.8V signaling, HP bank (ODELAY available).
+# Genesys 2 board uses RTL8211E-VL phy, TXDLY off, RXDLY on, 1.5V signaling, HP bank (ODELAY available).
 # Note: max (setup) is measured from prev clock edge, min (hold) - from current clock edge.
 # Data valid period, relative to the current clock edge, is [max-4.0ns .. min].
 # With RXDLY on, the center of data valid period is supposed to be at the clock edge, but it is set at -1.35ns offset.
