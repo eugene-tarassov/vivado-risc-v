@@ -23,7 +23,7 @@ docker-image:
 	cd docker && docker build --build-arg HOST_UID=`id -u` --build-arg HOST_GID=`id -g` --build-arg VIVADO_VERSION=$(DOCKER_VIVADO_VERSION) --tag vivado-risc-v-tools:$(DOCKER_VIVADO_VERSION) .
 
 docker-shell:
-	docker container run --interactive --tty --rm --volume .:/src $(DOCKER_ARGS) --user `id -u`:`id -g` vivado-risc-v-tools:$(DOCKER_VIVADO_VERSION) bash --login || true
+	docker container run --interactive --tty --rm --volume .:/src $(DOCKER_ARGS) --user `id -u`:`id -g` --network host vivado-risc-v-tools:$(DOCKER_VIVADO_VERSION) bash --login || true
 
 # --- packages and repos ---
 
