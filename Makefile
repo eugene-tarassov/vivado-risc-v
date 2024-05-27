@@ -235,6 +235,7 @@ workspace/patch-hdl-done:
 
 # Generate default device tree - not including peripheral devices or board specific data
 workspace/$(CONFIG)/system.dts: $(CHISEL_SRC) rocket-chip/bootrom/bootrom.img workspace/patch-hdl-done
+	rm -rf workspace/$(CONFIG)/tmp
 	mkdir -p workspace/$(CONFIG)/tmp
 	cp rocket-chip/bootrom/bootrom.img workspace/bootrom.img
 	$(SBT) "runMain freechips.rocketchip.diplomacy.Main --dir `realpath workspace/$(CONFIG)/tmp` --top Vivado.RocketSystem --config Vivado.$(CONFIG_SCALA)"
@@ -243,6 +244,7 @@ workspace/$(CONFIG)/system.dts: $(CHISEL_SRC) rocket-chip/bootrom/bootrom.img wo
 
 # Generate board specific device tree, boot ROM and FIRRTL
 workspace/$(CONFIG)/system-$(BOARD)/RocketSystem.fir: workspace/$(CONFIG)/system.dts $(wildcard bootrom/*) workspace/gcc/riscv
+	rm -rf workspace/$(CONFIG)/system-$(BOARD)
 	mkdir -p workspace/$(CONFIG)/system-$(BOARD)
 	cat workspace/$(CONFIG)/system.dts board/$(BOARD)/bootrom.dts >bootrom/system.dts
 	sed -i "s#reg = <0x80000000 *0x.*>#reg = <$(MEMORY_ADDR_RANGE32)>#g" bootrom/system.dts
