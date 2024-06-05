@@ -7,7 +7,7 @@ use ieee.std_logic_unsigned.all;
 library unisim;
 use unisim.vcomponents.all;
 
--- 1. first shift after idle state should be 8-bit number of TAPs in the external scan chain, not including the target TAP.
+-- 1. first shift after RESET state should be 8-bit number of TAPs in the external scan chain, not including the target TAP.
 -- The shift should go through DRUPDATE and end in DRPAUSE state.
 --
 -- 2. each sequent shift should include:
@@ -34,7 +34,7 @@ entity bscan2jtag is
     generic (
         enable_tck_bufg : in boolean := true);
     port (
-        S_BSCAN_bscanid_en  : in std_logic;
+        S_BSCAN_bscanid_en  : in std_logic; -- tie-off '0' if not used
         S_BSCAN_capture     : in std_logic;
         S_BSCAN_drck        : in std_logic;
         S_BSCAN_reset       : in std_logic;
@@ -85,6 +85,7 @@ architecture Behavioral of bscan2jtag is
 
     subtype bit_cnt_type is integer range 0 to 31;
     signal id_cnt     : bit_cnt_type;
+    signal id_en      : boolean;
 
     constant id_reg   : std_logic_vector(31 downto 0) := "00000100100100000000011000000001"; -- 0x04900601
     signal id_tdo     : std_logic;
@@ -119,7 +120,8 @@ begin
     end generate tck_buf_2;
 
     jtag_tdi <= S_BSCAN_tdi;
-    S_BSCAN_tdo <= id_tdo when S_BSCAN_bscanid_en = '1' else jtag_tdo;
+    id_en <= S_BSCAN_bscanid_en = '1' or ((S_BSCAN_capture = '1' or S_BSCAN_shift = '1') and S_BSCAN_sel = '1' and tap_cnt_ok = '0');
+    S_BSCAN_tdo <= id_tdo when id_en else jtag_tdo;
 
     jtag_ctrl : process (S_BSCAN_tck)
     begin
@@ -129,7 +131,7 @@ begin
             elsif S_BSCAN_update = '1' and S_BSCAN_sel = '1' then
                 tap_cnt_ok <= '1';
             end if;
-            if S_BSCAN_bscanid_en = '0' then
+            if not id_en then
                 id_tdo <= '0';
                 id_cnt <= 0;
             else
