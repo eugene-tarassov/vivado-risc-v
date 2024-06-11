@@ -468,7 +468,7 @@ static int download(void) {
     entry_addr = read_addr();
     phoff = read_addr();
     if (errno) return -1;
-    errno = f_lseek(&fd, f_tell(&fd) + 8 + 6);
+    errno = f_lseek(&fd, f_tell(&fd) + (__riscv_xlen>>3) + 6);
     phentsize = read_uint16();
     phnum = read_uint16();
     if (errno) return -1;
@@ -484,7 +484,7 @@ static int download(void) {
         p_type = read_uint32();
         if (errno) return -1;
         if (p_type != PT_LOAD) continue;
-        errno = f_lseek(&fd, f_tell(&fd) + 4);
+        errno = f_lseek(&fd, f_tell(&fd) + (__riscv_xlen == 32 ? 0 : 4));
         p_offset = read_addr();
         p_vaddr = read_addr();
         read_addr(); /* p_paddr */
