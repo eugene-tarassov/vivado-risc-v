@@ -1,5 +1,5 @@
 diff --git a/arch/riscv/include/asm/page.h b/arch/riscv/include/asm/page.h
-index 94b3d6930fc3..1c562822823f 100644
+index 115ac98b8d72..88cc82c02fa6 100644
 --- a/arch/riscv/include/asm/page.h
 +++ b/arch/riscv/include/asm/page.h
 @@ -94,7 +94,7 @@ typedef struct page *pgtable_t;
@@ -12,10 +12,10 @@ index 94b3d6930fc3..1c562822823f 100644
  
  #ifdef CONFIG_MMU
 diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
-index 81f2c4e05287..40154a216fcf 100644
+index aebc587f77a7..b59ef3c9dcef 100644
 --- a/drivers/mmc/host/Kconfig
 +++ b/drivers/mmc/host/Kconfig
-@@ -1056,6 +1056,14 @@ config MMC_SDHCI_AM654
+@@ -1065,6 +1065,14 @@ config MMC_SDHCI_AM654
  
  	  If unsure, say N.
  
@@ -31,10 +31,10 @@ index 81f2c4e05287..40154a216fcf 100644
  	tristate "Actions Semi Owl SD/MMC Host Controller support"
  	depends on HAS_DMA
 diff --git a/drivers/mmc/host/Makefile b/drivers/mmc/host/Makefile
-index d0be4465f3ec..2a01be4b7e36 100644
+index f53f86d200ac..49a942b55563 100644
 --- a/drivers/mmc/host/Makefile
 +++ b/drivers/mmc/host/Makefile
-@@ -69,6 +69,7 @@ obj-$(CONFIG_MMC_SUNXI)		+= sunxi-mmc.o
+@@ -70,6 +70,7 @@ obj-$(CONFIG_MMC_SUNXI)		+= sunxi-mmc.o
  obj-$(CONFIG_MMC_USDHI6ROL0)	+= usdhi6rol0.o
  obj-$(CONFIG_MMC_TOSHIBA_PCI)	+= toshsd.o
  obj-$(CONFIG_MMC_BCM2835)	+= bcm2835.o
@@ -43,10 +43,10 @@ index d0be4465f3ec..2a01be4b7e36 100644
  
  obj-$(CONFIG_MMC_REALTEK_PCI)	+= rtsx_pci_sdmmc.o
 diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
-index 5a274b99f299..60dad090d360 100644
+index 6a19b5393ed1..d914ca40b70f 100644
 --- a/drivers/net/ethernet/Kconfig
 +++ b/drivers/net/ethernet/Kconfig
-@@ -160,6 +160,14 @@ config ETHOC
+@@ -157,6 +157,14 @@ config ETHOC
  	help
  	  Say Y here if you want to use the OpenCores 10/100 Mbps Ethernet MAC.
  
