@@ -7,7 +7,7 @@ fi
 if [ ! -e qemu/opensbi/build/platform/generic/firmware/fw_payload.bin ]
 then
     make u-boot-qemu
-    make opensbi
+    make opensbi-qemu
 fi
 
 qemu-system-riscv64 -machine virt -m 8G -nographic \
