@@ -1,8 +1,13 @@
 if [ ! -e debian-riscv64/debian-riscv64.sd.img ]
 then
     ./mk-sd-image
+fi
+
+# Check if OpenSBI exists, if not, build U-Boot and OpenSBI
+if [ ! -e qemu/opensbi/build/platform/generic/firmware/fw_payload.bin ]
+then
     make u-boot-qemu
-    make opensbi-qemu
+    make opensbi
 fi
 
 qemu-system-riscv64 -machine virt -m 8G -nographic \
