@@ -135,8 +135,33 @@ fi
 # Must be a Linux bug.
 sync
 
-sudo umount ${SD_LOOP}p1
-sudo umount ${SD_LOOP}p2
+
+umount_with_retry() {
+    local device=$1
+    local max_attempts=3
+    local attempt=1
+
+    while [ $attempt -le $max_attempts ]; do
+        sudo umount -l $device
+        if ! mount | grep -q $device; then
+            echo "$device successfully unmounted."
+            return 0
+        else
+            echo "Unmount attempt $attempt for $device failed. Retrying in 1 second..."
+            sleep 1
+            attempt=$((attempt + 1))
+        fi
+    done
+
+    echo "Failed to unmount $device after $max_attempts attempts."
+    return 1
+}
+
+# Unmount partitions
+umount_with_retry ${SD_LOOP}p1 || exit 1
+umount_with_retry ${SD_LOOP}p2 || exit 1
+
+
 sudo fsck -f -p -T ${SD_LOOP}p1 || true
 sudo fsck -f -p -T ${SD_LOOP}p2
 sudo losetup -d ${SD_LOOP}
