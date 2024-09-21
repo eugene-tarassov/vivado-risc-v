@@ -154,11 +154,17 @@ static struct uart_driver axi_uart_port_driver = {
 
 static int axi_uart_transmit(struct uart_port * port) {
     struct uart_regs __iomem * regs = (struct uart_regs __iomem *)port->membase;
-    struct circ_buf * xmit = &port->state->xmit;
     uint32_t control = regs->control;
     unsigned tx_cnt = 0;
     int ret = 0;
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,10,0)
+    struct circ_buf * xmit = &port->state->xmit;
+    unsigned fifo_len = uart_circ_chars_pending(xmit);
+#else
+    struct kfifo * xmit = &port->state->port.xmit_fifo;
+    unsigned fifo_len = kfifo_len(xmit);
+    uint8_t ch = 0;
+#endif
     regs->control = control &= ~CR_IE_TX_READY;
     while (tx_cnt < MAX_CHARS_PER_INTERRUPT) {
         if (port->x_char) {
@@ -171,15 +177,21 @@ static int axi_uart_transmit(struct uart_port * port) {
             regs->control = control |= CR_TX_STOP;
             break;
         }
-        else if (!uart_circ_empty(xmit)) {
+        else if (fifo_len > 0) {
             regs->control = control &= ~CR_TX_STOP;
             if (regs->status & SR_TX_FIFO_FULL) {
                 regs->control = control |= CR_IE_TX_READY;
                 break;
             }
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,10,0)
             regs->tx_fifo = xmit->buf[xmit->tail] & 0xff;
             xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
+#else
+            kfifo_get(xmit, &ch);
+            regs->tx_fifo = ch;
+#endif
             port->icount.tx++;
+            fifo_len--;
             tx_cnt++;
             ret = 1;
         }
@@ -188,7 +200,7 @@ static int axi_uart_transmit(struct uart_port * port) {
             break;
         }
     }
-    if (tx_cnt && uart_circ_chars_pending(xmit) < WAKEUP_CHARS) uart_write_wakeup(port);
+    if (tx_cnt && fifo_len < WAKEUP_CHARS) uart_write_wakeup(port);
     return ret;
 }
 
@@ -235,10 +247,12 @@ static void axi_uart_set_mctrl(struct uart_port * port, unsigned int mctrl) {
 }
 
 static void axi_uart_stop_tx(struct uart_port * port) {
+    lockdep_assert_held_once(&port->lock);
     axi_uart_transmit(port);
 }
 
 static void axi_uart_start_tx(struct uart_port * port) {
+    lockdep_assert_held_once(&port->lock);
     axi_uart_transmit(port);
 }
 
