@@ -1,4 +1,4 @@
-val chiselVersion = "3.6.0"
+val chiselVersion = "3.6.1"
 
 lazy val commonSettings = Seq(
   organization := "edu.berkeley.cs",
