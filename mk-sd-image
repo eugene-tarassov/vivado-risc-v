@@ -80,8 +80,8 @@ sudo mkfs.ext4 -E nodiscard -L rootfs -U $UUID ${SD_LOOP}p2
 cat >debian-riscv64/extlinux.conf <<EOF
 menu title RISC-V Boot Options.
 timeout 50
-default Debain $KERNEL_VER
-label Debain $KERNEL_VER
+default Debian $KERNEL_VER
+label Debian $KERNEL_VER
  kernel /extlinux/image-$KERNEL_VER
  initrd /extlinux/initrd-$KERNEL_VER.img
  append ro root=UUID=$UUID earlycon initramfs.runsize=24M locale.LANG=en_US.UTF-8
