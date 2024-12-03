@@ -1,5 +1,5 @@
 diff --git a/arch/riscv/include/asm/page.h b/arch/riscv/include/asm/page.h
-index 115ac98b8d72..88cc82c02fa6 100644
+index 7ede2111c591..b5a199235b84 100644
 --- a/arch/riscv/include/asm/page.h
 +++ b/arch/riscv/include/asm/page.h
 @@ -94,7 +94,7 @@ typedef struct page *pgtable_t;
@@ -12,10 +12,10 @@ index 115ac98b8d72..88cc82c02fa6 100644
  
  #ifdef CONFIG_MMU
 diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
-index aebc587f77a7..b59ef3c9dcef 100644
+index eb3ecfe05591..1aff080a0ce5 100644
 --- a/drivers/mmc/host/Kconfig
 +++ b/drivers/mmc/host/Kconfig
-@@ -1065,6 +1065,14 @@ config MMC_SDHCI_AM654
+@@ -1066,6 +1066,14 @@ config MMC_SDHCI_AM654
  
  	  If unsure, say N.
  
@@ -43,10 +43,10 @@ index f53f86d200ac..49a942b55563 100644
  
  obj-$(CONFIG_MMC_REALTEK_PCI)	+= rtsx_pci_sdmmc.o
 diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
-index 6a19b5393ed1..d914ca40b70f 100644
+index 0baac25db4f8..9c6424597e5d 100644
 --- a/drivers/net/ethernet/Kconfig
 +++ b/drivers/net/ethernet/Kconfig
-@@ -157,6 +157,14 @@ config ETHOC
+@@ -158,6 +158,14 @@ config ETHOC
  	help
  	  Say Y here if you want to use the OpenCores 10/100 Mbps Ethernet MAC.
  
@@ -62,10 +62,10 @@ index 6a19b5393ed1..d914ca40b70f 100644
  source "drivers/net/ethernet/pasemi/Kconfig"
  source "drivers/net/ethernet/pensando/Kconfig"
 diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
-index 0d872d4efcd1..d1412a971926 100644
+index c03203439c0e..52e614188e85 100644
 --- a/drivers/net/ethernet/Makefile
 +++ b/drivers/net/ethernet/Makefile
-@@ -73,6 +73,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
+@@ -74,6 +74,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
  obj-$(CONFIG_LPC_ENET) += nxp/
  obj-$(CONFIG_NET_VENDOR_OKI) += oki-semi/
  obj-$(CONFIG_ETHOC) += ethoc.o
@@ -74,10 +74,10 @@ index 0d872d4efcd1..d1412a971926 100644
  obj-$(CONFIG_NET_VENDOR_PASEMI) += pasemi/
  obj-$(CONFIG_NET_VENDOR_QLOGIC) += qlogic/
 diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index ffcf4882b25f..1f904a17aeae 100644
+index 28e4beeabf8f..e7aa4ce4ae32 100644
 --- a/drivers/tty/serial/Kconfig
 +++ b/drivers/tty/serial/Kconfig
-@@ -536,6 +536,32 @@ config SERIAL_UARTLITE_NR_UARTS
+@@ -539,6 +539,32 @@ config SERIAL_UARTLITE_NR_UARTS
  	  driver uses dynamic allocation instead of static allocation for major
  	  number.
  
@@ -111,7 +111,7 @@ index ffcf4882b25f..1f904a17aeae 100644
  	bool
  	depends on SPARC
 diff --git a/drivers/tty/serial/Makefile b/drivers/tty/serial/Makefile
-index b25e9b54a660..bf11999523ad 100644
+index 6ff74f0a9530..7883c0f9672c 100644
 --- a/drivers/tty/serial/Makefile
 +++ b/drivers/tty/serial/Makefile
 @@ -39,6 +39,7 @@ obj-$(CONFIG_SERIAL_CONEXANT_DIGICOLOR)	+= digicolor-usart.o

@@ -160,9 +160,13 @@ static int axi_uart_transmit(struct uart_port * port) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6,10,0)
     struct circ_buf * xmit = &port->state->xmit;
     unsigned fifo_len = uart_circ_chars_pending(xmit);
-#else
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
     struct kfifo * xmit = &port->state->port.xmit_fifo;
     unsigned fifo_len = kfifo_len(xmit);
+    uint8_t ch = 0;
+#else
+    struct tty_port * tport = &port->state->port;
+    unsigned fifo_len = kfifo_len(&tport->xmit_fifo);
     uint8_t ch = 0;
 #endif
     regs->control = control &= ~CR_IE_TX_READY;
@@ -186,8 +190,11 @@ static int axi_uart_transmit(struct uart_port * port) {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6,10,0)
             regs->tx_fifo = xmit->buf[xmit->tail] & 0xff;
             xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
-#else
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
             kfifo_get(xmit, &ch);
+            regs->tx_fifo = ch;
+#else
+            if (!kfifo_get(&tport->xmit_fifo, &ch)) break;
             regs->tx_fifo = ch;
 #endif
             port->icount.tx++;
@@ -452,8 +459,13 @@ static int axi_uart_probe(struct platform_device * pdev) {
     return ret;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
 static int axi_uart_remove(struct platform_device * pdev) {
     return axi_uart_release(&pdev->dev);
+#else
+static void axi_uart_remove(struct platform_device * pdev) {
+    axi_uart_release(&pdev->dev);
+#endif
 }
 
 static int __maybe_unused axi_uart_suspend(struct device * dev) {

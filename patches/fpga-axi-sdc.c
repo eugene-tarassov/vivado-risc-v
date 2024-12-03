@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
+#include <linux/version.h>
 #include <linux/delay.h>
 #include <linux/dma-mapping.h>
 #include <linux/err.h>
@@ -468,14 +469,20 @@ static int axi_sdc_probe(struct platform_device * pdev) {
     return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
 static int axi_sdc_remove(struct platform_device * pdev) {
+#else
+static void axi_sdc_remove(struct platform_device * pdev) {
+#endif
     struct sdc_host * host = platform_get_drvdata(pdev);
     struct mmc_host * mmc = mmc_from_priv(host);
 
     free_irq(host->irq, mmc);
     mmc_remove_host(mmc);
     mmc_free_host(mmc);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
     return 0;
+#endif
 }
 
 static struct platform_driver axi_sdc_driver = {

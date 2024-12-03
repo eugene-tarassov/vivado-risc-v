@@ -778,7 +778,11 @@ out:
     return err;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
 static int axi_eth_remove(struct platform_device * pdev) {
+#else
+static void axi_eth_remove(struct platform_device * pdev) {
+#endif
     struct net_device * net_dev = platform_get_drvdata(pdev);
     struct axi_eth_priv * priv = netdev_priv(net_dev);
     unregister_netdev(net_dev);
@@ -787,7 +791,9 @@ static int axi_eth_remove(struct platform_device * pdev) {
         mdiobus_free(priv->mdio_bus);
     }
     free_netdev(net_dev);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,11,0)
     return 0;
+#endif
 }
 
 static struct platform_driver axi_eth_driver = {
