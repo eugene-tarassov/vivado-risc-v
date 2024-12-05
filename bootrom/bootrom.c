@@ -146,13 +146,10 @@ static const char * errno_to_str(void) {
     case FR_DENIED: return "Access denied";
     case FR_EXIST: return "Already exist";
     case FR_INVALID_OBJECT: return "The FS object is invalid";
-    case FR_WRITE_PROTECTED: return "The drive is write protected";
     case FR_INVALID_DRIVE: return "The drive number is invalid";
     case FR_NOT_ENABLED: return "The volume has no work area";
     case FR_NO_FILESYSTEM: return "Not a valid FAT volume";
-    case FR_MKFS_ABORTED: return "The f_mkfs() aborted";
     case FR_TIMEOUT: return "Timeout";
-    case FR_LOCKED: return "Locked";
     case FR_NOT_ENOUGH_CORE: return "Not enough memory";
     case FR_TOO_MANY_OPEN_FILES: return "Too many open files";
     case ERR_EOF: return "Unexpected EOF";

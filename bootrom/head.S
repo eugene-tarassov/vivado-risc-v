@@ -33,9 +33,9 @@ _hartx_loop:
   csrwi mie, MIP_MSIP
   wfi
   # only start if interrupt request is set
-  csrr a2, mip
-  andi a2, a2, MIP_MSIP
-  beqz a2, _hartx_loop
+  csrr t0, mip
+  andi t0, t0, MIP_MSIP
+  beqz t0, _hartx_loop
   # jump to code in RAM
   ecall
   j _hartx_loop
