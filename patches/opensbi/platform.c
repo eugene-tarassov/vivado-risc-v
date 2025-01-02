@@ -15,6 +15,10 @@
 #include <sbi_utils/irqchip/fdt_irqchip.h>
 #include <sbi_utils/serial/fdt_serial.h>
 #include <sbi_utils/timer/fdt_timer.h>
+#include <sbi_utils/reset/fdt_reset.h>
+#include <sbi_utils/suspend/fdt_suspend.h>
+#include <sbi_utils/cppc/fdt_cppc.h>
+#include <sbi_utils/hsm/fdt_hsm.h>
 #include <sbi_utils/ipi/fdt_ipi.h>
 
 #define SR_RX_FIFO_VALID_DATA   (1 << 0) /* data in receive FIFO */
@@ -58,8 +62,7 @@ static const struct fdt_match console_match[] = {
     {},
 };
 
-static int console_init(void) {
-    void * fdt = sbi_scratch_thishart_arg1_ptr();
+static int console_init(const void * fdt) {
     int coff = fdt_path_offset(fdt, "/chosen");
     if (coff >= 0) {
         int len = 0;
@@ -77,21 +80,43 @@ static int console_init(void) {
         }
     }
 
-    return fdt_serial_init();
+    return fdt_serial_init(fdt);
 }
 
 /* ---- Platform ---- */
 
 static u32 generic_hart_index2id[SBI_HARTMASK_MAX_BITS] = { 0 };
 
+static int early_init(bool cold_boot) {
+    const void * fdt = fdt_get_address();
+
+    if (console_init(fdt) < 0) return -1;
+
+    fdt_cppc_init(fdt);
+    fdt_hsm_init(fdt);
+    fdt_reset_init(fdt);
+    fdt_suspend_init(fdt);
+
+    return 0;
+}
+
+static int final_init(bool cold_boot) {
+#if 0
+    void * fdt = fdt_get_address_rw();
+
+    fdt_cpu_fixup(fdt);
+    fdt_fixups(fdt);
+    fdt_domain_fixup(fdt);
+#endif
+    return 0;
+}
+
 const struct sbi_platform_operations platform_ops = {
-    .console_init = console_init,
+    .early_init = early_init,
+    .final_init = final_init,
     .irqchip_init = fdt_irqchip_init,
-    .irqchip_exit = fdt_irqchip_exit,
     .ipi_init = fdt_ipi_init,
-    .ipi_exit = fdt_ipi_exit,
     .timer_init = fdt_timer_init,
-    .timer_exit = fdt_timer_exit,
 };
 
 struct sbi_platform platform = {
