@@ -93,8 +93,7 @@ regenerate_bd_layout
 save_bd_design
 
 if { [get_files -quiet -of_objects $source_fileset [list "*/riscv_wrapper.v"]] == "" } {
-  make_wrapper -files [get_files riscv.bd] -top
-  add_files -norecurse [file normalize vivado-${vivado_board_name}-riscv/${vivado_board_name}-riscv.srcs/sources_1/bd/riscv/hdl/riscv_wrapper.v ]
+  make_wrapper -files [get_files riscv.bd] -top -import
 }
 set_property top riscv_wrapper $source_fileset
 update_compile_order -fileset $source_fileset

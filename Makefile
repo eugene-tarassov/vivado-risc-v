@@ -42,7 +42,7 @@ apt-install-qemi:
 	sudo apt install qemu-system-misc opensbi u-boot-qemu qemu-utils
 
 # skip submodules which are not needed and take long time to update
-SKIP_SUBMODULES = torture software/gemmini-rocc-tests software/onnxruntime-riscv
+override SKIP_SUBMODULES += torture software/gemmini-rocc-tests software/onnxruntime-riscv
 
 update:
 	git pull --no-recurse-submodules
