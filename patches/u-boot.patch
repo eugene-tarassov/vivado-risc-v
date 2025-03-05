@@ -1,5 +1,5 @@
 diff --git a/arch/riscv/Kconfig b/arch/riscv/Kconfig
-index ba29e70acf..a572610f2a 100644
+index ba29e70acf7..a572610f2a0 100644
 --- a/arch/riscv/Kconfig
 +++ b/arch/riscv/Kconfig
 @@ -24,6 +24,9 @@ config TARGET_SIFIVE_UNMATCHED
