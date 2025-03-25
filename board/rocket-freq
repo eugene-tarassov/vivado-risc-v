@@ -10,6 +10,7 @@ vc707         Rocket.*          100.0
 (genesys2|kc705|.*xc7k325t)  Rocket64x1            50.0
 (genesys2|kc705|.*xc7k325t)  Rocket64[xyz].*       31.25
 (genesys2|kc705|.*xc7k325t)  Rocket.*l2w?          62.5
+(genesys2|kc705|.*xc7k325t)  Rocket64w1            80.0
 (genesys2|kc705|.*xc7k325t)  Rocket.*b[4-9].*      80.0
 (genesys2|kc705|.*xc7k325t)  Rocket.*              100.0
 
