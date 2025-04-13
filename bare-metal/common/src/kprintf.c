@@ -85,6 +85,65 @@ void kprintf(const char * fmt, ...) {
                 while (i < sizeof(buf)) kputc(buf[i++]);
                 break;
             }
+            case 'u': {
+                char buf[32];
+                unsigned long n;
+                long i = sizeof(buf);
+                if (is_long) {
+                    n = va_arg(vl, unsigned long);
+                }
+                else {
+                    n = va_arg(vl, unsigned int);
+                }
+                while (i > 0) {
+                    buf[--i] = n % 10 + '0';
+                    n = n / 10;
+                    if (n == 0) break;
+                }
+                while (i < sizeof(buf)) kputc(buf[i++]);
+                break;
+            }
+            case 'f': {
+                double f = va_arg(vl, double);
+                if (f < 0) {
+                    kputc('-');
+                    f = -f;
+                }
+                long whole = (long)f;
+                long frac = (long)((f - whole) * 1000000);
+                // Print whole part
+                char buf[32];
+                int i = sizeof(buf);
+                if (whole == 0) {
+                    kputc('0');
+                } else {
+                    while (whole > 0 && i > 0) {
+                        buf[--i] = '0' + (whole % 10);
+                        whole /= 10;
+                    }
+                    while (i < sizeof(buf)) kputc(buf[i++]);
+                }
+                kputc('.');
+                // Print fractional part with leading zeros
+                int zeros = 6;
+                long temp = frac;
+                while (temp > 0 && zeros > 0) {
+                    temp /= 10;
+                    zeros--;
+                }
+                while (zeros-- > 0) kputc('0');
+                i = sizeof(buf);
+                if (frac == 0) {
+                    kputc('0');
+                } else {
+                    while (frac > 0 && i > 0) {
+                        buf[--i] = '0' + (frac % 10);
+                        frac /= 10;
+                    }
+                    while (i < sizeof(buf)) kputc(buf[i++]);
+                }
+                break;
+            }
             case 's': {
                 const char * s = va_arg(vl, const char *);
                 while (*s) kputc(*s++);
