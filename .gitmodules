@@ -25,3 +25,6 @@
 [submodule "opensbi"]
 	path = opensbi
 	url = https://github.com/riscv/opensbi.git
+[submodule "bare-metal/coremark/coremark"]
+	path = bare-metal/coremark/coremark
+	url = https://github.com/eembc/coremark.git
