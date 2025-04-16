@@ -39,6 +39,7 @@ SECTIONS {
     *(.bss .bss.* .gnu.linkonce.b.*)
     . = ALIGN(8);
     PROVIDE(_ebss = .);
+    PROVIDE(_end = .);  /* Required for _sbrk */
   } >memory_mem
 
   .note (INFO) : {

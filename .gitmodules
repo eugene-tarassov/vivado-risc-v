@@ -28,3 +28,6 @@
 [submodule "bare-metal/coremark/coremark"]
 	path = bare-metal/coremark/coremark
 	url = https://github.com/eembc/coremark.git
+[submodule "bare-metal/dhrystone/benchmark-dhrystone"]
+	path = bare-metal/dhrystone/benchmark-dhrystone
+	url = https://github.com/sifive/benchmark-dhrystone.git
