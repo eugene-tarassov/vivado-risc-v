@@ -26,6 +26,7 @@ This repository integrates multiple third-party components under their respectiv
 | gemmini          | [BSD-style (Berkeley)](https://github.com/ucb-bar/gemmini/blob/master/LICENSE) | Custom BSD variant from UC Berkeley |
 | opensbi          | [BSD 2-Clause](https://github.com/riscv-software-src/opensbi/blob/master/COPYING.BSD) | Permissive |
 | coremark         | [Apache 2.0 and AUA](https://github.com/eembc/coremark/blob/main/LICENSE.md) | Apache for code, trademark use restricted by AUA |
+| benchmark-dhrystone | [via SiFive, no license](https://github.com/sifive/benchmark-dhrystone/blob/master/LICENSE?tab=License-1-ov-file) | Code is many decades old and re-shared by SiFive, No explicit license  |
 
 Note on CoreMark: The software is under Apache 2.0, but the "CoreMark" trademark and name usage is restricted by the Acceptable Use Agreement (AUA). Do not use the name in modified benchmarks or without compliance.
 

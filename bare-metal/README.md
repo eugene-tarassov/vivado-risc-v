@@ -45,20 +45,27 @@ xsdb%
 ```
 Alternatively, you can call the script `../scripts/debugger_download_load_program.sh`
 
-## "Coremark" CPU benchmarking program
+## "Coremark" and "Dhrystone" CPU benchmarking programs
 
-Compiles same way as "Hello World" program but from within `bare-metal/coremark` .
+These compile same way as "Hello World" program but from within `bare-metal/coremark` or `bare-metal/dhrystone` .
 
-Also runs on any 64-bit or 32-bit Rocket flavor.
+These also run on any 64-bit or 32-bit Rocket flavor.
 
-There are two parameters you can adjust.
+There are two parameters you can adjust per program.
 
-Within `bare-metal/coremark/Makefile`:
+For both programs, within `bare-metal/common.mk` :
+
+`FPGA_CPU_CLK_FREQ`: defaults to 100MHz, but set this to whatever frequency you're clocking your CPU .
+
+And then program-specfic iterations. First for Coremark, within `bare-metal/coremark/Makefile`:
 
 `ITERATIONS`: 5000 by default, which should be sufficient for all permutations of RocketConfig + Board + ClkFreq.
 
 Coremark requires runtime > 10 secs, so increase ITERATIONS if your CPU is somehow too fast.
 
-And then within `bare-metal/common.mk` :
+Secondly, for Dhrystone, within `bare-metal/dhrystone/Makefile`:
 
-`FPGA_CPU_CLK_FREQ`: defaults to 100MHz, but set this to whatever frequency you're clocking your CPU
+`DHRY_ITERS`: 3000000 by default, which should be sufficient for all permutations of RocketConfig + Board + ClkFreq.
+
+Best not to decrease this too much, as Dhrystone won't print a result if it deems the runtime wasn't long enough.
+
