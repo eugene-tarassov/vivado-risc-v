@@ -1,0 +1,1 @@
+# SD card not supported
