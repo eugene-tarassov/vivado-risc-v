@@ -68,4 +68,3 @@ Secondly, for Dhrystone, within `bare-metal/dhrystone/Makefile`:
 `DHRY_ITERS`: 3000000 by default, which should be sufficient for all permutations of RocketConfig + Board + ClkFreq.
 
 Best not to decrease this too much, as Dhrystone won't print a result if it deems the runtime wasn't long enough.
-

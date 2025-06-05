@@ -27,7 +27,7 @@ set_property PACKAGE_PIN AL10 [get_ports {pcie_refclk_clk_p}]
 #  DDR4 Interface
 #
 #################################################################################
-#  300MHz DDR4 Clock 
+#  300MHz DDR4 Clock
 set_property PACKAGE_PIN AN27              [get_ports "default_300mhz_clk0_clk_p"]       ;#  Bank  66 VCCO - 1V2_VCCO - IO_L13P_T2L_N0_GC_QBC_66_AN27
 set_property IOSTANDARD LVDS               [get_ports "default_300mhz_clk0_clk_p"]       ;#  Bank  66 VCCO - 1V2_VCCO - IO_L13P_T2L_N0_GC_QBC_66_AN27
 set_property PACKAGE_PIN AN28              [get_ports "default_300mhz_clk0_clk_n"]       ;#  Bank  66 VCCO - 1V2_VCCO - IO_L13N_T2L_N1_GC_QBC_66_AN28

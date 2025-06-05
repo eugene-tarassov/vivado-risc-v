@@ -4,7 +4,7 @@
 .globl _start
 _start:
   li sp, BOOT_MEM_END
-  
+
   # these extra functions initialize the baremetal SoC
   call init
   call welcome_message

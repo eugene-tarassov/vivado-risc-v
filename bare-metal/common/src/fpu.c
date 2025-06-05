@@ -8,4 +8,3 @@ void enable_fpu() {
     mstatus |= (1 << 13); // FS = 01 (Initial)
     asm volatile ("csrw mstatus, %0" :: "r"(mstatus));
 }
-

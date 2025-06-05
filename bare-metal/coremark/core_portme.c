@@ -161,7 +161,7 @@ init(void)
 void
 welcome_message(void)
 {
-    ee_printf("Baremetal Coremark %d iterations, assuming %d MHz FPGA clock.\n", 
+    ee_printf("Baremetal Coremark %d iterations, assuming %d MHz FPGA clock.\n",
         ITERATIONS, FPGA_CPU_CLK_FREQ);
     ee_printf("Adjust FPGA_CPU_CLK_FREQ in common.mk if your clock frequency differs.\n");
     ee_printf("Expect a run time of at least 15 seconds before result printed.\n");
