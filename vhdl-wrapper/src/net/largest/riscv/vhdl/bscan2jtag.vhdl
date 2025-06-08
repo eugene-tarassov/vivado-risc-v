@@ -31,27 +31,27 @@ use unisim.vcomponents.all;
 -- 3. when the driver done with current block of shifts, it moves external JTAG state to IDLE, which puts bscan2jtag back to idle state.
 
 entity bscan2jtag is
-    generic (
-        enable_tck_bufg : in boolean := true);
-    port (
-        S_BSCAN_bscanid_en  : in std_logic; -- tie-off '0' if not used
-        S_BSCAN_capture     : in std_logic;
-        S_BSCAN_drck        : in std_logic;
-        S_BSCAN_reset       : in std_logic;
-        S_BSCAN_runtest     : in std_logic;
-        S_BSCAN_sel         : in std_logic;
-        S_BSCAN_shift       : in std_logic;
-        S_BSCAN_tck         : in std_logic;
-        S_BSCAN_tdi         : in std_logic;
-        S_BSCAN_tdo         : out std_logic;
-        S_BSCAN_tms         : in std_logic;
-        S_BSCAN_update      : in std_logic;
+generic (
+    enable_tck_bufg : in boolean := true);
+port (
+    S_BSCAN_bscanid_en  : in std_logic; -- tie-off '0' if not used
+    S_BSCAN_capture     : in std_logic;
+    S_BSCAN_drck        : in std_logic;
+    S_BSCAN_reset       : in std_logic;
+    S_BSCAN_runtest     : in std_logic;
+    S_BSCAN_sel         : in std_logic;
+    S_BSCAN_shift       : in std_logic;
+    S_BSCAN_tck         : in std_logic;
+    S_BSCAN_tdi         : in std_logic;
+    S_BSCAN_tdo         : out std_logic;
+    S_BSCAN_tms         : in std_logic;
+    S_BSCAN_update      : in std_logic;
 
-        jtag_tdo : in std_logic;
-        jtag_tdi : out std_logic;
-        jtag_tms : out std_logic;
-        jtag_tck : out std_logic;
-        jtag_tdt : in std_logic);
+    jtag_tdo : in std_logic;
+    jtag_tdi : out std_logic;
+    jtag_tms : out std_logic;
+    jtag_tck : out std_logic;
+    jtag_tdt : in std_logic);
 end bscan2jtag;
 
 architecture Behavioral of bscan2jtag is

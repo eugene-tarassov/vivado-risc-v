@@ -45,6 +45,7 @@ public class Main {
         String riscv_name;
         String xilinx_name;
         String signal_name;
+        String canonic_name;
         String addr_offs_name;
         String bus_name;
         Verilog2001Parser.Range_Context range;
@@ -442,17 +443,12 @@ public class Main {
         }
         if (bscan_bus != null) {
             ln("");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_update  : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN UPDATE\";");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_tms     : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN TMS\";");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_tdo     : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN TDO\";");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_tdi     : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN TDI\";");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_tck     : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN TCK\";");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_shift   : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN SHIFT\";");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_sel     : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN SEL\";");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_runtest : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN RUNTEST\";");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_reset   : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN RESET\";");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_drck    : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN DRCK\";");
-            ln("    ATTRIBUTE X_INTERFACE_INFO of S_BSCAN_capture : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN CAPTURE\";");
+            for (BusSignal sig : bscan_bus.signals) {
+                String nm = sig.signal_name;
+                while (nm.length() < bscan_signal_name_len) nm += ' ';
+                ln( "    ATTRIBUTE X_INTERFACE_INFO of " + nm +
+                    " : SIGNAL is \"xilinx.com:interface:bscan:1.0 S_BSCAN " + sig.canonic_name + "\";");
+            }
         }
     }
 
@@ -671,7 +667,6 @@ public class Main {
     private static void generateDebugComponent() {
         if (dmi_bus != null) {
             ln("");
-            String s = null;
             if (bscan_bus != null) {
                 ln("    jtag : entity work.JtagExtBscan");
                 ln("    port map (");
@@ -679,11 +674,9 @@ public class Main {
                 ln("        reset => reset,");
                 ln("        -- BSCAN interface");
                 for (BusSignal sig : bscan_bus.signals) {
-                    if (s != null) ln(s + ",");
                     String nm = sig.signal_name;
                     while (nm.length() < bscan_signal_name_len) nm += ' ';
-                    s = "        " + nm + " => ";
-                    s += sig.signal_name;
+                    ln("        " + nm + " => " + sig.signal_name + ",");
                 }
             }
             else {
@@ -692,6 +685,7 @@ public class Main {
                 ln("        clock => clock,");
                 ln("        reset => reset,");
             }
+            String s = null;
             ln("        -- Debug Module interface");
             for (BusSignal sig : dmi_bus.signals) {
                 if (s != null) ln(s + ',');
@@ -952,22 +946,24 @@ public class Main {
                 if (dmi_bus != null && rocket_module_name.endsWith("e")) {
                     bscan_bus = new Bus();
                     String[] sigs = {
-                        "capture",
+                        "bscanid_en",
                         "drck",
                         "reset",
                         "runtest",
                         "sel",
+                        "capture",
                         "shift",
+                        "update",
                         "tck",
                         "tdi",
                         "tdo",
                         "tms",
-                        "update",
                     };
                     for (String nm : sigs) {
                         BusSignal sig = new BusSignal();
                         sig.bus_name = "S_BSCAN";
                         sig.signal_name = "S_BSCAN_" + nm;
+                        sig.canonic_name = nm.toUpperCase();
                         sig.out = nm.equals("tdo");
                         bscan_bus.signals.add(sig);
                         int len = sig.signal_name.length();

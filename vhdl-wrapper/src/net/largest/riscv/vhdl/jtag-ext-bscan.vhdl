@@ -8,17 +8,18 @@ port (
     clock    : in std_logic;
     reset    : in std_logic;
     -- BSCAN interface
-    S_BSCAN_capture     : in std_logic;
+    S_BSCAN_bscanid_en  : in std_logic; -- tie-off '0' if not used
+    S_BSCAN_sel         : in std_logic;
     S_BSCAN_drck        : in std_logic;
     S_BSCAN_reset       : in std_logic;
     S_BSCAN_runtest     : in std_logic;
-    S_BSCAN_sel         : in std_logic;
+    S_BSCAN_capture     : in std_logic;
     S_BSCAN_shift       : in std_logic;
+    S_BSCAN_update      : in std_logic;
     S_BSCAN_tck         : in std_logic;
     S_BSCAN_tdi         : in std_logic;
-    S_BSCAN_tdo         : out std_logic;
     S_BSCAN_tms         : in std_logic;
-    S_BSCAN_update      : in std_logic;
+    S_BSCAN_tdo         : out std_logic;
     -- Debug Module interface
     dmi_o_ready  : in std_logic;
     dmi_o_valid  : out std_logic;
@@ -34,31 +35,33 @@ end JtagExtBscan;
 architecture Behaviour of JtagExtBscan is
     ATTRIBUTE X_INTERFACE_INFO : STRING;
     ATTRIBUTE X_INTERFACE_PARAMETER : STRING;
+    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_bscanid_en: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN BSCANID_EN";
+    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_sel: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN SEL";
+    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_drck: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN DRCK";
+    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_reset: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN RESET";
+    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_runtest: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN RUNTEST";
+    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_capture: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN CAPTURE";
+    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_shift: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN SHIFT";
     ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_update: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN UPDATE";
+    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_tck: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN TCK";
+    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_tdi: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN TDI";
     ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_tms: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN TMS";
     ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_tdo: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN TDO";
-    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_tdi: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN TDI";
-    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_tck: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN TCK";
-    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_shift: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN SHIFT";
-    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_sel: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN SEL";
-    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_runtest: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN RUNTEST";
-    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_reset: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN RESET";
-    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_drck: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN DRCK";
-    ATTRIBUTE X_INTERFACE_INFO OF S_BSCAN_capture: SIGNAL IS "xilinx.com:interface:bscan:1.0 S_BSCAN CAPTURE";
 
     -- JTAG TCK clock domain
 
-    signal jtag_capture: std_logic;
+    signal jtag_bscanid_en: std_logic;
+    signal jtag_select : std_logic;
     signal jtag_dclock : std_logic;
     signal jtag_reset  : std_logic;
     signal jtag_runtest: std_logic;
-    signal jtag_select : std_logic;
+    signal jtag_capture: std_logic;
     signal jtag_shift  : std_logic;
+    signal jtag_update : std_logic;
     signal jtag_tck_inp: std_logic;
     signal jtag_tck    : std_logic;
     signal jtag_tdi    : std_logic;
     signal jtag_tms    : std_logic;
-    signal jtag_update : std_logic;
     signal jtag_tdo    : std_logic;
 
     signal dr          : std_logic_vector(39 downto 0);
@@ -71,6 +74,8 @@ architecture Behaviour of JtagExtBscan is
     signal cmd         : std_logic_vector(7 downto 0);
     signal arg         : std_logic_vector(31 downto 0);
     signal res         : std_logic_vector(31 downto 0);
+    signal id_sr       : std_logic_vector(31 downto 0);
+    signal id_en       : boolean;
     signal lock        : std_logic := '1';
 
     signal crc         : std_logic_vector(31 downto 0);
@@ -109,6 +114,7 @@ architecture Behaviour of JtagExtBscan is
 
 begin
 
+    jtag_bscanid_en <= S_BSCAN_bscanid_en;
     jtag_select  <= S_BSCAN_sel;      -- USER instruction has been loaded into the JTAG Instruction Register
     jtag_dclock  <= S_BSCAN_drck;     -- Gated version of TCK, it toggles during the CAPTURE-DR and SHIFT-DR states
     jtag_reset   <= S_BSCAN_reset;    -- TAP controller is in the TEST-LOGIC-RESET state
@@ -121,16 +127,22 @@ begin
     jtag_tms     <= S_BSCAN_tms;      -- Mirror of TMS input pin
     S_BSCAN_tdo  <= jtag_tdo;         -- Routed to external JTAG TDO pin
 
-    jtag_tdo <= dr(0);
-
     tck_buf : BUFG
     port map (
         I => jtag_tck_inp,
         O => jtag_tck);
 
+    jtag_tdo <= id_sr(0) when id_en else dr(0);
+
     process (jtag_tck)
     begin
         if jtag_tck'event and jtag_tck = '1' then
+            id_en <= jtag_bscanid_en = '1';
+            if id_en then
+                id_sr <= '0' & id_sr(31 downto 1);
+            else
+                id_sr <= ID;
+            end if;
             if jtag_reset = '1' or jtag_select = '0' then
                 res <= ID;
                 overrun <= '0';

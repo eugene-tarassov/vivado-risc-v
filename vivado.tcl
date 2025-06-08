@@ -84,6 +84,10 @@ if { [llength [get_bd_intf_pins -quiet RocketChip/JTAG]] == 1 } {
   create_bd_cell -type ip -vlnv xilinx.com:ip:debug_bridge:3.0 BSCAN
   set_property -dict [list CONFIG.C_DEBUG_MODE {7} CONFIG.C_USER_SCAN_CHAIN {1} CONFIG.C_NUM_BS_MASTER {1}] [get_bd_cells BSCAN]
   connect_bd_intf_net -intf_net BSCAN [get_bd_intf_pins BSCAN/m0_bscan] [get_bd_intf_pins JTAG/S_BSCAN]
+} elseif { [llength [get_bd_intf_pins -quiet RocketChip/S_BSCAN]] == 1 } {
+  create_bd_cell -type ip -vlnv xilinx.com:ip:debug_bridge:3.0 BSCAN
+  set_property -dict [list CONFIG.C_DEBUG_MODE {7} CONFIG.C_USER_SCAN_CHAIN {1} CONFIG.C_NUM_BS_MASTER {1}] [get_bd_cells BSCAN]
+  connect_bd_intf_net -intf_net BSCAN [get_bd_intf_pins BSCAN/m0_bscan] [get_bd_intf_pins RocketChip/S_BSCAN]
 }
 
 set_property CONFIG.CLKOUT1_REQUESTED_OUT_FREQ $riscv_clock_frequency [get_bd_cells clk_wiz_0]

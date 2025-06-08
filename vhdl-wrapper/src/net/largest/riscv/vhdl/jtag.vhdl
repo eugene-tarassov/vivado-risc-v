@@ -25,17 +25,18 @@ architecture Behaviour of JtagSeries7 is
 
     -- JTAG TCK clock domain
 
-    signal jtag_capture: std_logic;
+    signal jtag_bscanid_en: std_logic;
+    signal jtag_select : std_logic;
     signal jtag_dclock : std_logic;
     signal jtag_reset  : std_logic;
     signal jtag_runtest: std_logic;
-    signal jtag_select : std_logic;
+    signal jtag_capture: std_logic;
     signal jtag_shift  : std_logic;
+    signal jtag_update : std_logic;
     signal jtag_tck_inp: std_logic;
     signal jtag_tck    : std_logic;
     signal jtag_tdi    : std_logic;
     signal jtag_tms    : std_logic;
-    signal jtag_update : std_logic;
     signal jtag_tdo    : std_logic;
 
     signal dr          : std_logic_vector(39 downto 0);
@@ -102,12 +103,12 @@ begin
         TMS     => jtag_tms,     -- Mirror of TMS input pin
         TDO     => jtag_tdo);    -- Routed to external JTAG TDO pin
 
-    jtag_tdo <= dr(0);
-
     tck_buf : BUFG
     port map (
         I => jtag_tck_inp,
         O => jtag_tck);
+
+    jtag_tdo <= dr(0);
 
     process (jtag_tck)
     begin
