@@ -42,7 +42,7 @@ Alternatively, a Windows 10 machine with Ubuntu on Windows can be used to run th
 ## Software
 Download and install AMD/Xilinx
 [Vitis](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis.html).
-Supported Vitis versions are 2020.2, 2021.1, 2021.2, 2022.1, 2022.2, 2023.1, 2023.2, 2024.1, 2024.2.
+Supported Vitis versions are 2020.2, 2021.1, 2021.2, 2022.1, 2022.2, 2023.1, 2023.2, 2024.1, 2024.2, 2025.1.
 Vitis installation includes Vivado Design Suite - there is no need to install Vivado separately.
 
 Nexys Video, Nexys A7 100T and Arty A7 100T are supported by free version of Vivado. KC705, VC707 and Genesys 2 require Vivado license.
@@ -62,7 +62,7 @@ make update-submodules
 
 ## Build FPGA bitstream
 ```
-source /opt/Xilinx/Vivado/2024.2/settings64.sh
+source /opt/Xilinx/2025.1/Vivado/settings64.sh
 make CONFIG=rocket64b2 BOARD=nexys-video bitstream
 ```
 For KC705, use `BOARD=kc705`
@@ -132,7 +132,7 @@ Once all this is done, you can make the sd card without making the image:
 
 ## Program the FPGA flash memory
 ```
-source /opt/Xilinx/Vivado/2024.2/settings64.sh
+source /opt/Xilinx/2025.1/Vivado/settings64.sh
 make CONFIG=rocket64b2 BOARD=nexys-video flash
 ```
 Alternatively, [flash memory can be programmed using Vivado GUI](docs/vivado-flash.md).
@@ -160,7 +160,7 @@ ssh debian@debian
 
 Open Vivado:
 ```
-source /opt/Xilinx/Vivado/2024.2/settings64.sh
+source /opt/Xilinx/2025.1/Vivado/settings64.sh
 make CONFIG=rocket64b2 BOARD=nexys-video vivado-gui
 ```
 The IO block in the design is the best place to add device controllers, like GPIO.
