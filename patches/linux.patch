@@ -1,8 +1,8 @@
 diff --git a/arch/riscv/include/asm/page.h b/arch/riscv/include/asm/page.h
-index febf820d5058..342343308163 100644
+index 572a141ddecd..7d7ca8104ad7 100644
 --- a/arch/riscv/include/asm/page.h
 +++ b/arch/riscv/include/asm/page.h
-@@ -94,7 +94,7 @@ typedef struct page *pgtable_t;
+@@ -93,7 +93,7 @@ typedef struct page *pgtable_t;
   * We override this value as its generic definition uses __pa too early in
   * the boot process (before kernel_map.va_pa_offset is set).
   */
@@ -10,12 +10,12 @@ index febf820d5058..342343308163 100644
 +#define MIN_MEMBLOCK_ADDR      0x80200000
  #endif
  
- #ifdef CONFIG_MMU
+ #define ARCH_PFN_OFFSET		(PFN_DOWN((unsigned long)phys_ram_base))
 diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
-index 7199cb0bd0b9..708684dfe69e 100644
+index 264e11fa58ea..e96c76e2aaa5 100644
 --- a/drivers/mmc/host/Kconfig
 +++ b/drivers/mmc/host/Kconfig
-@@ -1078,6 +1078,14 @@ config MMC_SDHCI_AM654
+@@ -1089,6 +1089,14 @@ config MMC_SDHCI_AM654
  
  	  If unsure, say N.
  
@@ -31,10 +31,10 @@ index 7199cb0bd0b9..708684dfe69e 100644
  	tristate "Actions Semi Owl SD/MMC Host Controller support"
  	depends on HAS_DMA
 diff --git a/drivers/mmc/host/Makefile b/drivers/mmc/host/Makefile
-index 3ccffebbe59b..a01f0a6dd1f4 100644
+index 5147467ec825..fe792ee90fb8 100644
 --- a/drivers/mmc/host/Makefile
 +++ b/drivers/mmc/host/Makefile
-@@ -70,6 +70,7 @@ obj-$(CONFIG_MMC_SUNXI)		+= sunxi-mmc.o
+@@ -71,6 +71,7 @@ obj-$(CONFIG_MMC_SUNXI)		+= sunxi-mmc.o
  obj-$(CONFIG_MMC_USDHI6ROL0)	+= usdhi6rol0.o
  obj-$(CONFIG_MMC_TOSHIBA_PCI)	+= toshsd.o
  obj-$(CONFIG_MMC_BCM2835)	+= bcm2835.o
@@ -43,10 +43,10 @@ index 3ccffebbe59b..a01f0a6dd1f4 100644
  
  obj-$(CONFIG_MMC_REALTEK_PCI)	+= rtsx_pci_sdmmc.o
 diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
-index 9a542e3c9b05..1eae6f5ea21b 100644
+index f86d4557d8d7..0e7df4ec9725 100644
 --- a/drivers/net/ethernet/Kconfig
 +++ b/drivers/net/ethernet/Kconfig
-@@ -169,6 +169,14 @@ config OA_TC6
+@@ -170,6 +170,14 @@ config OA_TC6
  	  To know the implementation details, refer documentation in
  	  <file:Documentation/networking/oa-tc6-framework.rst>.
  
@@ -62,10 +62,10 @@ index 9a542e3c9b05..1eae6f5ea21b 100644
  source "drivers/net/ethernet/pasemi/Kconfig"
  source "drivers/net/ethernet/pensando/Kconfig"
 diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
-index 99fa180dedb8..998e5e9b0462 100644
+index 67182339469a..a5ac1b68e035 100644
 --- a/drivers/net/ethernet/Makefile
 +++ b/drivers/net/ethernet/Makefile
-@@ -74,6 +74,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
+@@ -75,6 +75,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
  obj-$(CONFIG_LPC_ENET) += nxp/
  obj-$(CONFIG_NET_VENDOR_OKI) += oki-semi/
  obj-$(CONFIG_ETHOC) += ethoc.o
@@ -74,10 +74,10 @@ index 99fa180dedb8..998e5e9b0462 100644
  obj-$(CONFIG_NET_VENDOR_PASEMI) += pasemi/
  obj-$(CONFIG_NET_VENDOR_QLOGIC) += qlogic/
 diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index 28e4beeabf8f..e7aa4ce4ae32 100644
+index 79a8186d3361..5613af03e3a0 100644
 --- a/drivers/tty/serial/Kconfig
 +++ b/drivers/tty/serial/Kconfig
-@@ -539,6 +539,32 @@ config SERIAL_UARTLITE_NR_UARTS
+@@ -543,6 +543,32 @@ config SERIAL_UARTLITE_NR_UARTS
  	  driver uses dynamic allocation instead of static allocation for major
  	  number.
  
@@ -111,7 +111,7 @@ index 28e4beeabf8f..e7aa4ce4ae32 100644
  	bool
  	depends on SPARC
 diff --git a/drivers/tty/serial/Makefile b/drivers/tty/serial/Makefile
-index 6ff74f0a9530..7883c0f9672c 100644
+index d58d9f719889..4a948767cd02 100644
 --- a/drivers/tty/serial/Makefile
 +++ b/drivers/tty/serial/Makefile
 @@ -39,6 +39,7 @@ obj-$(CONFIG_SERIAL_CONEXANT_DIGICOLOR)	+= digicolor-usart.o
