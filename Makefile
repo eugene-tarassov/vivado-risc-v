@@ -83,14 +83,14 @@ workspace/gcc/riscv: workspace/gcc/tools.tar.gz
 debian-riscv64/initrd:
 	mkdir -p debian-riscv64
 	curl --netrc --location --header 'Accept: application/octet-stream' \
-	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/158580561 \
+	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/273267844 \
 	  -o $@.tmp
 	mv $@.tmp $@
 
 debian-riscv64/rootfs.tar.gz:
 	mkdir -p debian-riscv64
 	curl --netrc --location --header 'Accept: application/octet-stream' \
-	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/158580569 \
+	  https://api.github.com/repos/eugene-tarassov/vivado-risc-v/releases/assets/273267849 \
 	  -o $@.tmp
 	mv $@.tmp $@
 
