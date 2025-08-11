@@ -38,7 +38,7 @@ else
 	sudo apt install python
 endif
 
-apt-install-qemi:
+apt-install-qemu:
 	sudo apt install qemu-system-misc opensbi u-boot-qemu qemu-utils
 
 # skip submodules which are not needed and take long time to update
