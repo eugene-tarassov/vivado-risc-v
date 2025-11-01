@@ -153,6 +153,7 @@ u-boot/u-boot-nodtb.bin: workspace/patch-u-boot-done $(U_BOOT_SRC)
 	  CC=$(CROSS_COMPILE_LINUX)gcc \
 	  CROSS_COMPILE=$(CROSS_COMPILE_LINUX) \
 	  KCFLAGS='-O1 -gno-column-info' \
+	  ARCH_FLAGS='-march=rv64imac_zicsr_zifencei -mabi=lp64 -mcmodel=medany' \
 	  u-boot-nodtb.bin
 
 u-boot-qemu:
