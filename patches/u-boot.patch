@@ -20,3 +20,21 @@ index ba29e70acf7..a572610f2a0 100644
  source "board/sifive/unleashed/Kconfig"
  source "board/sifive/unmatched/Kconfig"
  source "board/openpiton/riscv64/Kconfig"
+diff --git a/arch/riscv/Makefile b/arch/riscv/Makefile
+index 0b80eb8d864..29de3ed9ffc 100644
+--- a/arch/riscv/Makefile
++++ b/arch/riscv/Makefile
+@@ -24,8 +24,11 @@ ifeq ($(CONFIG_CMODEL_MEDANY),y)
+ 	CMODEL = medany
+ endif
+ 
+-ARCH_FLAGS = -march=$(ARCH_BASE)$(ARCH_A)$(ARCH_C) -mabi=$(ABI) \
+-	     -mcmodel=$(CMODEL)
++ifeq ($(shell expr `$(CC) -dumpversion` \>= 12),0)
++  ARCH_FLAGS = -march=$(ARCH_BASE)$(ARCH_A)$(ARCH_C) -mabi=$(ABI) -mcmodel=$(CMODEL)
++else
++  ARCH_FLAGS = -march=$(ARCH_BASE)$(ARCH_A)$(ARCH_C)_zicsr_zifencei -mabi=$(ABI) -mcmodel=$(CMODEL)
++endif
+ 
+ PLATFORM_CPPFLAGS	+= $(ARCH_FLAGS)
+ CFLAGS_EFI		+= $(ARCH_FLAGS)

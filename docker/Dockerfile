@@ -1,13 +1,19 @@
-FROM ubuntu:focal
+FROM ubuntu:noble
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN \
   apt update -y && \
   apt upgrade -y && \
-  apt install -y sudo git make default-jdk device-tree-compiler curl gawk python locales lsb-release \
-    libtinfo5 libmpc-dev libssl-dev gcc gcc-riscv64-linux-gnu flex bison bc udev dosfstools unzip pigz wget && \
+  apt install -y sudo git make openjdk-17-jdk device-tree-compiler curl gawk python-is-python3 locales lsb-release \
+    libncurses-dev libmpc-dev libssl-dev gcc gcc-riscv64-linux-gnu flex bison bc udev dosfstools unzip pigz wget && \
   apt autoclean && \
   apt autoremove
+
+# Install libtinfo5 which is required by Vivado but not available by default on Ubuntu 23.04+
+RUN \
+  wget http://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb && \
+  sudo apt install -y ./libtinfo5_6.3-2ubuntu0.1_amd64.deb && \
+  rm libtinfo5_6.3-2ubuntu0.1_amd64.deb
 
 RUN \
   locale-gen en_US.UTF-8 && \
@@ -89,9 +95,10 @@ RUN git config --system --add safe.directory '*'
 # Download and install board files
 RUN \
   cd / && \
-  git clone --branch ${VIVADO_VERSION} https://github.com/Xilinx/XilinxBoardStore.git && \
+  git clone --branch ${VIVADO_VERSION} --single-branch https://github.com/Xilinx/XilinxBoardStore.git && \
   mkdir -p /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/boards/board_files/XilinxBoardStore && \
   cp -r XilinxBoardStore/boards/* /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/boards/board_files/XilinxBoardStore/ && \
+  rm -rf /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/boards/board_files/XilinxBoardStore/iWave && \
   rm -rf XilinxBoardStore && \
   git clone https://github.com/Digilent/vivado-boards.git && \
   mkdir -p /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/boards/board_files/Digilent && \
@@ -106,9 +113,9 @@ ENV VIVADO_VERSION=${VIVADO_VERSION}
 ENV VIVADO_HOME=/opt/Xilinx/Vivado/${VIVADO_VERSION}
 
 WORKDIR /src
-ARG HOST_UID=1000
 ARG HOST_GID=1000
-RUN groupadd -g $HOST_GID vivado
-RUN useradd -u $HOST_UID -g $HOST_GID -d /src vivado
+ARG HOST_UID=1000
+RUN getent group $HOST_GID || groupadd -g $HOST_GID vivado
+RUN if getent passwd $HOST_UID ; then usermod -d /src `id -un $HOST_UID` ; else useradd -u $HOST_UID -g $HOST_GID -d /src vivado ; fi
 RUN cp /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh /etc/profile.d/vivado-settings.sh
-RUN echo 'vivado ALL=(ALL) NOPASSWD: ALL' >/etc/sudoers.d/vivado-sudoers
+RUN echo "#$HOST_UID ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/vivado-sudoers

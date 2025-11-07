@@ -27,15 +27,27 @@ docker-shell:
 
 # --- packages and repos ---
 
+JAVA_VERSION = 17
+JAVA_PATH = /usr/lib/jvm/java-$(JAVA_VERSION)-openjdk-amd64/bin
+OS_CODENAME := $(shell test -r /etc/os-release && . /etc/os-release && echo $$ID:$$VERSION_CODENAME)
+
 apt-install:
 	sudo apt update
 	sudo apt upgrade
-	sudo apt install default-jdk device-tree-compiler curl gawk \
-	 libtinfo5 libmpc-dev libssl-dev gcc gcc-riscv64-linux-gnu flex bison bc parted udev dosfstools
-ifeq ($(shell test -r /etc/os-release && . /etc/os-release && echo $$VERSION_CODENAME),jammy)
-	sudo apt install python-is-python3
+	sudo apt install device-tree-compiler curl gawk openjdk-$(JAVA_VERSION)-jdk \
+	 libmpc-dev libssl-dev gcc gcc-riscv64-linux-gnu flex bison bc parted udev dosfstools
+ifeq ($(OS_CODENAME),ubuntu:focal)
+	sudo apt install libtinfo5 python
+else ifeq ($(OS_CODENAME),ubuntu:jammy)
+	sudo apt install libtinfo5 python-is-python3
 else
-	sudo apt install python
+	sudo apt install libncurses-dev python-is-python3
+	# Install libtinfo5 which is required by Vivado but not available by default on Ubuntu 23.04+
+	curl --netrc --location --header 'Accept: application/octet-stream' \
+	  https://security.ubuntu.com/ubuntu/pool/universe/n/ncurses/libtinfo5_6.3-2ubuntu0.1_amd64.deb \
+	  -o /tmp/libtinfo5.deb
+	sudo apt install /tmp/libtinfo5.deb
+	rm /tmp/libtinfo5.deb
 endif
 
 apt-install-qemu:
@@ -110,8 +122,8 @@ workspace/patch-linux-done: patches/linux.patch patches/fpga-axi-sdc.c patches/f
 	mkdir -p workspace && touch workspace/patch-linux-done
 
 linux-stable/arch/riscv/boot/Image: workspace/patch-linux-done
-	make -C linux-stable ARCH=riscv CROSS_COMPILE=$(CROSS_COMPILE_LINUX) oldconfig
-	make -C linux-stable ARCH=riscv CROSS_COMPILE=$(CROSS_COMPILE_LINUX) all
+	$(MAKE) -C linux-stable ARCH=riscv CROSS_COMPILE=$(CROSS_COMPILE_LINUX) oldconfig
+	$(MAKE) -C linux-stable ARCH=riscv CROSS_COMPILE=$(CROSS_COMPILE_LINUX) all
 
 
 # --- build U-Boot ---
@@ -147,8 +159,8 @@ workspace/patch-u-boot-done: u-boot/configs/vivado_riscv64_defconfig
 	mkdir -p workspace && touch workspace/patch-u-boot-done
 
 u-boot/u-boot-nodtb.bin: workspace/patch-u-boot-done $(U_BOOT_SRC)
-	make -C u-boot CROSS_COMPILE=$(CROSS_COMPILE_LINUX) BOARD=vivado_riscv64 vivado_riscv64_config
-	make -C u-boot \
+	$(MAKE) -C u-boot CROSS_COMPILE=$(CROSS_COMPILE_LINUX) BOARD=vivado_riscv64 vivado_riscv64_config
+	$(MAKE) -C u-boot \
 	  BOARD=vivado_riscv64 \
 	  CC=$(CROSS_COMPILE_LINUX)gcc \
 	  CROSS_COMPILE=$(CROSS_COMPILE_LINUX) \
@@ -157,7 +169,7 @@ u-boot/u-boot-nodtb.bin: workspace/patch-u-boot-done $(U_BOOT_SRC)
 
 u-boot-qemu:
 	cd qemu/ && if [ ! -d u-boot ]; then git clone ../u-boot; fi && cd u-boot && git checkout v2022.01
-	cd qemu/u-boot && export CROSS_COMPILE=$(CROSS_COMPILE_LINUX) && make qemu-riscv64_smode_defconfig && make -j$(nproc)
+	cd qemu/u-boot && export CROSS_COMPILE=$(CROSS_COMPILE_LINUX) && $(MAKE) qemu-riscv64_smode_defconfig && $(MAKE) -j$(nproc)
 
 # --- build RISC-V Open Source Supervisor Binary Interface (OpenSBI) ---
 
@@ -170,12 +182,12 @@ workspace/boot.elf: opensbi/build/platform/vivado-risc-v/firmware/fw_payload.elf
 opensbi/build/platform/vivado-risc-v/firmware/fw_payload.elf: $(wildcard patches/opensbi/*) u-boot/u-boot-nodtb.bin
 	mkdir -p opensbi/platform/vivado-risc-v
 	cp -p -r patches/opensbi/* opensbi/platform/vivado-risc-v
-	make -C opensbi CROSS_COMPILE=$(CROSS_COMPILE_LINUX) PLATFORM=vivado-risc-v \
+	$(MAKE) -C opensbi CROSS_COMPILE=$(CROSS_COMPILE_LINUX) PLATFORM=vivado-risc-v \
 	 FW_PAYLOAD_PATH=`realpath u-boot/u-boot-nodtb.bin`
 
 opensbi-qemu:
 	cd qemu && if [ ! -d opensbi ]; then git clone ../opensbi; fi
-	cd qemu && make -C opensbi clean && make -C opensbi PLATFORM=generic CROSS_COMPILE=$(CROSS_COMPILE_LINUX) FW_PAYLOAD_PATH=../u-boot/u-boot.bin
+	cd qemu && $(MAKE) -C opensbi clean && $(MAKE) -C opensbi PLATFORM=generic CROSS_COMPILE=$(CROSS_COMPILE_LINUX) FW_PAYLOAD_PATH=../u-boot/u-boot.bin
 
 # --- generate HDL ---
 
@@ -210,7 +222,7 @@ else
   MEMORY_ADDR_RANGE64 = 0x0 0x80000000 $(shell echo - | awk '{CPU=$(MEMORY_SIZE_CPU); DDR=$(MEMORY_SIZE); $(MEMORY_SIZE_AWK)}')
 endif
 
-SBT := java -Xmx12G -Xss8M $(JAVA_OPTIONS) -Dsbt.io.virtual=false -Dsbt.server.autostart=false -jar $(realpath sbt-launch.jar)
+SBT := $(JAVA_PATH)/java -Xmx12G -Xss8M $(JAVA_OPTIONS) -Dsbt.io.virtual=false -Dsbt.server.autostart=false -jar $(realpath sbt-launch.jar)
 
 CHISEL_SRC_DIRS = \
   src/main \
@@ -223,7 +235,7 @@ CHISEL_SRC_DIRS = \
   generators/testchipip/src/main
 
 CHISEL_SRC := $(foreach path, $(CHISEL_SRC_DIRS), $(shell test -d $(path) && find $(path) -iname "*.scala" -not -name ".*"))
-FIRRTL = java -Xmx12G -Xss8M $(JAVA_OPTIONS) -cp `realpath target/scala-*/system.jar` firrtl.stage.FirrtlMain
+FIRRTL = $(JAVA_PATH)/java -Xmx12G -Xss8M $(JAVA_OPTIONS) -cp `realpath target/scala-*/system.jar` firrtl.stage.FirrtlMain
 
 workspace/patch-hdl-done:
 	if [ -s patches/ethernet.patch ] ; then cd ethernet/verilog-ethernet && ( git apply -R --check ../../patches/ethernet.patch 2>/dev/null || git apply ../../patches/ethernet.patch ) ; fi
@@ -254,7 +266,7 @@ workspace/$(CONFIG)/system-$(BOARD)/RocketSystem.fir: workspace/$(CONFIG)/system
 	if [ ! -z "$(ETHER_MAC)" ] ; then sed -i "s#local-mac-address = \[.*\]#local-mac-address = [$(ETHER_MAC)]#g" bootrom/system.dts ; fi
 	if [ ! -z "$(ETHER_PHY)" ] ; then sed -i "s#phy-mode = \".*\"#phy-mode = \"$(ETHER_PHY)\"#g" bootrom/system.dts ; fi
 	sed -i "/interrupts-extended = <&.* 65535>;/d" bootrom/system.dts
-	make -C bootrom CROSS_COMPILE="$(CROSS_COMPILE_NO_OS_TOOLS)" CFLAGS="$(CROSS_COMPILE_NO_OS_FLAGS)" BOARD=$(BOARD) clean bootrom.img
+	$(MAKE) -C bootrom CROSS_COMPILE="$(CROSS_COMPILE_NO_OS_TOOLS)" CFLAGS="$(CROSS_COMPILE_NO_OS_FLAGS)" BOARD=$(BOARD) clean bootrom.img
 	mv bootrom/system.dts workspace/$(CONFIG)/system-$(BOARD).dts
 	mv bootrom/bootrom.img workspace/bootrom.img
 	$(SBT) "runMain freechips.rocketchip.diplomacy.Main --dir `realpath workspace/$(CONFIG)/system-$(BOARD)` --top Vivado.RocketSystem --config Vivado.$(CONFIG_SCALA)"
@@ -272,11 +284,11 @@ workspace/$(CONFIG)/system-$(BOARD).v: workspace/$(CONFIG)/system-$(BOARD)/Rocke
 # Generate Rocket SoC wrapper for Vivado
 workspace/$(CONFIG)/rocket.vhdl: workspace/$(CONFIG)/system-$(BOARD).v
 	mkdir -p vhdl-wrapper/bin
-	javac -g -nowarn \
+	$(JAVA_PATH)/javac -g -nowarn \
 	  -sourcepath vhdl-wrapper/src -d vhdl-wrapper/bin \
 	  -classpath vhdl-wrapper/antlr-4.8-complete.jar \
 	  vhdl-wrapper/src/net/largest/riscv/vhdl/Main.java
-	java -Xmx4G -Xss8M $(JAVA_OPTIONS) -cp \
+	$(JAVA_PATH)/java -Xmx4G -Xss8M $(JAVA_OPTIONS) -cp \
 	  vhdl-wrapper/src:vhdl-wrapper/bin:vhdl-wrapper/antlr-4.8-complete.jar \
 	  net.largest.riscv.vhdl.Main -m $(CONFIG_SCALA) \
 	  workspace/$(CONFIG)/system-$(BOARD).v >$@

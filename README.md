@@ -34,10 +34,10 @@ Nexys Video is several times less expensive, academic discount is avaialble. It 
 Nexys A7 100T and Arty A7 100T are least expensive supported boards. They have small and slow FPGA, barely enough to run Linux on a single core RISC-V at 50MHz.
 
 ## Workstation
-[Ubuntu 20 LTS](https://ubuntu.com/download/desktop) machine with min 32GB RAM is recommended.
-sudo access required.
+[Ubuntu 20.04 or 24.04 LTS](https://ubuntu.com/download/desktop) machine with min 32GB RAM.
+sudo access required. Other versions or distributions of Linux are not supported in this repo.
 
-Alternatively, a Windows 10 machine with Ubuntu on Windows can be used to run the tools, see [Running RISC-V tools on Windows](docs/ubuntu-on-windows.md).
+Alternatively, a Windows 11 machine with Ubuntu on Windows can be used to run the tools, see [Running RISC-V tools on Windows](docs/ubuntu-on-windows.md).
 
 ## Software
 Download and install AMD/Xilinx
