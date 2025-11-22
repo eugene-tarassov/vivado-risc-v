@@ -24,7 +24,7 @@ ENV LANG="en_US.UTF-8" LANGUAGE="en_US:en" LC_ALL="en_US.UTF-8"
 COPY vivado-installer/ /vivado-installer/
 
 # Install the Xilinx Vivado tools and updates in headless mode
-ARG VIVADO_VERSION=2023.2
+ARG VIVADO_VERSION=2025.2
 # Xilinx installer tar file originally from: https://www.xilinx.com/support/download.html
 ARG VIVADO_INSTALLER="*_${VIVADO_VERSION}_*.tar.gz"
 ARG VIVADO_UPDATE=""
@@ -69,8 +69,28 @@ RUN \
       --config ${VIVADO_INSTALLER_CONFIG} && \
     rm -r /vivado-installer/update ; \
   fi
+
+# Download and install board files
 RUN \
-  unzip /vivado-installer/board_files.zip -d /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/boards/board_files
+  if [ -d /opt/Xilinx/Vivado/${VIVADO_VERSION} ] ; then \
+    VIVADO_HOME=/opt/Xilinx/Vivado/${VIVADO_VERSION} ; \
+  else \
+    VIVADO_HOME=/opt/Xilinx/${VIVADO_VERSION}/Vivado ; \
+  fi && \
+  cp ${VIVADO_HOME}/settings64.sh /etc/profile.d/vivado-settings.sh && \
+  unzip /vivado-installer/board_files.zip -d ${VIVADO_HOME}/data/boards/board_files && \
+  git config --system --add safe.directory '*' && \
+  cd / && \
+  git clone --branch ${VIVADO_VERSION} --single-branch https://github.com/Xilinx/XilinxBoardStore.git && \
+  mkdir -p ${VIVADO_HOME}/data/boards/board_files/XilinxBoardStore && \
+  cp -r XilinxBoardStore/boards/* ${VIVADO_HOME}/data/boards/board_files/XilinxBoardStore/ && \
+  rm -rf ${VIVADO_HOME}/data/boards/board_files/XilinxBoardStore/iWave && \
+  rm -rf XilinxBoardStore && \
+  git clone https://github.com/Digilent/vivado-boards.git && \
+  mkdir -p ${VIVADO_HOME}/data/boards/board_files/Digilent && \
+  cp -r vivado-boards/new/board_files/* ${VIVADO_HOME}/data/boards/board_files/Digilent/ && \
+  rm -rf vivado-boards
+
 RUN \
   rm -rf /vivado-installer
 
@@ -90,32 +110,15 @@ RUN \
 RUN \
   rm -rf /patches
 
-RUN git config --system --add safe.directory '*'
-
-# Download and install board files
-RUN \
-  cd / && \
-  git clone --branch ${VIVADO_VERSION} --single-branch https://github.com/Xilinx/XilinxBoardStore.git && \
-  mkdir -p /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/boards/board_files/XilinxBoardStore && \
-  cp -r XilinxBoardStore/boards/* /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/boards/board_files/XilinxBoardStore/ && \
-  rm -rf /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/boards/board_files/XilinxBoardStore/iWave && \
-  rm -rf XilinxBoardStore && \
-  git clone https://github.com/Digilent/vivado-boards.git && \
-  mkdir -p /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/boards/board_files/Digilent && \
-  cp -r vivado-boards/new/board_files/* /opt/Xilinx/Vivado/${VIVADO_VERSION}/data/boards/board_files/Digilent/ && \
-  rm -rf vivado-boards
-
 # Workaround for Vivado crash
 ENV LD_PRELOAD=/lib/x86_64-linux-gnu/libudev.so.1
 
-# ENV vars to help users to find the version and installation directory of Vivado
+# ENV var to help users to find the version of Vivado
 ENV VIVADO_VERSION=${VIVADO_VERSION}
-ENV VIVADO_HOME=/opt/Xilinx/Vivado/${VIVADO_VERSION}
 
 WORKDIR /src
 ARG HOST_GID=1000
 ARG HOST_UID=1000
 RUN getent group $HOST_GID || groupadd -g $HOST_GID vivado
 RUN if getent passwd $HOST_UID ; then usermod -d /src `id -un $HOST_UID` ; else useradd -u $HOST_UID -g $HOST_GID -d /src vivado ; fi
-RUN cp /opt/Xilinx/Vivado/${VIVADO_VERSION}/settings64.sh /etc/profile.d/vivado-settings.sh
 RUN echo "#$HOST_UID ALL=(ALL) NOPASSWD: ALL" >/etc/sudoers.d/vivado-sudoers

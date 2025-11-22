@@ -16,7 +16,7 @@ all: bitstream
 
 # --- docker ---------------
 
-DOCKER_VIVADO_VERSION ?= 2023.2
+DOCKER_VIVADO_VERSION ?= 2025.2
 DOCKER_ARGS ?=
 
 docker-image:

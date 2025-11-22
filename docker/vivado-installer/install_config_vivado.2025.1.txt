@@ -1,0 +1,30 @@
+#### Vivado ML Enterprise Install Configuration ####
+Edition=Vivado ML Enterprise
+
+Product=Vivado
+
+# Path where AMD FPGAs & Adaptive SoCs software will be installed.
+Destination=/opt/Xilinx
+
+# Choose the Products/Devices the you would like to install.
+Modules=Virtex UltraScale+ FPGAs:1,xqrvc1902:0,xqvm1402:0,Virtex-7 FPGAs:1,Kintex-7 FPGAs:1,Spartan UltraScale+ ES1:0,xqvc1902:0,xcvp1052:0,xcv70_es1:0,xqve2102:0,xcve2102:0,xcve2302:0,xcvm1402:0,Zynq-7000 All Programmable SoC:1,xcve2202:0,xave2202:0,xcvp1702:0,Install Devices for Kria SOMs and Starter Kits:0,Zynq UltraScale+ MPSoCs:1,xcv70:0,xqrve2302:0,xave2602:0,Virtex UltraScale FPGAs:1,Install devices for Alveo and edge acceleration platforms:0,xcvm1502:0,xqvc1702:0,xcvc1502:0,Kintex UltraScale FPGAs:1,xc2vm3858:0,xqve2302:0,xcvp1902:0,xcve2802:0,xcvp2502:0,Power Design Manager (PDM):0,xcvc2802:0,xcve2002:0,xcvm2902:0,xcvh1742:0,xcvc2602:0,xqvp2502:0,xave1752:0,xqvp1502:0,xave2802:0,xqvp1202:0,xcvm2202:0,xcvp1102:0,xcvc1802:0,Virtex UltraScale+ HBM FPGAs:1,xcve2602:0,xcvh1522:0,xc2ve3558:0,xcvm1302:0,xcvp1002:0,Vitis Embedded Development:0,xcv80:0,xcvm2502:0,xcvh1582:0,xcvc1902:0,xqvm1102:0,Spartan-7 FPGAs:1,xcvr1602_es1:0,Vitis Networking P4:0,Kintex UltraScale+ FPGAs:1,xcvh1542:0,xcve1752:0,xave2302:0,xave2102:0,Zynq UltraScale+ RFSoCs:1,xcvc1702:0,xcvr1652_es1:0,xcvh1782:0,xcvp1202:0,xcvp2802:0,xqvm1802:0,xcvm2152:0,Vitis Model Composer(A toolbox for Simulink):0,xcvm1102:0,Artix UltraScale+ FPGAs:1,xcvm2302:0,xc2ve3858:0,xave2002:0,Virtex UltraScale+ 58G FPGAs:1,xqvp1402:0,Spartan UltraScale+:1,xcvp1802:0,xcvp1402:0,xcvp1552:0,xqvp1052:0,xcvp1502:0,xc2ve3504:0,xc2ve3804:0,DocNav:0,xc2vm3558:0,Artix-7 FPGAs:1,xcvm1802:0,xqvm1502:0,xqvp1702:0
+
+# Choose the post install scripts you'd like to run as part of the finalization step. Please note that some of these scripts may require user interaction during runtime.
+InstallOptions=Acquire or Manage a License Key:0
+
+## Shortcuts and File associations ##
+# Choose whether Start menu/Application menu shortcuts will be created or not.
+CreateProgramGroupShortcuts=0
+
+# Choose the name of the Start menu/Application menu shortcut. This setting will be ignored if you choose NOT to create shortcuts.
+ProgramGroupFolder=Xilinx Design Tools
+
+# Choose whether shortcuts will be created for All users or just the Current user. Shortcuts can be created for all users only if you run the installer as administrator.
+CreateShortcutsForAllUsers=0
+
+# Choose whether shortcuts will be created on the desktop or not.
+CreateDesktopShortcuts=0
+
+# Choose whether file associations will be created or not.
+CreateFileAssociation=0
+
