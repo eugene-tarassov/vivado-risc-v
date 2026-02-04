@@ -50,3 +50,12 @@ Launch Vivado GUI, go to Tcl Console and run the Tcl script to create Vivado pro
 source d:/vivado-risc-v/workspace/rocket64b2/system-vc707.tcl
 ```
 Use the Vivado GUI to build bitstream, program FPGA, make changes, etc.
+
+Alternately, it's possible do all those on WSL Linux file system like:
+```
+source "//path/to/vivado-risc-v/workspace/rocket64b2/system-vc707.tcl"
+```
+Finally, mount the folder as a net work drive to get around Vivado's restrictions on UNC paths:
+```
+subst z: "\\path\to\vivado-risc-v\workspace\rocket64b2\system-vc707.tcl"
+```
