@@ -57,5 +57,5 @@ source "//path/to/vivado-risc-v/workspace/rocket64b2/system-vc707.tcl"
 ```
 Finally, mount the folder as a net work drive to get around Vivado's restrictions on UNC paths:
 ```
-subst z: "\\path\to\vivado-risc-v\workspace\rocket64b2\system-vc707.tcl"
+subst z: "\\path\to\vivado-risc-v"
 ```
