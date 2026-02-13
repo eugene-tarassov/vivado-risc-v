@@ -163,7 +163,34 @@ class Rocket64b2m2 extends Config(
   new WithNBigCores(2)    ++
   new WithExtMemSize(0x3f80000000L) ++
   new WithNMemoryChannels(2) ++
-  new WithNBanks(4) ++ 
+  new WithNBanks(4) ++
+  new WithInclusiveCache ++
+  new RocketWideBusConfig)
+
+class Rocket64b8m2 extends Config(
+  new WithNBreakpoints(8) ++
+  new WithNBigCores(8)    ++
+  new WithExtMemSize(0x3f80000000L) ++
+  new WithNMemoryChannels(2) ++
+  new WithNBanks(4) ++
+  new WithInclusiveCache ++
+  new RocketWideBusConfig)
+
+class Rocket64b16m2 extends Config(
+  new WithNBreakpoints(8) ++
+  new WithNBigCores(16)    ++
+  new WithExtMemSize(0x3f80000000L) ++
+  new WithNMemoryChannels(2) ++
+  new WithNBanks(4) ++
+  new WithInclusiveCache ++
+  new RocketWideBusConfig)
+
+class Rocket64b24m2 extends Config(
+  new WithNBreakpoints(8) ++
+  new WithNBigCores(24)    ++
+  new WithExtMemSize(0x3f80000000L) ++
+  new WithNMemoryChannels(2) ++
+  new WithNBanks(4) ++
   new WithInclusiveCache ++
   new RocketWideBusConfig)
 
@@ -173,7 +200,25 @@ class Rocket64b4m4 extends Config(
   new WithNBigCores(4)    ++
   new WithExtMemSize(0x3f80000000L) ++
   new WithNMemoryChannels(4) ++
-  new WithNBanks(8) ++ 
+  new WithNBanks(8) ++
+  new WithInclusiveCache ++
+  new RocketWideBusConfig)
+
+class Rocket64b8m4 extends Config(
+  new WithNBreakpoints(8) ++
+  new WithNBigCores(8)    ++
+  new WithExtMemSize(0x3f80000000L) ++
+  new WithNMemoryChannels(4) ++
+  new WithNBanks(8) ++
+  new WithInclusiveCache ++
+  new RocketWideBusConfig)
+
+class Rocket64b16m4 extends Config(
+  new WithNBreakpoints(8) ++
+  new WithNBigCores(16)    ++
+  new WithExtMemSize(0x3f80000000L) ++
+  new WithNMemoryChannels(4) ++
+  new WithNBanks(8) ++
   new WithInclusiveCache ++
   new RocketWideBusConfig)
 
@@ -371,7 +416,7 @@ class Rocket64x12m4 extends Config(
   new boom.common.WithNMediumBooms(12) ++
   new WithExtMemSize(0x3f80000000L) ++
   new WithNMemoryChannels(4) ++
-  new WithNBanks(8) ++ 
+  new WithNBanks(8) ++
   new WithInclusiveCache ++
   new RocketWideBusConfig)
 
