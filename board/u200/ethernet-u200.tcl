@@ -1,5 +1,4 @@
 set files [list \
-  [file normalize "../../board/${vivado_board_name}/riscv_wrapper.v"] \
   [file normalize "../../ethernet/verilog-ethernet/rtl/eth_mac_10g.v"] \
   [file normalize "../../ethernet/verilog-ethernet/rtl/eth_mac_10g_fifo.v"] \
   [file normalize "../../ethernet/verilog-ethernet/rtl/eth_phy_10g.v"] \
@@ -25,6 +24,18 @@ set files [list \
   [file normalize "../../ethernet/ethernet.v"] \
 ]
 add_files -norecurse -fileset $source_fileset $files
+
+if { [string match "Rocket*m4" $rocket_module_name] } {
+  # Four channel memory interface
+  set block_design_tcl "m4/$block_design_tcl"
+  add_files -norecurse -fileset $source_fileset [file normalize "../../board/${vivado_board_name}/m4/riscv_wrapper.v"]
+} elseif { [string match "Rocket*m2" $rocket_module_name] } {
+  # Two channel memory interface
+  set block_design_tcl "m2/$block_design_tcl"
+  add_files -norecurse -fileset $source_fileset [file normalize "../../board/${vivado_board_name}/m2/riscv_wrapper.v"]
+} else {
+  add_files -norecurse -fileset $source_fileset [file normalize "../../board/${vivado_board_name}/riscv_wrapper.v"]
+}
 
 set files [list \
   [file normalize ../../board/${vivado_board_name}/ethernet.xdc] \
