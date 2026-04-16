@@ -34,27 +34,6 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 # START
 ################################################################
 
-# To test this script, run the following commands from Vivado Tcl console:
-# source riscv_script.tcl
-
-
-# The design that will be created by this Tcl script contains the following
-# module references:
-# $rocket_module_name, uart, ethernet
-
-# Please add the sources of those modules before sourcing this Tcl script.
-
-# If there is no project opened, this script will create a
-# project, but make sure you do not have an existing project
-# <./myproj/project_1.xpr> in the current working folder.
-
-set list_projs [get_projects -quiet]
-if { $list_projs eq "" } {
-   create_project project_1 myproj -part xcvu9p-fsgd2104-2L-e
-   set_property BOARD_PART xilinx.com:vcu1525:part0:1.3 [current_project]
-}
-
-
 # CHANGE DESIGN NAME HERE
 variable design_name
 set design_name riscv
@@ -139,6 +118,7 @@ xilinx.com:ip:qdma:5.1\
 xilinx.com:ip:util_ds_buf:2.2\
 xilinx.com:inline_hdl:ilconcat:1.0\
 xilinx.com:inline_hdl:ilconstant:1.0\
+xilinx.com:inline_hdl:ilreduced_logic:1.0\
 xilinx.com:inline_hdl:ilvector_logic:1.0\
 "
 
@@ -194,7 +174,6 @@ if { $bCheckIPsPassed != 1 } {
 ##################################################################
 # DESIGN PROCs
 ##################################################################
-
 
 # Hierarchical cell: IO
 proc create_hier_cell_IO { parentCell nameHier } {
@@ -256,10 +235,26 @@ proc create_hier_cell_IO { parentCell nameHier } {
   create_bd_pin -dir I -from 15 -to 0 eth_status
   create_bd_pin -dir O -from 7 -to 0 interrupts
   create_bd_pin -dir I -type rst pcie_perstn
-  create_bd_pin -dir I -type clk sdram_clock
   create_bd_pin -dir I usb_uart_rxd
   create_bd_pin -dir O usb_uart_txd
   create_bd_pin -dir O user_lnk_up
+
+  # Create instance: Ethernet, and set properties
+  set block_name ethernet
+  set block_cell_name Ethernet
+  if { [catch {set Ethernet [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $Ethernet eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+    set_property -dict [ list \
+   CONFIG.axis_word_bits {64} \
+   CONFIG.burst_size {64} \
+   CONFIG.dma_word_bits {64} \
+   CONFIG.enable_mdio {0} \
+ ] $Ethernet
 
   # Create instance: IIC, and set properties
   set IIC [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_iic:2.1 IIC ]
@@ -278,23 +273,6 @@ proc create_hier_cell_IO { parentCell nameHier } {
      catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    }
-
-  # Create instance: Ethernet, and set properties
-  set block_name ethernet
-  set block_cell_name Ethernet
-  if { [catch {set Ethernet [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   } elseif { $Ethernet eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
-     return 1
-   }
-    set_property -dict [ list \
-   CONFIG.axis_word_bits {64} \
-   CONFIG.burst_size {64} \
-   CONFIG.dma_word_bits {64} \
-   CONFIG.enable_mdio {0} \
- ] $Ethernet
 
   # Create instance: qdma_0, and set properties
   set qdma_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:qdma:5.1 qdma_0 ]
@@ -332,7 +310,7 @@ proc create_hier_cell_IO { parentCell nameHier } {
   # Create instance: smartconnect_0, and set properties
   set smartconnect_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 smartconnect_0 ]
   set_property -dict [ list \
-   CONFIG.NUM_CLKS {5} \
+   CONFIG.NUM_CLKS {4} \
    CONFIG.NUM_MI {4} \
    CONFIG.NUM_SI {2} \
  ] $smartconnect_0
@@ -378,9 +356,9 @@ proc create_hier_cell_IO { parentCell nameHier } {
   connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins pcie_refclk] [get_bd_intf_pins util_ds_buf/CLK_IN_D]
   connect_bd_intf_net -intf_net Conn2 [get_bd_intf_pins eth_tx_axis] [get_bd_intf_pins Ethernet/TX_AXIS]
   connect_bd_intf_net -intf_net Conn3 [get_bd_intf_pins eth_rx_axis] [get_bd_intf_pins Ethernet/RX_AXIS]
+  connect_bd_intf_net -intf_net Ethernet_M_AXI [get_bd_intf_pins Ethernet/M_AXI] [get_bd_intf_pins smartconnect_2/S01_AXI]
   connect_bd_intf_net -intf_net RocketChip_IO_AXI4 [get_bd_intf_pins S01_AXI] [get_bd_intf_pins smartconnect_0/S01_AXI]
   connect_bd_intf_net -intf_net axi_iic_0_IIC [get_bd_intf_pins iic_main] [get_bd_intf_pins IIC/IIC]
-  connect_bd_intf_net -intf_net Ethernet_M_AXI [get_bd_intf_pins Ethernet/M_AXI] [get_bd_intf_pins smartconnect_2/S01_AXI]
   connect_bd_intf_net -intf_net qdma_0_M_AXI [get_bd_intf_pins qdma_0/M_AXI] [get_bd_intf_pins smartconnect_2/S00_AXI]
   connect_bd_intf_net -intf_net qdma_0_M_AXI_LITE [get_bd_intf_pins qdma_0/M_AXI_LITE] [get_bd_intf_pins smartconnect_0/S00_AXI]
   connect_bd_intf_net -intf_net qdma_0_pcie_mgt [get_bd_intf_pins pci_express_x16] [get_bd_intf_pins qdma_0/pcie_mgt]
@@ -391,13 +369,12 @@ proc create_hier_cell_IO { parentCell nameHier } {
   connect_bd_intf_net -intf_net smartconnect_2_M00_AXI [get_bd_intf_pins M00_AXI] [get_bd_intf_pins smartconnect_2/M00_AXI]
 
   # Create port connections
-  connect_bd_net -net DDR_clock [get_bd_pins sdram_clock] [get_bd_pins smartconnect_0/aclk1]
-  connect_bd_net -net RocketChip_aresetn [get_bd_pins axi_reset] [get_bd_pins UART/async_resetn] [get_bd_pins Ethernet/async_resetn] [get_bd_pins smartconnect_0/aresetn] [get_bd_pins smartconnect_2/aresetn]
+  connect_bd_net -net Ethernet_interrupt [get_bd_pins Ethernet/interrupt] [get_bd_pins xlconcat_0/In2]
+  connect_bd_net -net RocketChip_aresetn [get_bd_pins axi_reset] [get_bd_pins Ethernet/async_resetn] [get_bd_pins UART/async_resetn] [get_bd_pins smartconnect_0/aresetn] [get_bd_pins smartconnect_2/aresetn]
   connect_bd_net -net RocketChip_clock [get_bd_pins axi_clock] [get_bd_pins smartconnect_0/aclk2] [get_bd_pins smartconnect_2/aclk1]
   connect_bd_net -net axi_iic_0_iic2intc_irpt [get_bd_pins IIC/iic2intc_irpt] [get_bd_pins xlconcat_0/In3]
   connect_bd_net -net clock100MHz [get_bd_pins clock100MHz] [get_bd_pins UART/clock] [get_bd_pins smartconnect_0/aclk3]
-  connect_bd_net -net eth_gt_user_clock_1 [get_bd_pins eth_gt_user_clock] [get_bd_pins Ethernet/clock] [get_bd_pins smartconnect_0/aclk4] [get_bd_pins smartconnect_2/aclk2]
-  connect_bd_net -net Ethernet_interrupt [get_bd_pins Ethernet/interrupt] [get_bd_pins xlconcat_0/In2]
+  connect_bd_net -net eth_gt_user_clock_1 [get_bd_pins eth_gt_user_clock] [get_bd_pins Ethernet/clock] [get_bd_pins smartconnect_0/aclk1] [get_bd_pins smartconnect_2/aclk2]
   connect_bd_net -net interrupts [get_bd_pins interrupts] [get_bd_pins xlconcat_0/dout]
   connect_bd_net -net pcie_perstn [get_bd_pins pcie_perstn] [get_bd_pins qdma_0/sys_rst_n]
   connect_bd_net -net qdma_0_axi_aclk [get_bd_pins qdma_0/axi_aclk] [get_bd_pins smartconnect_0/aclk] [get_bd_pins smartconnect_2/aclk] [get_bd_pins IIC/s_axi_aclk]
@@ -452,61 +429,116 @@ proc create_hier_cell_DDR { parentCell nameHier } {
   current_bd_instance $hier_obj
 
   # Create interface pins
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 C0_DDR4_S_AXI_CTRL
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_CTRL
 
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S00_AXI
+  variable rocket_memory_channels
+  for {set n 0} {$n < $rocket_memory_channels} {incr n} {
+    create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S_AXI_MEM_$n
+  }
 
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:ddr4_rtl:1.0 ddr4_sdram_c0
-
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 default_300mhz_clk0
-
+  variable rocket_ddr_controllers
+  for {set n 0} {$n < $rocket_ddr_controllers} {incr n} {
+    create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:ddr4_rtl:1.0 ddr4_sdram_c$n
+    create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 default_300mhz_clk$n
+  }
 
   # Create pins
   create_bd_pin -dir I axi_clock
   create_bd_pin -dir I axi_reset
-  create_bd_pin -dir O -type clk c0_ddr4_ui_clk
-  create_bd_pin -dir O c0_init_calib_complete
+  create_bd_pin -dir O init_calib_complete
   create_bd_pin -dir I -type rst sys_reset
+  if { $rocket_ddr_controllers > 1 } { create_bd_pin -dir I axi_ic_clock }
 
-  # Create instance: ddr4_0, and set properties
-  set ddr4_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:ddr4:2.2 ddr4_0 ]
+  for {set n 0} {$n < $rocket_ddr_controllers} {incr n} {
+    # Create instance: ddr4_x, and set properties
+    set ddr4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:ddr4:2.2 ddr4_$n ]
+    set_property -dict [ list \
+     CONFIG.ADDN_UI_CLKOUT1_FREQ_HZ {None} \
+     CONFIG.C0_CLOCK_BOARD_INTERFACE "default_300mhz_clk$n" \
+     CONFIG.C0_DDR4_BOARD_INTERFACE "ddr4_sdram_c$n" \
+     CONFIG.C0.DDR4_AxiIDWidth {4} \
+    ] $ddr4
+  }
+
+  set advanced_properties [dict create]
+  dict set advanced_properties __view__ clocking SW0 ASSOCIATED_CLK aclk1
+
+  # Create instance: smartconnect_0, and set properties
+  set smartconnect_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 smartconnect_0 ]
   set_property -dict [ list \
-   CONFIG.ADDN_UI_CLKOUT1_FREQ_HZ {None} \
-   CONFIG.C0_CLOCK_BOARD_INTERFACE {default_300mhz_clk0} \
-   CONFIG.C0_DDR4_BOARD_INTERFACE {ddr4_sdram_c0} \
-   CONFIG.C0.DDR4_AxiIDWidth {4} \
- ] $ddr4_0
+   CONFIG.ADVANCED_PROPERTIES $advanced_properties \
+   CONFIG.NUM_CLKS [expr $rocket_ddr_controllers > 1 ? $rocket_ddr_controllers + 2 : 2] \
+   CONFIG.NUM_MI $rocket_ddr_controllers \
+   CONFIG.NUM_SI {1} \
+ ] $smartconnect_0
 
   # Create instance: smartconnect_1, and set properties
   set smartconnect_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:smartconnect:1.0 smartconnect_1 ]
   set_property -dict [ list \
-   CONFIG.NUM_CLKS {2} \
-   CONFIG.NUM_SI {1} \
+   CONFIG.ADVANCED_PROPERTIES $advanced_properties \
+   CONFIG.NUM_CLKS [expr $rocket_ddr_controllers > 1 ? $rocket_ddr_controllers + 2 : 2] \
+   CONFIG.NUM_MI $rocket_ddr_controllers \
+   CONFIG.NUM_SI $rocket_memory_channels \
  ] $smartconnect_1
 
-  # Create instance: util_vector_logic_0, and set properties
-  set util_vector_logic_0 [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilvector_logic:1.0 util_vector_logic_0 ]
-  set_property -dict [ list \
-   CONFIG.C_OPERATION {not} \
-   CONFIG.C_SIZE {1} \
-   CONFIG.LOGO_FILE {data/sym_notgate.png} \
- ] $util_vector_logic_0
+  for {set n 0} {$n < $rocket_ddr_controllers} {incr n} {
+    # Create instance: util_vector_logic_x, and set properties
+    set util_vector_logic [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilvector_logic:1.0 util_vector_logic_$n ]
+    set_property -dict [ list \
+     CONFIG.C_OPERATION {not} \
+     CONFIG.C_SIZE {1} \
+     CONFIG.LOGO_FILE {data/sym_notgate.png} \
+    ] $util_vector_logic
+  }
+
+  if { $rocket_ddr_controllers > 1} {
+    # Create instance: util_reduced_logic_0, and set properties
+    set util_reduced_logic_0 [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilreduced_logic:1.0 util_reduced_logic_0 ]
+    set_property -dict [ list \
+     CONFIG.C_OPERATION {and} \
+     CONFIG.C_SIZE $rocket_ddr_controllers \
+     CONFIG.LOGO_FILE {data/sym_andgate.png} \
+   ] $util_reduced_logic_0
+
+    # Create instance: xlconcat_0, and set properties
+    set xlconcat_0 [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilconcat:1.0 xlconcat_0 ]
+    set_property -dict [ list \
+     CONFIG.NUM_PORTS $rocket_ddr_controllers \
+   ] $xlconcat_0
+  }
 
   # Create interface connections
-  connect_bd_intf_net -intf_net RocketChip_MEM_AXI4 [get_bd_intf_pins S00_AXI] [get_bd_intf_pins smartconnect_1/S00_AXI]
-  connect_bd_intf_net -intf_net ddr4_0_C0_DDR4 [get_bd_intf_pins ddr4_sdram_c0] [get_bd_intf_pins ddr4_0/C0_DDR4]
-  connect_bd_intf_net -intf_net default_300mhz_clk0_1 [get_bd_intf_pins default_300mhz_clk0] [get_bd_intf_pins ddr4_0/C0_SYS_CLK]
-  connect_bd_intf_net -intf_net smartconnect_0_M01_AXI [get_bd_intf_pins C0_DDR4_S_AXI_CTRL] [get_bd_intf_pins ddr4_0/C0_DDR4_S_AXI_CTRL]
-  connect_bd_intf_net -intf_net smartconnect_1_M00_AXI [get_bd_intf_pins ddr4_0/C0_DDR4_S_AXI] [get_bd_intf_pins smartconnect_1/M00_AXI]
+  connect_bd_intf_net -intf_net DDR4_S_AXI_CTRL [get_bd_intf_pins S_AXI_CTRL] [get_bd_intf_pins smartconnect_0/S00_AXI]
+  for {set n 0} {$n < $rocket_memory_channels} {incr n} {
+    connect_bd_intf_net -intf_net S_AXI_MEM_$n [get_bd_intf_pins S_AXI_MEM_$n] [get_bd_intf_pins smartconnect_1/[format "S%02d_AXI" $n]]
+  }
+  for {set n 0} {$n < $rocket_ddr_controllers} {incr n} {
+    connect_bd_intf_net -intf_net smartconnect_1_M$n [get_bd_intf_pins smartconnect_1/[format "M%02d_AXI" $n]] [get_bd_intf_pins ddr4_$n/C0_DDR4_S_AXI]
+    connect_bd_intf_net -intf_net ddr4_sdram_c$n [get_bd_intf_pins ddr4_sdram_c$n] [get_bd_intf_pins ddr4_$n/C0_DDR4]
+    connect_bd_intf_net -intf_net default_300mhz_clk$n [get_bd_intf_pins default_300mhz_clk$n] [get_bd_intf_pins ddr4_$n/C0_SYS_CLK]
+    connect_bd_intf_net -intf_net smartconnect_0_M$n [get_bd_intf_pins ddr4_$n/C0_DDR4_S_AXI_CTRL] [get_bd_intf_pins smartconnect_0/[format "M%02d_AXI" $n]]
+  }
 
   # Create port connections
-  connect_bd_net -net RocketChip_aresetn [get_bd_pins axi_reset] [get_bd_pins smartconnect_1/aresetn]
-  connect_bd_net -net axi_clock [get_bd_pins axi_clock] [get_bd_pins smartconnect_1/aclk]
-  connect_bd_net -net ddr4_0_c0_ddr4_ui_clk [get_bd_pins c0_ddr4_ui_clk] [get_bd_pins ddr4_0/c0_ddr4_ui_clk] [get_bd_pins smartconnect_1/aclk1]
-  connect_bd_net -net ddr4_0_c0_ddr4_ui_clk_sync_rst [get_bd_pins ddr4_0/c0_ddr4_ui_clk_sync_rst] [get_bd_pins util_vector_logic_0/Op1]
-  connect_bd_net -net ddr4_0_c0_init_calib_complete [get_bd_pins c0_init_calib_complete] [get_bd_pins ddr4_0/c0_init_calib_complete]
-  connect_bd_net -net resetn_inv_0_Res [get_bd_pins sys_reset] [get_bd_pins ddr4_0/sys_rst]
-  connect_bd_net -net c0_ddr4_aresetn [get_bd_pins ddr4_0/c0_ddr4_aresetn] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net axi_resetn [get_bd_pins axi_reset] [get_bd_pins smartconnect_0/aresetn] [get_bd_pins smartconnect_1/aresetn]
+  connect_bd_net -net axi_clock [get_bd_pins axi_clock] [get_bd_pins smartconnect_0/aclk] [get_bd_pins smartconnect_1/aclk]
+  if { $rocket_ddr_controllers > 1 } { connect_bd_net -net axi_ic_clock [get_bd_pins axi_ic_clock] [get_bd_pins smartconnect_0/aclk1] [get_bd_pins smartconnect_1/aclk1] }
+  for {set n 0} {$n < $rocket_ddr_controllers} {incr n} {
+    set ddr_clock aclk[expr $rocket_ddr_controllers > 1 ? $n + 2 : 1]
+    connect_bd_net -net ddr4_${n}_ui_clk [get_bd_pins ddr4_$n/c0_ddr4_ui_clk] [get_bd_pins smartconnect_0/$ddr_clock] [get_bd_pins smartconnect_1/$ddr_clock]
+    connect_bd_net -net ddr4_${n}_ui_clk_sync_rst [get_bd_pins ddr4_$n/c0_ddr4_ui_clk_sync_rst] [get_bd_pins util_vector_logic_$n/Op1]
+    connect_bd_net -net ddr4_${n}_aresetn [get_bd_pins ddr4_$n/c0_ddr4_aresetn] [get_bd_pins util_vector_logic_$n/Res]
+    connect_bd_net -net sys_reset [get_bd_pins sys_reset] [get_bd_pins ddr4_$n/sys_rst]
+  }
+  if { $rocket_ddr_controllers > 1} {
+    connect_bd_net -net init_calib_complete [get_bd_pins init_calib_complete] [get_bd_pins util_reduced_logic_0/Res]
+    connect_bd_net -net xlconcat_0_dout [get_bd_pins util_reduced_logic_0/Op1] [get_bd_pins xlconcat_0/dout]
+    for {set n 0} {$n < $rocket_ddr_controllers} {incr n} {
+      connect_bd_net -net ddr4_${n}_init_calib_complete [get_bd_pins ddr4_$n/c0_init_calib_complete] [get_bd_pins xlconcat_0/In$n]
+    }
+  } else {
+    connect_bd_net -net init_calib_complete [get_bd_pins init_calib_complete] [get_bd_pins ddr4_0/c0_init_calib_complete]
+  }
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -519,6 +551,9 @@ proc create_root_design { parentCell } {
 
   variable script_folder
   variable design_name
+  variable rocket_memory_channels
+  variable rocket_ddr_controllers
+  variable rocket_memory_channel_name
 
   if { $parentCell eq "" } {
      set parentCell [get_bd_cells /]
@@ -551,12 +586,13 @@ proc create_root_design { parentCell } {
    CONFIG.FREQ_HZ {156250000} \
    ] $clk_user
 
-  set ddr4_sdram_c0 [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:ddr4_rtl:1.0 ddr4_sdram_c0 ]
-
-  set default_300mhz_clk0 [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 default_300mhz_clk0 ]
-  set_property -dict [ list \
-   CONFIG.FREQ_HZ {300000000} \
-   ] $default_300mhz_clk0
+  for {set n 0} {$n < $rocket_ddr_controllers} {incr n} {
+    set ddr4_sdram_c [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:ddr4_rtl:1.0 ddr4_sdram_c$n ]
+    set default_300mhz_clk [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:diff_clock_rtl:1.0 default_300mhz_clk$n ]
+    set_property -dict [ list \
+     CONFIG.FREQ_HZ {300000000} \
+     ] $default_300mhz_clk
+  }
 
   set eth_rx_axis [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 eth_rx_axis ]
   set_property -dict [ list \
@@ -590,10 +626,7 @@ proc create_root_design { parentCell } {
   # Create ports
   set eth_clock [ create_bd_port -dir O -type clk eth_clock ]
   set eth_clock_ok [ create_bd_port -dir O -type rst eth_clock_ok ]
-  set eth_gt_user_clock [ create_bd_port -dir I -type clk eth_gt_user_clock ]
-  set_property -dict [ list \
-   CONFIG.FREQ_HZ {156250000} \
-   ] $eth_gt_user_clock
+  set eth_gt_user_clock [ create_bd_port -dir I -type clk -freq_hz 156250000 eth_gt_user_clock ]
   set eth_status [ create_bd_port -dir I -from 15 -to 0 eth_status ]
   set pcie_perstn [ create_bd_port -dir I -type rst pcie_perstn ]
   set_property -dict [ list \
@@ -606,15 +639,13 @@ proc create_root_design { parentCell } {
   set usb_uart_rxd [ create_bd_port -dir I usb_uart_rxd ]
   set usb_uart_txd [ create_bd_port -dir O usb_uart_txd ]
 
+  create_rocketchip_instance
+
   # Create instance: DDR
   create_hier_cell_DDR [current_bd_instance .] DDR
 
   # Create instance: IO
   create_hier_cell_IO [current_bd_instance .] IO
-
-  # Create instance: RocketChip, and set properties
-  global rocket_module_name
-  set RocketChip [create_bd_cell -type module -reference $rocket_module_name RocketChip]
 
   # Create instance: clk_wiz_0, and set properties
   set clk_wiz_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_wiz_0 ]
@@ -630,6 +661,13 @@ proc create_root_design { parentCell } {
    CONFIG.USE_PHASE_ALIGNMENT {false} \
    CONFIG.USE_RESET {false} \
  ] $clk_wiz_0
+ if { $rocket_ddr_controllers > 1 } {
+   set_property -dict [ list \
+     CONFIG.CLKOUT4_REQUESTED_OUT_FREQ {20.000} \
+     CONFIG.CLKOUT4_USED {true} \
+     CONFIG.NUM_OUT_CLKS {4} \
+   ] $clk_wiz_0
+ }
 
   # Create instance: resetn_inv_0, and set properties
   set resetn_inv_0 [ create_bd_cell -type inline_hdl -vlnv xilinx.com:inline_hdl:ilvector_logic:1.0 resetn_inv_0 ]
@@ -642,24 +680,28 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net IO_TX_AXIS_0 [get_bd_intf_ports eth_tx_axis] [get_bd_intf_pins IO/eth_tx_axis]
   connect_bd_intf_net -intf_net RX_AXIS_0_1 [get_bd_intf_ports eth_rx_axis] [get_bd_intf_pins IO/eth_rx_axis]
   connect_bd_intf_net -intf_net RocketChip_IO_AXI4 [get_bd_intf_pins IO/S01_AXI] [get_bd_intf_pins RocketChip/IO_AXI4]
-  connect_bd_intf_net -intf_net RocketChip_MEM_AXI4 [get_bd_intf_pins DDR/S00_AXI] [get_bd_intf_pins RocketChip/MEM_AXI4]
+  for {set n 0} {$n < $rocket_memory_channels} {incr n} {
+    connect_bd_intf_net -intf_net RocketChip_MEM_AXI4_$n [get_bd_intf_pins DDR/S_AXI_MEM_$n] [get_bd_intf_pins [eval $rocket_memory_channel_name $n]]
+  }
   connect_bd_intf_net -intf_net axi_iic_0_IIC [get_bd_intf_ports iic_main] [get_bd_intf_pins IO/iic_main]
   connect_bd_intf_net -intf_net clk_user_1 [get_bd_intf_ports clk_user] [get_bd_intf_pins clk_wiz_0/CLK_IN1_D]
-  connect_bd_intf_net -intf_net ddr4_sdram_c0 [get_bd_intf_ports ddr4_sdram_c0] [get_bd_intf_pins DDR/ddr4_sdram_c0]
-  connect_bd_intf_net -intf_net default_300mhz_clk0 [get_bd_intf_ports default_300mhz_clk0] [get_bd_intf_pins DDR/default_300mhz_clk0]
+  for {set n 0} {$n < $rocket_ddr_controllers} {incr n} {
+    connect_bd_intf_net -intf_net ddr4_sdram_c$n [get_bd_intf_ports ddr4_sdram_c$n] [get_bd_intf_pins DDR/ddr4_sdram_c$n]
+    connect_bd_intf_net -intf_net default_300mhz_clk$n [get_bd_intf_ports default_300mhz_clk$n] [get_bd_intf_pins DDR/default_300mhz_clk$n]
+  }
   connect_bd_intf_net -intf_net pcie_refclk [get_bd_intf_ports pcie_refclk] [get_bd_intf_pins IO/pcie_refclk]
   connect_bd_intf_net -intf_net qdma_0_pcie_mgt [get_bd_intf_ports pci_express_x16] [get_bd_intf_pins IO/pci_express_x16]
-  connect_bd_intf_net -intf_net smartconnect_0_M01_AXI [get_bd_intf_pins DDR/C0_DDR4_S_AXI_CTRL] [get_bd_intf_pins IO/M01_AXI]
+  connect_bd_intf_net -intf_net smartconnect_0_M01_AXI [get_bd_intf_pins DDR/S_AXI_CTRL] [get_bd_intf_pins IO/M01_AXI]
   connect_bd_intf_net -intf_net smartconnect_2_M00_AXI [get_bd_intf_pins IO/M00_AXI] [get_bd_intf_pins RocketChip/DMA_AXI4]
 
   # Create port connections
-  connect_bd_net -net DDR_clock [get_bd_pins DDR/c0_ddr4_ui_clk] [get_bd_pins IO/sdram_clock]
   connect_bd_net -net RocketChip_aresetn [get_bd_pins DDR/axi_reset] [get_bd_pins IO/axi_reset] [get_bd_pins RocketChip/aresetn]
   connect_bd_net -net RocketChip_clock [get_bd_pins DDR/axi_clock] [get_bd_pins IO/axi_clock] [get_bd_pins RocketChip/clock] [get_bd_pins clk_wiz_0/clk_out1]
   connect_bd_net -net clk_wiz_0_clk_out2 [get_bd_ports eth_clock] [get_bd_pins clk_wiz_0/clk_out2]
+  if { $rocket_ddr_controllers > 1 } { connect_bd_net -net clk_wiz_0_clk_out4 [get_bd_pins clk_wiz_0/clk_out4] [get_bd_pins DDR/axi_ic_clock] }
   connect_bd_net -net clk_wiz_0_locked [get_bd_ports eth_clock_ok] [get_bd_pins RocketChip/clock_ok] [get_bd_pins clk_wiz_0/locked]
   connect_bd_net -net clock100MHz_1 [get_bd_pins IO/clock100MHz] [get_bd_pins clk_wiz_0/clk_out3]
-  connect_bd_net -net ddr4_0_c0_init_calib_complete [get_bd_pins DDR/c0_init_calib_complete] [get_bd_pins RocketChip/mem_ok]
+  connect_bd_net -net ddr4_0_c0_init_calib_complete [get_bd_pins DDR/init_calib_complete] [get_bd_pins RocketChip/mem_ok]
   connect_bd_net -net eth_gt_user_clock_0_1 [get_bd_ports eth_gt_user_clock] [get_bd_pins IO/eth_gt_user_clock]
   connect_bd_net -net interrupts [get_bd_pins IO/interrupts] [get_bd_pins RocketChip/interrupts]
   connect_bd_net -net pcie_perstn [get_bd_ports pcie_perstn] [get_bd_pins IO/pcie_perstn]
@@ -675,9 +717,20 @@ proc create_root_design { parentCell } {
   set_property CONFIG.dma_addr_bits $addr_bits [get_bd_cells IO/Ethernet]
 
   set addr_range [expr 1 << $addr_bits]
-  assign_bd_address -offset 0x00000000 -range $addr_range -target_address_space [get_bd_addr_spaces RocketChip/MEM_AXI4] [get_bd_addr_segs DDR/ddr4_0/C0_DDR4_MEMORY_MAP/C0_DDR4_ADDRESS_BLOCK] -force
   assign_bd_address -offset 0x00000000 -range $addr_range -target_address_space [get_bd_addr_spaces IO/Ethernet/M_AXI] [get_bd_addr_segs RocketChip/DMA_AXI4/reg0] -force
   assign_bd_address -offset 0x00000000 -range $addr_range -target_address_space [get_bd_addr_spaces IO/qdma_0/M_AXI] [get_bd_addr_segs RocketChip/DMA_AXI4/reg0] -force
+
+  set mem_size [expr 1 << [get_property CONFIG.ADDR_WIDTH [get_bd_intf_pins DDR/ddr4_0/C0_DDR4_S_AXI]]]
+  for {set n 0} {$n < $rocket_memory_channels} {incr n} {
+    for {set m 0} {$m < $rocket_ddr_controllers} {incr m} {
+      set mem_addr [expr $mem_size * $m]
+      set mem_range $mem_size
+      if { $mem_addr >= $addr_range } { break } elseif { $mem_addr + $mem_range > $addr_range } { set mem_range [expr $addr_range - $mem_addr] }
+      assign_bd_address -offset $mem_addr -range $mem_range -target_address_space \
+        [get_bd_addr_spaces [eval $rocket_memory_channel_name $n]] \
+        [get_bd_addr_segs DDR/ddr4_$m/C0_DDR4_MEMORY_MAP/C0_DDR4_ADDRESS_BLOCK] -force
+    }
+  }
 
   assign_bd_address -offset 0x60010000 -range 0x00010000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/UART/S_AXI_LITE/reg0] -force
   assign_bd_address -offset 0x60010000 -range 0x00010000 -target_address_space [get_bd_addr_spaces IO/qdma_0/M_AXI_LITE] [get_bd_addr_segs IO/UART/S_AXI_LITE/reg0] -force
@@ -688,8 +741,11 @@ proc create_root_design { parentCell } {
   assign_bd_address -offset 0x60040000 -range 0x00010000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs IO/IIC/S_AXI/Reg] -force
   assign_bd_address -offset 0x60040000 -range 0x00010000 -target_address_space [get_bd_addr_spaces IO/qdma_0/M_AXI_LITE] [get_bd_addr_segs IO/IIC/S_AXI/Reg] -force
 
-  assign_bd_address -offset 0x60100000 -range 0x00100000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs DDR/ddr4_0/C0_DDR4_MEMORY_MAP_CTRL/C0_REG] -force
-  assign_bd_address -offset 0x60100000 -range 0x00100000 -target_address_space [get_bd_addr_spaces IO/qdma_0/M_AXI_LITE] [get_bd_addr_segs DDR/ddr4_0/C0_DDR4_MEMORY_MAP_CTRL/C0_REG] -force
+  for {set n 0} {$n < $rocket_ddr_controllers} {incr n} {
+    set addr [expr 0x60100000 + 0x00100000 * $n ]
+    assign_bd_address -offset $addr -range 0x00100000 -target_address_space [get_bd_addr_spaces RocketChip/IO_AXI4] [get_bd_addr_segs DDR/ddr4_$n/C0_DDR4_MEMORY_MAP_CTRL/C0_REG] -force
+    assign_bd_address -offset $addr -range 0x00100000 -target_address_space [get_bd_addr_spaces IO/qdma_0/M_AXI_LITE] [get_bd_addr_segs DDR/ddr4_$n/C0_DDR4_MEMORY_MAP_CTRL/C0_REG] -force
+  }
 
   # Restore current instance
   current_bd_instance $oldCurInst

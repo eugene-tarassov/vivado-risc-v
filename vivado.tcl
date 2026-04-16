@@ -1,3 +1,9 @@
+set boards_path "../../board/${vivado_board_name}/board_files"
+if {[file isdirectory ${boards_path}]} {
+    set_param board.repoPaths ${boards_path}
+    puts "Set boards repo path: [get_param board.repoPaths]"
+}
+
 # If there is no project opened, create a project
 set list_projs [get_projects -quiet]
 if { $list_projs eq "" } {
@@ -55,6 +61,18 @@ add_files -norecurse -fileset $constraint_fileset $files
 set block_design_ver [split [version -short] .]
 set block_design_tcl "riscv-[lindex $block_design_ver 0].[lindex $block_design_ver 1].tcl"
 
+variable rocket_ddr_controllers
+set rocket_ddr_controllers 1
+if { ! [string match "Rocket*gem[2-9]" $rocket_module_name] } {
+  if { [string match "Rocket*m2" $rocket_module_name] } {
+    # Two DDR memory controllers
+    set rocket_ddr_controllers 2
+  } elseif { [string match "Rocket*m4" $rocket_module_name] } {
+    # Four DDR memory controllers
+    set rocket_ddr_controllers 4
+  }
+}
+
 source ../../board/${vivado_board_name}/ethernet-${vivado_board_name}.tcl
 
 # Note: timing-constraints.tcl must be last
@@ -74,6 +92,24 @@ set file_obj [get_files -of_objects $constraint_fileset [list "*/*.tcl"]]
 set_property -name "file_type" -value "TCL" -objects $file_obj
 set_property -name "used_in" -value "implementation" -objects $file_obj
 set_property -name "used_in_synthesis" -value "0" -objects $file_obj
+
+variable rocket_memory_channels
+variable rocket_memory_channel_name
+
+proc create_rocketchip_instance {} {
+  # Create instance: RocketChip, and set properties
+  global rocket_module_name
+  set RocketChip [create_bd_cell -type module -reference $rocket_module_name RocketChip]
+  variable rocket_memory_channels
+  variable rocket_memory_channel_name
+  if {[get_bd_intf_pins -quiet RocketChip/MEM_AXI4] != ""} {
+    set rocket_memory_channel_name {format "RocketChip/MEM_AXI4"}
+    set rocket_memory_channels 1
+  } else {
+    set rocket_memory_channel_name {format "RocketChip/MEM_AXI4_%d"}
+    for {set rocket_memory_channels 0} {[get_bd_intf_pins -quiet [eval $rocket_memory_channel_name $rocket_memory_channels]] != ""} {incr rocket_memory_channels} {}
+  }
+}
 
 # Create block design
 source ../../board/${vivado_board_name}/${block_design_tcl}

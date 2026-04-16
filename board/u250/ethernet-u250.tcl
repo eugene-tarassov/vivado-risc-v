@@ -26,6 +26,12 @@ set files [list \
 ]
 add_files -norecurse -fileset $source_fileset $files
 
+if { $rocket_ddr_controllers > 1 } {
+  add_files -norecurse -fileset $source_fileset [file normalize "../../board/${vivado_board_name}/riscv_wrapper_m${rocket_ddr_controllers}.v"]
+} else {
+  add_files -norecurse -fileset $source_fileset [file normalize "../../board/${vivado_board_name}/riscv_wrapper.v"]
+}
+
 set files [list \
   [file normalize ../../board/${vivado_board_name}/ethernet.xdc] \
   [file normalize ../../ethernet/verilog-ethernet/lib/axis/syn/vivado/sync_reset.tcl] \

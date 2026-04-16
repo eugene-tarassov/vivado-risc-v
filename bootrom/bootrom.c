@@ -145,10 +145,10 @@ static const char * errno_to_str(void) {
     case FR_INVALID_NAME: return "Invalid path";
     case FR_DENIED: return "Access denied";
     case FR_EXIST: return "Already exist";
-    case FR_INVALID_OBJECT: return "The FS object is invalid";
-    case FR_INVALID_DRIVE: return "The drive number is invalid";
-    case FR_NOT_ENABLED: return "The volume has no work area";
-    case FR_NO_FILESYSTEM: return "Not a valid FAT volume";
+    case FR_INVALID_OBJECT: return "Invalid FS object";
+    case FR_INVALID_DRIVE: return "Invalid drive number";
+    case FR_NOT_ENABLED: return "No work area";
+    case FR_NO_FILESYSTEM: return "Invalid FAT volume";
     case FR_TIMEOUT: return "Timeout";
     case FR_NOT_ENOUGH_CORE: return "Not enough memory";
     case FR_TOO_MANY_OPEN_FILES: return "Too many open files";
@@ -162,7 +162,7 @@ static const char * errno_to_str(void) {
     case ERR_DATA_FIFO: return "Data FIFO error";
     case ERR_BUF_ALIGNMENT: return "Bad buffer alignment";
     }
-    return "Unknown error code";
+    return "Unknown error";
 }
 
 static void usleep(unsigned us) {
@@ -176,34 +176,31 @@ static void usleep(unsigned us) {
 }
 
 static int sdc_cmd_finish(unsigned cmd) {
-    while (1) {
-        unsigned status = regs->cmd_int_status;
-        if (status) {
-            // clear interrupts
-            regs->cmd_int_status = 0;
-            while (regs->software_reset != 0) {}
-            if (status == SDC_CMD_INT_STATUS_CC) {
-                // get response
-                response[0] = regs->response1;
-                response[1] = regs->response2;
-                response[2] = regs->response3;
-                response[3] = regs->response4;
-                return 0;
-            }
-            errno = FR_DISK_ERR;
-            if (status & SDC_CMD_INT_STATUS_CTE) errno = FR_TIMEOUT;
-            if (status & SDC_CMD_INT_STATUS_CCRC) errno = ERR_CMD_CRC;
-            if (status & SDC_CMD_INT_STATUS_CIE) errno = ERR_CMD_CHECK;
-            break;
-        }
+    unsigned status;
+    while ((status = regs->cmd_int_status) == 0) {}
+    // clear interrupts
+    regs->cmd_int_status = 0;
+    while (regs->software_reset != 0) {}
+    if (status == SDC_CMD_INT_STATUS_CC) {
+        // get response
+        response[0] = regs->response1;
+        response[1] = regs->response2;
+        response[2] = regs->response3;
+        response[3] = regs->response4;
+        return 0;
     }
+    errno = FR_DISK_ERR;
+    if (status & SDC_CMD_INT_STATUS_CTE) errno = FR_TIMEOUT;
+    if (status & SDC_CMD_INT_STATUS_CCRC) errno = ERR_CMD_CRC;
+    if (status & SDC_CMD_INT_STATUS_CIE) errno = ERR_CMD_CHECK;
     return -1;
 }
 
 static int sdc_data_finish(void) {
-    int status;
+    unsigned status;
 
     while ((status = regs->dat_int_status) == 0) {}
+    // clear interrupts
     regs->dat_int_status = 0;
     while (regs->software_reset != 0) {}
 
@@ -223,35 +220,13 @@ static int send_data_cmd(unsigned cmd, unsigned arg, void * buf, unsigned blocks
     case CMD15:
         // No responce
         break;
-    case CMD11:
-    case CMD13:
-    case CMD16:
-    case CMD17:
-    case CMD18:
-    case CMD19:
-    case CMD23:
-    case CMD24:
-    case CMD25:
-    case CMD27:
-    case CMD30:
-    case CMD32:
-    case CMD33:
-    case CMD42:
-    case CMD55:
-    case CMD56:
-    case ACMD6:
-        // R1
-        command |= 1; // 48 bits
-        command |= 1 << 3; // resp CRC
-        command |= 1 << 4; // resp OPCODE
-        break;
     case CMD7:
     case CMD12:
     case CMD20:
     case CMD28:
     case CMD29:
     case CMD38:
-        // R1b
+        // R1b responce
         command |= 1; // 48 bits
         command |= 1 << 2; // busy
         command |= 1 << 3; // resp CRC
@@ -260,23 +235,29 @@ static int send_data_cmd(unsigned cmd, unsigned arg, void * buf, unsigned blocks
     case CMD2:
     case CMD9:
     case CMD10:
-        // R2
+        // R2 responce
         command |= 2; // 136 bits
         command |= 1 << 3; // resp CRC
         break;
     case ACMD41:
-        // R3
+        // R3 responce
         command |= 1; // 48 bits
         break;
     case CMD3:
-        // R6
+        // R6 responce
         command |= 1; // 48 bits
         command |= 1 << 2; // busy
         command |= 1 << 3; // resp CRC
         command |= 1 << 4; // resp OPCODE
         break;
     case CMD8:
-        // R7
+        // R7 responce
+        command |= 1; // 48 bits
+        command |= 1 << 3; // resp CRC
+        command |= 1 << 4; // resp OPCODE
+        break;
+    default:
+        // R1 responce
         command |= 1; // 48 bits
         command |= 1 << 3; // resp CRC
         command |= 1 << 4; // resp OPCODE

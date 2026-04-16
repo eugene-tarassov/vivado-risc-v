@@ -157,10 +157,18 @@ class Rocket64b2m extends Config(
   new WithExtMemSize(0x3f80000000L) ++
   new RocketBaseConfig)
 
-/* With up to 256GB memory, 2 memory channels, L2 cache and wide memory bus */
+/* With up to 256GB memory, L2 cache, wide memory bus, 2 memory controllers */
 class Rocket64b2m2 extends Config(
   new WithNBreakpoints(8) ++
   new WithNBigCores(2)    ++
+  new WithExtMemSize(0x3f80000000L) ++
+  new WithNBanks(4) ++
+  new WithInclusiveCache ++
+  new RocketWideBusConfig)
+
+class Rocket64b4m2 extends Config(
+  new WithNBreakpoints(8) ++
+  new WithNBigCores(4)    ++
   new WithExtMemSize(0x3f80000000L) ++
   new WithNMemoryChannels(2) ++
   new WithNBanks(4) ++
@@ -194,12 +202,21 @@ class Rocket64b24m2 extends Config(
   new WithInclusiveCache ++
   new RocketWideBusConfig)
 
-/* With up to 256GB memory, 4 memory channels, L2 cache and wide memory bus */
+/* With up to 256GB memory, L2 cache, wide memory bus, 4 memory controllers */
+/* Note: lower 2GB are used for memory mapped IO, so max usable RAM size is 254GB */
+class Rocket64b2m4 extends Config(
+  new WithNBreakpoints(8) ++
+  new WithNBigCores(2)    ++
+  new WithExtMemSize(0x3f80000000L) ++
+  new WithNBanks(4) ++
+  new WithInclusiveCache ++
+  new RocketWideBusConfig)
+
 class Rocket64b4m4 extends Config(
   new WithNBreakpoints(8) ++
   new WithNBigCores(4)    ++
   new WithExtMemSize(0x3f80000000L) ++
-  new WithNMemoryChannels(4) ++
+  new WithNMemoryChannels(2) ++
   new WithNBanks(8) ++
   new WithInclusiveCache ++
   new RocketWideBusConfig)
@@ -208,7 +225,7 @@ class Rocket64b8m4 extends Config(
   new WithNBreakpoints(8) ++
   new WithNBigCores(8)    ++
   new WithExtMemSize(0x3f80000000L) ++
-  new WithNMemoryChannels(4) ++
+  new WithNMemoryChannels(2) ++
   new WithNBanks(8) ++
   new WithInclusiveCache ++
   new RocketWideBusConfig)
@@ -217,7 +234,7 @@ class Rocket64b16m4 extends Config(
   new WithNBreakpoints(8) ++
   new WithNBigCores(16)    ++
   new WithExtMemSize(0x3f80000000L) ++
-  new WithNMemoryChannels(4) ++
+  new WithNMemoryChannels(2) ++
   new WithNBanks(8) ++
   new WithInclusiveCache ++
   new RocketWideBusConfig)
@@ -409,13 +426,13 @@ class Rocket64x12 extends Config(
   new boom.common.WithNMediumBooms(12) ++
   new RocketWideBusConfig)
 
-/* With up to 256GB memory, 4 memory channels */
+/* With up to 256GB memory, L2 cache, wide memory bus, 2 memory controllers */
 /* Note: lower 2GB are used for memory mapped IO, so max usable RAM size is 254GB */
 class Rocket64x12m4 extends Config(
   new WithNBreakpoints(4) ++
   new boom.common.WithNMediumBooms(12) ++
   new WithExtMemSize(0x3f80000000L) ++
-  new WithNMemoryChannels(4) ++
+  new WithNMemoryChannels(2) ++
   new WithNBanks(8) ++
   new WithInclusiveCache ++
   new RocketWideBusConfig)
