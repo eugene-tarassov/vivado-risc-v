@@ -41,7 +41,7 @@ module ethernet #(
     input wire clock,
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 S_AXI_LITE AWADDR" *)
-    (* X_INTERFACE_PARAMETER = "CLK_DOMAIN clock, ID_WIDTH 0, PROTOCOL AXI4LITE, DATA_WIDTH 32" *)
+    (* X_INTERFACE_PARAMETER = "ID_WIDTH 0, PROTOCOL AXI4LITE, DATA_WIDTH 32" *)
     input wire [15:0] s_axi_awaddr,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 S_AXI_LITE AWVALID" *)
     input wire s_axi_awvalid,
@@ -75,7 +75,7 @@ module ethernet #(
     input wire s_axi_rready,
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI AWADDR" *)
-    (* X_INTERFACE_PARAMETER = "CLK_DOMAIN clock, ID_WIDTH 0, PROTOCOL AXI4" *)
+    (* X_INTERFACE_PARAMETER = "ID_WIDTH 0, PROTOCOL AXI4" *)
     output reg  [dma_addr_bits-1:0] m_axi_awaddr,
     (* X_INTERFACE_INFO = "xilinx.com:interface:aximm:1.0 M_AXI AWLEN" *)
     output reg  [7:0] m_axi_awlen,
@@ -125,7 +125,6 @@ module ethernet #(
     input wire [15:0]status_vector,
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 TX_AXIS TDATA" *)
-    (* X_INTERFACE_PARAMETER = "CLK_DOMAIN clock" *)
     output wire [axis_word_bits-1:0] tx_axis_tdata,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 TX_AXIS TKEEP" *)
     output wire [axis_word_bits/8-1:0] tx_axis_tkeep,
@@ -139,7 +138,6 @@ module ethernet #(
     output wire tx_axis_tuser,
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TDATA" *)
-    (* X_INTERFACE_PARAMETER = "CLK_DOMAIN clock" *)
     input wire [axis_word_bits-1:0] rx_axis_tdata,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 RX_AXIS TKEEP" *)
     input wire [axis_word_bits/8-1:0] rx_axis_tkeep,

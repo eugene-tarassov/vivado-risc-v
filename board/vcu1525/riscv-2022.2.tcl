@@ -146,6 +146,7 @@ set bCheckModules 1
 if { $bCheckModules == 1 } {
    set list_check_mods "\
 $rocket_module_name\
+ethernet_sfp_10g\
 ethernet\
 uart\
 "
@@ -216,10 +217,6 @@ proc create_hier_cell_IO { parentCell nameHier } {
 
   create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:aximm_rtl:1.0 S01_AXI
 
-  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 eth_rx_axis
-
-  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 eth_tx_axis
-
   create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:iic_rtl:1.0 iic_main
 
   create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:pcie_7x_mgt_rtl:1.0 pci_express_x16
@@ -231,13 +228,26 @@ proc create_hier_cell_IO { parentCell nameHier } {
   create_bd_pin -dir I -type clk axi_clock
   create_bd_pin -dir I -type rst axi_reset
   create_bd_pin -dir I -type clk clock100MHz
-  create_bd_pin -dir I -type clk eth_gt_user_clock
-  create_bd_pin -dir I -from 15 -to 0 eth_status
+  create_bd_pin -dir I -type clk clock125MHz
+  create_bd_pin -dir I clock_ok
   create_bd_pin -dir O -from 7 -to 0 interrupts
   create_bd_pin -dir I -type rst pcie_perstn
   create_bd_pin -dir I usb_uart_rxd
   create_bd_pin -dir O usb_uart_txd
   create_bd_pin -dir O user_lnk_up
+  create_bd_pin -dir I sfp_rx_p_0
+  create_bd_pin -dir I sfp_rx_n_0
+  create_bd_pin -dir I sfp_mgt_refclk_p_0
+  create_bd_pin -dir I sfp_mgt_refclk_n_0
+  create_bd_pin -dir I sfp_modprs_0
+  create_bd_pin -dir I sfp_int_0
+  create_bd_pin -dir O sfp_tx_p_0
+  create_bd_pin -dir O sfp_tx_n_0
+  create_bd_pin -dir O sfp_modsel_0
+  create_bd_pin -dir O -type rst sfp_reset_0
+  create_bd_pin -dir O sfp_lpmode_0
+  create_bd_pin -dir O -type rst sfp_refclk_reset_0
+  create_bd_pin -dir O -from 1 -to 0 sfp_fs_0
 
   # Create instance: Ethernet, and set properties
   set block_name ethernet
@@ -352,11 +362,22 @@ proc create_hier_cell_IO { parentCell nameHier } {
    CONFIG.CONST_VAL {0} \
  ] $xlconstant_2
 
+  # Create instance: ethernet_sfp_10g_0, and set properties
+  set block_name ethernet_sfp_10g
+  set block_cell_name ethernet_sfp_10g_0
+  if { [catch {set ethernet_sfp_10g_0 [create_bd_cell -type module -reference $block_name $block_cell_name] } errmsg] } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2095 -severity "ERROR" "Unable to add referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   } elseif { $ethernet_sfp_10g_0 eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
+     return 1
+   }
+
   # Create interface connections
   connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins pcie_refclk] [get_bd_intf_pins util_ds_buf/CLK_IN_D]
-  connect_bd_intf_net -intf_net Conn2 [get_bd_intf_pins eth_tx_axis] [get_bd_intf_pins Ethernet/TX_AXIS]
-  connect_bd_intf_net -intf_net Conn3 [get_bd_intf_pins eth_rx_axis] [get_bd_intf_pins Ethernet/RX_AXIS]
   connect_bd_intf_net -intf_net Ethernet_M_AXI [get_bd_intf_pins Ethernet/M_AXI] [get_bd_intf_pins smartconnect_2/S01_AXI]
+  connect_bd_intf_net -intf_net Ethernet_TX_AXIS [get_bd_intf_pins ethernet_sfp_10g_0/ETH0_TX_AXIS] [get_bd_intf_pins Ethernet/TX_AXIS]
+  connect_bd_intf_net -intf_net Ethernet_RX_AXIS [get_bd_intf_pins ethernet_sfp_10g_0/ETH0_RX_AXIS] [get_bd_intf_pins Ethernet/RX_AXIS]
   connect_bd_intf_net -intf_net RocketChip_IO_AXI4 [get_bd_intf_pins S01_AXI] [get_bd_intf_pins smartconnect_0/S01_AXI]
   connect_bd_intf_net -intf_net axi_iic_0_IIC [get_bd_intf_pins iic_main] [get_bd_intf_pins IIC/IIC]
   connect_bd_intf_net -intf_net qdma_0_M_AXI [get_bd_intf_pins qdma_0/M_AXI] [get_bd_intf_pins smartconnect_2/S00_AXI]
@@ -374,13 +395,13 @@ proc create_hier_cell_IO { parentCell nameHier } {
   connect_bd_net -net RocketChip_clock [get_bd_pins axi_clock] [get_bd_pins smartconnect_0/aclk2] [get_bd_pins smartconnect_2/aclk1]
   connect_bd_net -net axi_iic_0_iic2intc_irpt [get_bd_pins IIC/iic2intc_irpt] [get_bd_pins xlconcat_0/In3]
   connect_bd_net -net clock100MHz [get_bd_pins clock100MHz] [get_bd_pins UART/clock] [get_bd_pins smartconnect_0/aclk3]
-  connect_bd_net -net eth_gt_user_clock_1 [get_bd_pins eth_gt_user_clock] [get_bd_pins Ethernet/clock] [get_bd_pins smartconnect_0/aclk1] [get_bd_pins smartconnect_2/aclk2]
+  connect_bd_net -net clock125MHz  [get_bd_pins clock125MHz] [get_bd_pins ethernet_sfp_10g_0/eth_clock]
+  connect_bd_net -net clock_ok  [get_bd_pins clock_ok] [get_bd_pins ethernet_sfp_10g_0/eth_clock_ok]
   connect_bd_net -net interrupts [get_bd_pins interrupts] [get_bd_pins xlconcat_0/dout]
   connect_bd_net -net pcie_perstn [get_bd_pins pcie_perstn] [get_bd_pins qdma_0/sys_rst_n]
   connect_bd_net -net qdma_0_axi_aclk [get_bd_pins qdma_0/axi_aclk] [get_bd_pins smartconnect_0/aclk] [get_bd_pins smartconnect_2/aclk] [get_bd_pins IIC/s_axi_aclk]
   connect_bd_net -net qdma_0_axi_aresetn [get_bd_pins IIC/s_axi_aresetn] [get_bd_pins qdma_0/axi_aresetn]
   connect_bd_net -net qdma_0_user_lnk_up [get_bd_pins user_lnk_up] [get_bd_pins qdma_0/user_lnk_up]
-  connect_bd_net -net status_vector_0_1 [get_bd_pins eth_status] [get_bd_pins Ethernet/status_vector]
   connect_bd_net -net uart_0_interrupt [get_bd_pins UART/interrupt] [get_bd_pins xlconcat_0/In0]
   connect_bd_net -net usb_uart_rxd [get_bd_pins usb_uart_rxd] [get_bd_pins UART/RxD]
   connect_bd_net -net usb_uart_txd [get_bd_pins usb_uart_txd] [get_bd_pins UART/TxD]
@@ -389,6 +410,21 @@ proc create_hier_cell_IO { parentCell nameHier } {
   connect_bd_net -net xlconstant_0_dout [get_bd_pins Ethernet/mdio_int] [get_bd_pins xlconcat_0/In1] [get_bd_pins xlconcat_0/In4] [get_bd_pins xlconcat_0/In5] [get_bd_pins xlconcat_0/In6] [get_bd_pins xlconcat_0/In7] [get_bd_pins xlconstant_0/dout]
   connect_bd_net -net xlconstant_1_dout [get_bd_pins qdma_0/soft_reset_n] [get_bd_pins xlconstant_1/dout]
   connect_bd_net -net xlconstant_2_dout [get_bd_pins UART/CTSn] [get_bd_pins xlconstant_2/dout]
+  connect_bd_net -net eth_gt_user_clock  [get_bd_pins ethernet_sfp_10g_0/eth_gt_user_clock] [get_bd_pins smartconnect_0/aclk1] [get_bd_pins smartconnect_2/aclk2] [get_bd_pins Ethernet/clock]
+  connect_bd_net -net ethernet_sfp_10g_0_eth_status  [get_bd_pins ethernet_sfp_10g_0/eth_status] [get_bd_pins Ethernet/status_vector]
+  connect_bd_net -net ethernet_sfp_10g_0_sfp_fs  [get_bd_pins ethernet_sfp_10g_0/sfp_fs] [get_bd_pins sfp_fs_0]
+  connect_bd_net -net ethernet_sfp_10g_0_sfp_lpmode  [get_bd_pins ethernet_sfp_10g_0/sfp_lpmode] [get_bd_pins sfp_lpmode_0]
+  connect_bd_net -net ethernet_sfp_10g_0_sfp_modsel  [get_bd_pins ethernet_sfp_10g_0/sfp_modsell] [get_bd_pins sfp_modsel_0]
+  connect_bd_net -net ethernet_sfp_10g_0_sfp_refclk_reset  [get_bd_pins ethernet_sfp_10g_0/sfp_refclk_reset] [get_bd_pins sfp_refclk_reset_0]
+  connect_bd_net -net ethernet_sfp_10g_0_sfp_reset  [get_bd_pins ethernet_sfp_10g_0/sfp_resetl] [get_bd_pins sfp_reset_0]
+  connect_bd_net -net ethernet_sfp_10g_0_sfp_tx_n  [get_bd_pins ethernet_sfp_10g_0/sfp_tx_n] [get_bd_pins sfp_tx_n_0]
+  connect_bd_net -net ethernet_sfp_10g_0_sfp_tx_p  [get_bd_pins ethernet_sfp_10g_0/sfp_tx_p] [get_bd_pins sfp_tx_p_0]
+  connect_bd_net -net sfp_int_0_1  [get_bd_pins sfp_int_0] [get_bd_pins ethernet_sfp_10g_0/sfp_int]
+  connect_bd_net -net sfp_mgt_refclk_n_0_1  [get_bd_pins sfp_mgt_refclk_n_0] [get_bd_pins ethernet_sfp_10g_0/sfp_mgt_refclk_n]
+  connect_bd_net -net sfp_mgt_refclk_p_0_1  [get_bd_pins sfp_mgt_refclk_p_0] [get_bd_pins ethernet_sfp_10g_0/sfp_mgt_refclk_p]
+  connect_bd_net -net sfp_modprs_0_1  [get_bd_pins sfp_modprs_0] [get_bd_pins ethernet_sfp_10g_0/sfp_modprs]
+  connect_bd_net -net sfp_rx_n_0_1  [get_bd_pins sfp_rx_n_0] [get_bd_pins ethernet_sfp_10g_0/sfp_rx_n]
+  connect_bd_net -net sfp_rx_p_0_1  [get_bd_pins sfp_rx_p_0] [get_bd_pins ethernet_sfp_10g_0/sfp_rx_p]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -594,25 +630,6 @@ proc create_root_design { parentCell } {
      ] $default_300mhz_clk
   }
 
-  set eth_rx_axis [ create_bd_intf_port -mode Slave -vlnv xilinx.com:interface:axis_rtl:1.0 eth_rx_axis ]
-  set_property -dict [ list \
-   CONFIG.FREQ_HZ {156250000} \
-   CONFIG.HAS_TKEEP {1} \
-   CONFIG.HAS_TLAST {1} \
-   CONFIG.HAS_TREADY {1} \
-   CONFIG.HAS_TSTRB {0} \
-   CONFIG.LAYERED_METADATA {undef} \
-   CONFIG.TDATA_NUM_BYTES {8} \
-   CONFIG.TDEST_WIDTH {0} \
-   CONFIG.TID_WIDTH {0} \
-   CONFIG.TUSER_WIDTH {1} \
-   ] $eth_rx_axis
-
-  set eth_tx_axis [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:axis_rtl:1.0 eth_tx_axis ]
-  set_property -dict [ list \
-   CONFIG.FREQ_HZ {156250000} \
-   ] $eth_tx_axis
-
   set iic_main [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:iic_rtl:1.0 iic_main ]
 
   set pci_express_x16 [ create_bd_intf_port -mode Master -vlnv xilinx.com:interface:pcie_7x_mgt_rtl:1.0 pci_express_x16 ]
@@ -624,10 +641,6 @@ proc create_root_design { parentCell } {
 
 
   # Create ports
-  set eth_clock [ create_bd_port -dir O -type clk eth_clock ]
-  set eth_clock_ok [ create_bd_port -dir O -type rst eth_clock_ok ]
-  set eth_gt_user_clock [ create_bd_port -dir I -type clk -freq_hz 156250000 eth_gt_user_clock ]
-  set eth_status [ create_bd_port -dir I -from 15 -to 0 eth_status ]
   set pcie_perstn [ create_bd_port -dir I -type rst pcie_perstn ]
   set_property -dict [ list \
    CONFIG.POLARITY {ACTIVE_LOW} \
@@ -638,6 +651,19 @@ proc create_root_design { parentCell } {
  ] $resetn
   set usb_uart_rxd [ create_bd_port -dir I usb_uart_rxd ]
   set usb_uart_txd [ create_bd_port -dir O usb_uart_txd ]
+  set qsfp0_rx1_p [ create_bd_port -dir I qsfp0_rx1_p ]
+  set qsfp0_rx1_n [ create_bd_port -dir I qsfp0_rx1_n ]
+  set qsfp0_mgt_refclk_1_p [ create_bd_port -dir I qsfp0_mgt_refclk_1_p ]
+  set qsfp0_mgt_refclk_1_n [ create_bd_port -dir I qsfp0_mgt_refclk_1_n ]
+  set qsfp0_modprsl [ create_bd_port -dir I qsfp0_modprsl ]
+  set qsfp0_intl [ create_bd_port -dir I qsfp0_intl ]
+  set qsfp0_tx1_p [ create_bd_port -dir O qsfp0_tx1_p ]
+  set qsfp0_tx1_n [ create_bd_port -dir O qsfp0_tx1_n ]
+  set qsfp0_modsell [ create_bd_port -dir O qsfp0_modsell ]
+  set qsfp0_resetl [ create_bd_port -dir O -type rst qsfp0_resetl ]
+  set qsfp0_lpmode [ create_bd_port -dir O qsfp0_lpmode ]
+  set qsfp0_refclk_reset [ create_bd_port -dir O -type rst qsfp0_refclk_reset ]
+  set qsfp0_fs [ create_bd_port -dir O -from 1 -to 0 qsfp0_fs ]
 
   create_rocketchip_instance
 
@@ -677,8 +703,6 @@ proc create_root_design { parentCell } {
  ] $resetn_inv_0
 
   # Create interface connections
-  connect_bd_intf_net -intf_net IO_TX_AXIS_0 [get_bd_intf_ports eth_tx_axis] [get_bd_intf_pins IO/eth_tx_axis]
-  connect_bd_intf_net -intf_net RX_AXIS_0_1 [get_bd_intf_ports eth_rx_axis] [get_bd_intf_pins IO/eth_rx_axis]
   connect_bd_intf_net -intf_net RocketChip_IO_AXI4 [get_bd_intf_pins IO/S01_AXI] [get_bd_intf_pins RocketChip/IO_AXI4]
   for {set n 0} {$n < $rocket_memory_channels} {incr n} {
     connect_bd_intf_net -intf_net RocketChip_MEM_AXI4_$n [get_bd_intf_pins DDR/S_AXI_MEM_$n] [get_bd_intf_pins [eval $rocket_memory_channel_name $n]]
@@ -697,20 +721,31 @@ proc create_root_design { parentCell } {
   # Create port connections
   connect_bd_net -net RocketChip_aresetn [get_bd_pins DDR/axi_reset] [get_bd_pins IO/axi_reset] [get_bd_pins RocketChip/aresetn]
   connect_bd_net -net RocketChip_clock [get_bd_pins DDR/axi_clock] [get_bd_pins IO/axi_clock] [get_bd_pins RocketChip/clock] [get_bd_pins clk_wiz_0/clk_out1]
-  connect_bd_net -net clk_wiz_0_clk_out2 [get_bd_ports eth_clock] [get_bd_pins clk_wiz_0/clk_out2]
   if { $rocket_ddr_controllers > 1 } { connect_bd_net -net clk_wiz_0_clk_out4 [get_bd_pins clk_wiz_0/clk_out4] [get_bd_pins DDR/axi_ic_clock] }
-  connect_bd_net -net clk_wiz_0_locked [get_bd_ports eth_clock_ok] [get_bd_pins RocketChip/clock_ok] [get_bd_pins clk_wiz_0/locked]
-  connect_bd_net -net clock100MHz_1 [get_bd_pins IO/clock100MHz] [get_bd_pins clk_wiz_0/clk_out3]
+  connect_bd_net -net clock_locked [get_bd_pins clk_wiz_0/locked] [get_bd_pins RocketChip/clock_ok] [get_bd_pins IO/clock_ok]
+  connect_bd_net -net clock100MHz [get_bd_pins clk_wiz_0/clk_out3] [get_bd_pins IO/clock100MHz]
+  connect_bd_net -net clock125MHz [get_bd_pins clk_wiz_0/clk_out2] [get_bd_pins IO/clock125MHz]
   connect_bd_net -net ddr4_0_c0_init_calib_complete [get_bd_pins DDR/init_calib_complete] [get_bd_pins RocketChip/mem_ok]
-  connect_bd_net -net eth_gt_user_clock_0_1 [get_bd_ports eth_gt_user_clock] [get_bd_pins IO/eth_gt_user_clock]
   connect_bd_net -net interrupts [get_bd_pins IO/interrupts] [get_bd_pins RocketChip/interrupts]
   connect_bd_net -net pcie_perstn [get_bd_ports pcie_perstn] [get_bd_pins IO/pcie_perstn]
   connect_bd_net -net qdma_0_user_lnk_up [get_bd_pins IO/user_lnk_up] [get_bd_pins RocketChip/io_ok]
   connect_bd_net -net reset [get_bd_pins DDR/sys_reset] [get_bd_pins RocketChip/sys_reset] [get_bd_pins resetn_inv_0/Res]
   connect_bd_net -net resetn [get_bd_ports resetn] [get_bd_pins resetn_inv_0/Op1]
-  connect_bd_net -net status_vector_0_1 [get_bd_ports eth_status] [get_bd_pins IO/eth_status]
   connect_bd_net -net usb_uart_rxd [get_bd_ports usb_uart_rxd] [get_bd_pins IO/usb_uart_rxd]
   connect_bd_net -net usb_uart_txd [get_bd_ports usb_uart_txd] [get_bd_pins IO/usb_uart_txd]
+  connect_bd_net -net IO_sfp_fs_0 [get_bd_pins IO/sfp_fs_0] [get_bd_ports qsfp0_fs]
+  connect_bd_net -net IO_sfp_lpmode_0 [get_bd_pins IO/sfp_lpmode_0] [get_bd_ports qsfp0_lpmode]
+  connect_bd_net -net IO_sfp_modsel_0 [get_bd_pins IO/sfp_modsel_0] [get_bd_ports qsfp0_modsell]
+  connect_bd_net -net IO_sfp_refclk_reset_0 [get_bd_pins IO/sfp_refclk_reset_0] [get_bd_ports qsfp0_refclk_reset]
+  connect_bd_net -net IO_sfp_reset_0 [get_bd_pins IO/sfp_reset_0] [get_bd_ports qsfp0_resetl]
+  connect_bd_net -net IO_sfp_tx_n_0 [get_bd_pins IO/sfp_tx_n_0] [get_bd_ports qsfp0_tx1_n]
+  connect_bd_net -net IO_sfp_tx_p_0 [get_bd_pins IO/sfp_tx_p_0] [get_bd_ports qsfp0_tx1_p]
+  connect_bd_net -net sfp_int_0_1 [get_bd_ports qsfp0_intl] [get_bd_pins IO/sfp_int_0]
+  connect_bd_net -net sfp_mgt_refclk_n_0_1 [get_bd_ports qsfp0_mgt_refclk_1_n] [get_bd_pins IO/sfp_mgt_refclk_n_0]
+  connect_bd_net -net sfp_mgt_refclk_p_0_1 [get_bd_ports qsfp0_mgt_refclk_1_p] [get_bd_pins IO/sfp_mgt_refclk_p_0]
+  connect_bd_net -net sfp_modprs_0_1 [get_bd_ports qsfp0_modprsl] [get_bd_pins IO/sfp_modprs_0]
+  connect_bd_net -net sfp_rx_n_0_1 [get_bd_ports qsfp0_rx1_n] [get_bd_pins IO/sfp_rx_n_0]
+  connect_bd_net -net sfp_rx_p_0_1 [get_bd_ports qsfp0_rx1_p] [get_bd_pins IO/sfp_rx_p_0]
 
   # Create address segments
   set addr_bits [get_property CONFIG.ADDR_WIDTH [get_bd_intf_pins RocketChip/DMA_AXI4]]

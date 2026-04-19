@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2021-2024 Eugene Tarassov
+Copyright (c) 2021-2026 Eugene Tarassov
 Copyright (c) 2014-2018 Alex Forencich
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -28,15 +28,9 @@ module ethernet_sfp_10g #(
     parameter PTP_TS_ENABLE = 0
 ) (
 
-    (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clock CLK" *)
-    (* X_INTERFACE_PARAMETER = "FREQ_HZ 125000000" *)
-    input wire clock,
-
-    input wire clock_ok,
-
+    (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 eth_gt_user_clock CLK" *)
+    (* X_INTERFACE_PARAMETER = "ASSOCIATED_BUSIF ETH0_TX_AXIS:ETH0_RX_AXIS, FREQ_HZ 156250000" *)
     output wire eth_gt_user_clock,
-
-    output wire [15:0] eth_status,
 
     /* ETH0 AXIS */
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 ETH0_TX_AXIS TDATA" *)
@@ -65,6 +59,8 @@ module ethernet_sfp_10g #(
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 ETH0_RX_AXIS TUSER" *)
     output wire eth_rx_axis_tuser,
 
+    output wire [15:0] eth_status,
+
     /* SFP */
     output wire         sfp_tx_p,
     output wire         sfp_tx_n,
@@ -72,14 +68,19 @@ module ethernet_sfp_10g #(
     input  wire         sfp_rx_n,
     input  wire         sfp_mgt_refclk_p,
     input  wire         sfp_mgt_refclk_n,
-    output wire         sfp_modsel,
-    output wire         sfp_reset,
+    output wire         sfp_modsell,
+    output wire         sfp_resetl,
     input  wire         sfp_modprs,
     input  wire         sfp_int,
     output wire         sfp_lpmode,
     output wire         sfp_refclk_reset,
-    output wire [1:0]   sfp_fs
+    output wire [1:0]   sfp_fs,
 
+//    (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 eth_clock CLK" *)
+//    (* X_INTERFACE_PARAMETER = "FREQ_HZ 125000000, ASSOCIATED_BUSIF" *)
+    input wire eth_clock,
+
+    input wire eth_clock_ok
 );
 
 // Interface configuration (port)
@@ -94,7 +95,7 @@ localparam XGMII_DATA_WIDTH = 64;
 localparam XGMII_CTRL_WIDTH = XGMII_DATA_WIDTH/8;
 
 // Internal 125 MHz clock
-wire clk_125mhz_int = clock;
+wire clk_125mhz_int = eth_clock;
 reg rst_125mhz_int = 1;
 reg [9:0] reset_timer_reg = 0;
 wire rst_refclk_int;
@@ -104,7 +105,7 @@ sync_reset #(
 )
 sync_reset_125mhz_inst (
     .clk(clk_125mhz_int),
-    .rst(~clock_ok),
+    .rst(~eth_clock_ok),
     .out(rst_refclk_int)
 );
 
@@ -116,8 +117,8 @@ end
 
 
 // XGMII 10G PHY
-assign sfp_modsel = 1'b0;
-assign sfp_reset = 1'b1;
+assign sfp_modsell = 1'b0;
+assign sfp_resetl = 1'b1;
 assign sfp_lpmode = 1'b0;
 assign sfp_refclk_reset = rst_refclk_int;
 assign sfp_fs = 2'b10;

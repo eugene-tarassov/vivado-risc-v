@@ -193,7 +193,7 @@ opensbi-qemu:
 
 CONFIG_SCALA := $(subst rocket,Rocket,$(CONFIG))
 
-# valid ROCKET_FREQ_MHZ values (MHz): 160 125 100 80 62.5 50 40 31.25 25 20
+# valid ROCKET_FREQ_MHZ values (MHz): 250 200 160 125 100 80 62.5 50 40 31.25 25 20
 ROCKET_FREQ_MHZ ?= $(shell awk '$$3 != "" && "$(BOARD)" ~ $$1 && "$(CONFIG_SCALA)" ~ ("^" $$2 "$$") {print $$3; exit}' board/rocket-freq)
 
 ROCKET_CLOCK_FREQ := $(shell echo - | awk '{printf("%.0f\n", $(ROCKET_FREQ_MHZ) * 1000000)}')
@@ -321,7 +321,9 @@ vivado      = env XILINX_LOCAL_USER_DATA=no vivado -mode batch -nojournal -nolog
 
 workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl workspace/$(CONFIG)/system-$(BOARD).v
 	echo "set vivado_board_name $(BOARD)" >$@
-	if [ "$(BOARD_PART)" != "" -a "$(BOARD_PART)" != "NONE" ] ; then echo "set vivado_board_part $(BOARD_PART)" >>$@ ; fi
+	if [ "$(BOARD_PART)" != "" -a "$(BOARD_PART)" != "NONE" ] ; \
+	  then echo "set vivado_board_part $(BOARD_PART)" >>$@ ; \
+	  else echo "unset -nocomplain vivado_board_part" >>$@ ; fi
 	if [ "$(BOARD_CONFIG)" != "" ] ; then echo "set board_config $(BOARD_CONFIG)" >>$@ ; fi
 	echo "set xilinx_part $(XILINX_PART)" >>$@
 	echo "set rocket_module_name $(CONFIG_SCALA)" >>$@

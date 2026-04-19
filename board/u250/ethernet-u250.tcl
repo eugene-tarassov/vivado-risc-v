@@ -1,5 +1,4 @@
 set files [list \
-  [file normalize "../../board/${vivado_board_name}/riscv_wrapper.v"] \
   [file normalize "../../ethernet/verilog-ethernet/rtl/eth_mac_10g.v"] \
   [file normalize "../../ethernet/verilog-ethernet/rtl/eth_mac_10g_fifo.v"] \
   [file normalize "../../ethernet/verilog-ethernet/rtl/eth_phy_10g.v"] \
@@ -14,6 +13,11 @@ set files [list \
   [file normalize "../../ethernet/verilog-ethernet/rtl/axis_xgmii_rx_64.v"] \
   [file normalize "../../ethernet/verilog-ethernet/rtl/axis_xgmii_tx_32.v"] \
   [file normalize "../../ethernet/verilog-ethernet/rtl/axis_xgmii_tx_64.v"] \
+  [file normalize "../../ethernet/verilog-ethernet/rtl/mac_ctrl_rx.v"] \
+  [file normalize "../../ethernet/verilog-ethernet/rtl/mac_ctrl_tx.v"] \
+  [file normalize "../../ethernet/verilog-ethernet/rtl/mac_pause_ctrl_rx.v"] \
+  [file normalize "../../ethernet/verilog-ethernet/rtl/mac_pause_ctrl_tx.v"] \
+  [file normalize "../../ethernet/verilog-ethernet/rtl/ptp_clock_cdc.v"] \
   [file normalize "../../ethernet/verilog-ethernet/rtl/xgmii_baser_dec_64.v"] \
   [file normalize "../../ethernet/verilog-ethernet/rtl/xgmii_baser_enc_64.v"] \
   [file normalize "../../ethernet/verilog-ethernet/lib/axis/rtl/sync_reset.v"] \
@@ -25,12 +29,6 @@ set files [list \
   [file normalize "../../ethernet/ethernet.v"] \
 ]
 add_files -norecurse -fileset $source_fileset $files
-
-if { $rocket_ddr_controllers > 1 } {
-  add_files -norecurse -fileset $source_fileset [file normalize "../../board/${vivado_board_name}/riscv_wrapper_m${rocket_ddr_controllers}.v"]
-} else {
-  add_files -norecurse -fileset $source_fileset [file normalize "../../board/${vivado_board_name}/riscv_wrapper.v"]
-}
 
 set files [list \
   [file normalize ../../board/${vivado_board_name}/ethernet.xdc] \
