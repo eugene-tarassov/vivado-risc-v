@@ -12,10 +12,10 @@ index ffe213ad65a4..d3ac7e4d893d 100644
  
  #define ARCH_PFN_OFFSET		(PFN_DOWN((unsigned long)phys_ram_base))
 diff --git a/drivers/mmc/host/Kconfig b/drivers/mmc/host/Kconfig
-index c94ae4794545..b417601decb3 100644
+index 6d79cc9a79e2..84b73117f636 100644
 --- a/drivers/mmc/host/Kconfig
 +++ b/drivers/mmc/host/Kconfig
-@@ -1104,6 +1104,14 @@ config MMC_SDHCI_AM654
+@@ -1105,6 +1105,14 @@ config MMC_SDHCI_AM654
  
  	  If unsure, say N.
  
@@ -43,10 +43,10 @@ index 5057fea8afb6..0659d572f047 100644
  obj-$(CONFIG_MMC_LOONGSON2)	+= loongson2-mmc.o
  
 diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
-index aead145dd91d..09c2b9b56188 100644
+index 4a1b368ca7e6..15d04a58aa97 100644
 --- a/drivers/net/ethernet/Kconfig
 +++ b/drivers/net/ethernet/Kconfig
-@@ -170,6 +170,14 @@ config OA_TC6
+@@ -171,6 +171,14 @@ config OA_TC6
  	  To know the implementation details, refer documentation in
  	  <file:Documentation/networking/oa-tc6-framework.rst>.
  
@@ -62,10 +62,10 @@ index aead145dd91d..09c2b9b56188 100644
  source "drivers/net/ethernet/pasemi/Kconfig"
  source "drivers/net/ethernet/pensando/Kconfig"
 diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
-index 998dd628b202..80bc43c9f0e4 100644
+index 2e18df8ca8ec..f3eadac7b466 100644
 --- a/drivers/net/ethernet/Makefile
 +++ b/drivers/net/ethernet/Makefile
-@@ -75,6 +75,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
+@@ -76,6 +76,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
  obj-$(CONFIG_LPC_ENET) += nxp/
  obj-$(CONFIG_NET_VENDOR_OKI) += oki-semi/
  obj-$(CONFIG_ETHOC) += ethoc.o
@@ -74,7 +74,7 @@ index 998dd628b202..80bc43c9f0e4 100644
  obj-$(CONFIG_NET_VENDOR_PASEMI) += pasemi/
  obj-$(CONFIG_NET_VENDOR_QLOGIC) += qlogic/
 diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index 282116765e64..4104682719d4 100644
+index 3d06c65c2f49..293caff5180b 100644
 --- a/drivers/tty/serial/Kconfig
 +++ b/drivers/tty/serial/Kconfig
 @@ -543,6 +543,32 @@ config SERIAL_UARTLITE_NR_UARTS
