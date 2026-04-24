@@ -42,7 +42,7 @@ Alternatively, a Windows 11 machine with Ubuntu on Windows can be used to run th
 ## Software
 Download and install AMD/Xilinx
 [Vitis](https://www.xilinx.com/support/download/index.html/content/xilinx/en/downloadNav/vitis.html).
-Supported Vitis versions are 2020.2, 2021.1, 2021.2, 2022.1, 2022.2, 2023.1, 2023.2, 2024.1, 2024.2, 2025.1, 2025.2.
+Supported Vitis versions are 2021.2, 2022.1, 2022.2, 2023.1, 2023.2, 2024.1, 2024.2, 2025.1, 2025.2.
 Vitis installation includes Vivado Design Suite - there is no need to install Vivado separately.
 
 Nexys Video, Nexys A7 100T and Arty A7 100T are supported by free version of Vivado. KC705, VC707 and Genesys 2 require Vivado license.
