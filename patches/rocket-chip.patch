@@ -1,8 +1,8 @@
 diff --git a/src/main/scala/devices/debug/DMI.scala b/src/main/scala/devices/debug/DMI.scala
-index 014b838bf..b2966497b 100644
+index eeffdc291..3e2d497df 100644
 --- a/src/main/scala/devices/debug/DMI.scala
 +++ b/src/main/scala/devices/debug/DMI.scala
-@@ -69,7 +69,7 @@ class DMIIO(implicit val p: Parameters) extends ParameterizedBundle()(p) {
+@@ -72,7 +72,7 @@ class DMIIO(implicit val p: Parameters) extends ParameterizedBundle()(p) {
  class ClockedDMIIO(implicit val p: Parameters) extends ParameterizedBundle()(p){
    val dmi      = new DMIIO()(p)
    val dmiClock = Output(Clock())
@@ -25,10 +25,10 @@ index 190dff11c..081087dc8 100644
    val part_number = Input(UInt(16.W))
    val version = Input(UInt(4.W))
 diff --git a/src/main/scala/devices/debug/Periphery.scala b/src/main/scala/devices/debug/Periphery.scala
-index 8d015a081..7dc6ee1fa 100644
+index 8aa3214af..0ba008d1b 100644
 --- a/src/main/scala/devices/debug/Periphery.scala
 +++ b/src/main/scala/devices/debug/Periphery.scala
-@@ -46,7 +46,7 @@ class ClockedAPBBundle(params: APBBundleParameters) extends APBBundle(params) {
+@@ -49,7 +49,7 @@ class ClockedAPBBundle(params: APBBundleParameters) extends APBBundle(params) {
  
  class DebugIO(implicit val p: Parameters) extends Bundle {
    val clock = Input(Clock())
@@ -37,7 +37,7 @@ index 8d015a081..7dc6ee1fa 100644
    val clockeddmi = p(ExportDebug).dmi.option(Flipped(new ClockedDMIIO()))
    val systemjtag = p(ExportDebug).jtag.option(new SystemJTAGIO)
    val apb = p(ExportDebug).apb.option(Flipped(new ClockedAPBBundle(APBBundleParameters(addrBits=12, dataBits=32))))
-@@ -175,7 +175,7 @@ trait HasPeripheryDebug { this: BaseSubsystem =>
+@@ -178,7 +178,7 @@ trait HasPeripheryDebug { this: BaseSubsystem =>
      debugOpt.map { outerdebug =>
        outerdebug.module.io.dmi.get.dmi <> dtm.io.dmi
        outerdebug.module.io.dmi.get.dmiClock := sj.jtag.TCK
@@ -46,3 +46,16 @@ index 8d015a081..7dc6ee1fa 100644
      }
      dtm
    }
+diff --git a/src/main/scala/prci/ClockBundles.scala b/src/main/scala/prci/ClockBundles.scala
+index 0cf06cca6..76dbecf7f 100644
+--- a/src/main/scala/prci/ClockBundles.scala
++++ b/src/main/scala/prci/ClockBundles.scala
+@@ -8,7 +8,7 @@ import freechips.rocketchip.util.RecordMap
+ class ClockBundle(val params: ClockBundleParameters = ClockBundleParameters()) extends Bundle
+ {
+   val clock = Output(Clock())
+-  val reset = Output(Reset())
++  val reset = Output(Bool())
+ }
+ 
+ class ClockGroupBundle(val params: ClockGroupBundleParameters) extends Bundle

@@ -1,3 +1,29 @@
+diff --git a/src/main/scala/gemmini/Configs.scala b/src/main/scala/gemmini/Configs.scala
+index a849883..4c83ff8 100644
+--- a/src/main/scala/gemmini/Configs.scala
++++ b/src/main/scala/gemmini/Configs.scala
+@@ -4,7 +4,7 @@ import chisel3._
+ import org.chipsalliance.cde.config.{Config, Parameters}
+ import freechips.rocketchip.diplomacy.LazyModule
+ import freechips.rocketchip.subsystem._
+-import freechips.rocketchip.tile.{BuildRoCC, OpcodeSet, XLen}
++import freechips.rocketchip.tile.{BuildRoCC, OpcodeSet}
+ import freechips.rocketchip.rocket._
+ import freechips.rocketchip.tile._
+ import freechips.rocketchip.system._
+diff --git a/src/main/scala/gemmini/Controller.scala b/src/main/scala/gemmini/Controller.scala
+index 0fdda55..3c39c92 100644
+--- a/src/main/scala/gemmini/Controller.scala
++++ b/src/main/scala/gemmini/Controller.scala
+@@ -32,7 +32,7 @@ class Gemmini[T <: Data : Arithmetic, U <: Data, V <: Data](val config: GemminiA
+     System.exit(1)
+   }
+ 
+-  val xLen = p(XLen)
++  val xLen = p(TileKey).core.xLen
+   val spad = LazyModule(new Scratchpad(config))
+ 
+   override lazy val module = new GemminiModule(this)
 diff --git a/src/main/scala/gemmini/GemminiConfigs.scala b/src/main/scala/gemmini/GemminiConfigs.scala
 index 9825429..3a2f6f2 100644
 --- a/src/main/scala/gemmini/GemminiConfigs.scala

@@ -23,29 +23,35 @@ lazy val vivado = (project in file("."))
     case x => MergeStrategy.first
   })
 
-lazy val hardfloat  = (project in file("rocket-chip/hardfloat"))
+lazy val cde = (project in file("rocket-chip/dependencies/cde"))
   .settings(commonSettings)
+  .settings(scalaSource in Compile := baseDirectory.value / "cde/src/chipsalliance/rocketchip")
+
+lazy val hardfloat  = (project in file("rocket-chip/dependencies/hardfloat"))
+  .settings(commonSettings)
+
+lazy val diplomacy = (project in file("rocket-chip/dependencies/diplomacy"))
+  .dependsOn(cde)
+  .settings(commonSettings)
+  .settings(scalaSource in Compile := baseDirectory.value / "diplomacy")
+  .settings(libraryDependencies ++= Seq("com.lihaoyi" %% "sourcecode" % "0.3.1"))
 
 lazy val rocket_macros = (project in file("rocket-chip/macros"))
   .settings(commonSettings)
 
 lazy val rocketchip = (project in file("rocket-chip"))
   .dependsOn(cde)
+  .dependsOn(diplomacy)
   .dependsOn(hardfloat)
   .dependsOn(rocket_macros)
   .settings(commonSettings)
-  .settings( // Settings for scalafix
-    semanticdbEnabled := true,
-    semanticdbVersion := scalafixSemanticdb.revision,
-    scalacOptions += "-Ywarn-unused"
-  )
   .settings(libraryDependencies ++= Seq("com.lihaoyi" %% "mainargs" % "0.5.0"))
 
 lazy val testchipip = (project in file("generators/testchipip"))
   .dependsOn(cde)
   .dependsOn(rocketchip)
   .settings(commonSettings)
-  .settings(includeFilter in unmanagedSources := { "Util.scala" || "TraceIO.scala"  || "Serdes.scala" })
+  .settings(includeFilter in unmanagedSources := { "Util.scala" || "TraceIO.scala"  || "Bundles.scala"  || "Serdes.scala" })
 
 lazy val boom = Project(id = "boom", base = file("generators/riscv-boom") / "src")
   .dependsOn(cde)
@@ -69,7 +75,3 @@ lazy val gemmini = (project in file("generators/gemmini"))
 
 lazy val targetutils = (project in file("generators/targetutils"))
   .settings(commonSettings)
-
-lazy val cde = (project in file("rocket-chip/cde"))
-  .settings(commonSettings)
-  .settings(scalaSource in Compile := baseDirectory.value / "cde/src/chipsalliance/rocketchip")

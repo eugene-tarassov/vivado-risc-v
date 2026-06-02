@@ -8,6 +8,7 @@ BOARD ?= nexys-video
 CONFIG ?= rocket64b2
 HW_SERVER_ADDR ?= localhost:3121
 JAVA_OPTIONS ?=
+VHDL_OPTIONS ?=
 CFG_FORMAT ?= mcs
 
 include board/$(BOARD)/Makefile.inc
@@ -290,7 +291,7 @@ workspace/$(CONFIG)/rocket.vhdl: workspace/$(CONFIG)/system-$(BOARD).v
 	  vhdl-wrapper/src/net/largest/riscv/vhdl/Main.java
 	$(JAVA_PATH)/java -Xmx4G -Xss8M $(JAVA_OPTIONS) -cp \
 	  vhdl-wrapper/src:vhdl-wrapper/bin:vhdl-wrapper/antlr-4.8-complete.jar \
-	  net.largest.riscv.vhdl.Main -m $(CONFIG_SCALA) \
+	  net.largest.riscv.vhdl.Main -m $(CONFIG_SCALA) $(VHDL_OPTIONS) \
 	  workspace/$(CONFIG)/system-$(BOARD).v >$@
 
 # --- utility make targets to run SBT command line ---

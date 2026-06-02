@@ -26,6 +26,7 @@ import net.largest.riscv.vhdl.Verilog2001Parser.Unary_operatorContext;
 public class Main {
 
     private static String rocket_module_name = "rocket";
+    private static boolean external_bscan = false;
 
     private static final Map<String,String> macros = new HashMap<String,String>();
 
@@ -629,6 +630,8 @@ public class Main {
             BusSignal sig = sig_map.get(nm);
             if (sig != null) dst = sig.addr_offs_name != null ? sig.addr_offs_name : sig.signal_name;
             else if (nm.equals("reset")) dst = "riscv_reset";
+            else if (nm.startsWith("io_aggregator_") && nm.endsWith("_reset")) dst = "riscv_reset";
+            else if (nm.startsWith("io_aggregator_") && nm.endsWith("_clock")) dst = "clock";
             else if (nm.equals("debug_clock")) dst = "clock";
             else if (nm.equals("debug_clockeddmi_dmiClock")) dst = "clock";
             else if (nm.equals("debug_clockeddmi_dmiReset")) dst = "reset";
@@ -812,10 +815,19 @@ public class Main {
 
     public static void main(String[] args) {
         int arg_pos = 0;
-        if (arg_pos < args.length && args[arg_pos].equals("-m")) {
-            arg_pos++;
-            if (arg_pos < args.length) {
-                rocket_module_name = args[arg_pos++];
+        while (arg_pos < args.length) {
+            if (args[arg_pos].equals("-m")) {
+                arg_pos++;
+                if (arg_pos < args.length) {
+                    rocket_module_name = args[arg_pos++];
+                }
+            }
+            else if (args[arg_pos].equals("-e")) {
+                external_bscan = true;
+                arg_pos++;
+            }
+            else {
+                break;
             }
         }
         if (args.length - arg_pos != 1) {
@@ -943,7 +955,7 @@ public class Main {
             });
             parser.source_text();
             if (rocket_system != null) {
-                if (dmi_bus != null && rocket_module_name.endsWith("e")) {
+                if (dmi_bus != null && (rocket_module_name.endsWith("e") || external_bscan)) {
                     bscan_bus = new Bus();
                     String[] sigs = {
                         "bscanid_en",

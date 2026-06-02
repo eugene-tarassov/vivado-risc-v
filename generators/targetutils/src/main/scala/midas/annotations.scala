@@ -7,7 +7,6 @@ import chisel3.experimental.{BaseModule, ChiselAnnotation, annotate}
 
 import firrtl.{RenameMap}
 import firrtl.annotations._
-import firrtl.transforms.DontTouchAllTargets
 
 // This is currently consumed by a transformation that runs after MIDAS's core
 // transformations In FireSim, targeting an F1 host, these are consumed by the
@@ -18,7 +17,7 @@ case class FpgaDebugAnnotation(target: chisel3.Data) extends ChiselAnnotation {
 }
 
 case class FirrtlFpgaDebugAnnotation(target: ComponentName) extends
-    SingleTargetAnnotation[ComponentName] with DontTouchAllTargets {
+    SingleTargetAnnotation[ComponentName] {
   def duplicate(n: ComponentName) = this.copy(target = n)
 }
 
@@ -175,7 +174,7 @@ case class AutoCounterFirrtlAnnotation(
   label: String,
   message: String,
   coverGenerated: Boolean = false)
-    extends firrtl.annotations.Annotation with DontTouchAllTargets {
+    extends firrtl.annotations.Annotation {
   def update(renames: RenameMap): Seq[firrtl.annotations.Annotation] = {
     val renamer = new ReferenceTargetRenamer(renames)
     val renamedTarget = renamer.exactRename(target)
@@ -250,7 +249,7 @@ case class TriggerSourceAnnotation(
     target: ReferenceTarget,
     clock: ReferenceTarget,
     reset: Option[ReferenceTarget],
-    sourceType: Boolean) extends Annotation with FAMEAnnotation with DontTouchAllTargets {
+    sourceType: Boolean) extends Annotation with FAMEAnnotation {
   def update(renames: RenameMap): Seq[firrtl.annotations.Annotation] = {
     val renamer = new ReferenceTargetRenamer(renames)
     val renamedTarget = renamer.exactRename(target)
@@ -265,7 +264,7 @@ case class TriggerSourceAnnotation(
 
 case class TriggerSinkAnnotation(
     target: ReferenceTarget,
-    clock: ReferenceTarget) extends Annotation with FAMEAnnotation with DontTouchAllTargets {
+    clock: ReferenceTarget) extends Annotation with FAMEAnnotation {
   def update(renames: RenameMap): Seq[firrtl.annotations.Annotation] = {
     val renamer = new ReferenceTargetRenamer(renames)
     val renamedTarget = renamer.exactRename(target)

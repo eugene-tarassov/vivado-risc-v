@@ -9,6 +9,7 @@ import freechips.rocketchip.devices.tilelink._
 import freechips.rocketchip.tile.{BuildRoCC, OpcodeSet}
 import freechips.rocketchip.util.DontTouch
 import freechips.rocketchip.system._
+import freechips.rocketchip.rocket._
 
 class RocketSystem(implicit p: Parameters) extends RocketSubsystem
     with HasAsyncExtInterrupts
@@ -392,45 +393,45 @@ class Rocket64b2s extends Config(
 
 class Rocket64w1 extends Config(
   new WithNBreakpoints(8) ++
-  new boom.common.WithNSmallBooms(1) ++
+  new boom.v3.common.WithNSmallBooms(1) ++
   new RocketBaseConfig)
 
 class Rocket64x1 extends Config(
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
-  new boom.common.WithNMediumBooms(1) ++
+  new boom.v3.common.WithNMediumBooms(1) ++
   new RocketWideBusConfig)
 
 /* Note: multi-core BOOM appears unstable */
 class Rocket64x2 extends Config(
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
-  new boom.common.WithNMediumBooms(2) ++
+  new boom.v3.common.WithNMediumBooms(2) ++
   new RocketWideBusConfig)
 
 class Rocket64x4 extends Config(
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
-  new boom.common.WithNMediumBooms(4) ++
+  new boom.v3.common.WithNMediumBooms(4) ++
   new RocketWideBusConfig)
 
 class Rocket64x8 extends Config(
   new WithInclusiveCache  ++
   new WithNBreakpoints(4) ++
-  new boom.common.WithNMediumBooms(8) ++
+  new boom.v3.common.WithNMediumBooms(8) ++
   new RocketWideBusConfig)
 
 class Rocket64x12 extends Config(
   new WithInclusiveCache  ++
   new WithNBreakpoints(4) ++
-  new boom.common.WithNMediumBooms(12) ++
+  new boom.v3.common.WithNMediumBooms(12) ++
   new RocketWideBusConfig)
 
 /* With up to 256GB memory, L2 cache, wide memory bus, 2 memory controllers */
 /* Note: lower 2GB are used for memory mapped IO, so max usable RAM size is 254GB */
 class Rocket64x12m4 extends Config(
   new WithNBreakpoints(4) ++
-  new boom.common.WithNMediumBooms(12) ++
+  new boom.v3.common.WithNMediumBooms(12) ++
   new WithExtMemSize(0x3f80000000L) ++
   new WithNMemoryChannels(2) ++
   new WithNBanks(8) ++
@@ -441,14 +442,14 @@ class Rocket64x12m4 extends Config(
 class Rocket64y1 extends Config(
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
-  new boom.common.WithNLargeBooms(1) ++
+  new boom.v3.common.WithNLargeBooms(1) ++
   new RocketWideBusConfig)
 
 /* Note: 4-way BOOM appears unstable */
 class Rocket64z1 extends Config(
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
-  new boom.common.WithNMegaBooms(1) ++
+  new boom.v3.common.WithNMegaBooms(1) ++
   new RocketWideBusConfig)
 
 /* With up to 256GB memory */
@@ -457,6 +458,6 @@ class Rocket64z1 extends Config(
 class Rocket64z2m extends Config(
   new WithInclusiveCache  ++
   new WithNBreakpoints(8) ++
-  new boom.common.WithNMegaBooms(2) ++
+  new boom.v3.common.WithNMegaBooms(2) ++
   new WithExtMemSize(0x3f80000000L) ++
   new RocketWideBusConfig)
