@@ -13,12 +13,12 @@
 #include <sbi/sbi_string.h>
 #include <sbi/sbi_system.h>
 #include <sbi/sbi_tlb.h>
+#include <sbi_utils/cache/fdt_cmo_helper.h>
 #include <sbi_utils/fdt/fdt_domain.h>
 #include <sbi_utils/fdt/fdt_driver.h>
 #include <sbi_utils/fdt/fdt_fixup.h>
 #include <sbi_utils/fdt/fdt_helper.h>
 #include <sbi_utils/fdt/fdt_pmu.h>
-#include <sbi_utils/ipi/fdt_ipi.h>
 #include <sbi_utils/irqchip/fdt_irqchip.h>
 #include <sbi_utils/irqchip/imsic.h>
 #include <sbi_utils/mpxy/fdt_mpxy.h>
@@ -195,19 +195,15 @@ static int nascent_init(void) {
 static int early_init(bool cold_boot) {
     const void * fdt = fdt_get_address();
 
-    if (console_init(fdt) < 0) return -1;
-    fdt_driver_init_all(fdt, fdt_early_drivers);
-    return 0;
+    if (cold_boot) {
+        if (console_init(fdt) < 0) return -1;
+        fdt_driver_init_all(fdt, fdt_early_drivers);
+    }
+
+    return fdt_cmo_init(cold_boot);
 }
 
 static int final_init(bool cold_boot) {
-#if 0
-    void * fdt = fdt_get_address_rw();
-
-    fdt_cpu_fixup(fdt);
-    fdt_fixups(fdt);
-    fdt_domain_fixup(fdt);
-#endif
     return 0;
 }
 
@@ -289,7 +285,6 @@ const struct sbi_platform_operations platform_ops = {
     .extensions_init = extensions_init,
     .domains_init = domains_init,
     .irqchip_init = fdt_irqchip_init,
-    .ipi_init = fdt_ipi_init,
     .pmu_init = pmu_init,
     .pmu_xlate_to_mhpmevent = pmu_xlate_to_mhpmevent,
     .get_tlbr_flush_limit = tlbr_flush_limit,
