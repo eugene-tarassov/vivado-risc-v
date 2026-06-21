@@ -1,8 +1,8 @@
 diff --git a/arch/riscv/include/asm/page.h b/arch/riscv/include/asm/page.h
-index ffe213ad65a4..d3ac7e4d893d 100644
+index 187aad0a7b03..50d99e37884a 100644
 --- a/arch/riscv/include/asm/page.h
 +++ b/arch/riscv/include/asm/page.h
-@@ -93,7 +93,7 @@ typedef struct page *pgtable_t;
+@@ -91,7 +91,7 @@ typedef struct page *pgtable_t;
   * We override this value as its generic definition uses __pa too early in
   * the boot process (before kernel_map.va_pa_offset is set).
   */
@@ -43,10 +43,10 @@ index 5057fea8afb6..0659d572f047 100644
  obj-$(CONFIG_MMC_LOONGSON2)	+= loongson2-mmc.o
  
 diff --git a/drivers/net/ethernet/Kconfig b/drivers/net/ethernet/Kconfig
-index 4a1b368ca7e6..15d04a58aa97 100644
+index aa7103e7f47f..e17874bc70f0 100644
 --- a/drivers/net/ethernet/Kconfig
 +++ b/drivers/net/ethernet/Kconfig
-@@ -171,6 +171,14 @@ config OA_TC6
+@@ -158,6 +158,14 @@ config OA_TC6
  	  To know the implementation details, refer documentation in
  	  <file:Documentation/networking/oa-tc6-framework.rst>.
  
@@ -62,10 +62,10 @@ index 4a1b368ca7e6..15d04a58aa97 100644
  source "drivers/net/ethernet/pasemi/Kconfig"
  source "drivers/net/ethernet/pensando/Kconfig"
 diff --git a/drivers/net/ethernet/Makefile b/drivers/net/ethernet/Makefile
-index 2e18df8ca8ec..f3eadac7b466 100644
+index 6615a67a63d5..d594b87d815f 100644
 --- a/drivers/net/ethernet/Makefile
 +++ b/drivers/net/ethernet/Makefile
-@@ -76,6 +76,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
+@@ -74,6 +74,7 @@ obj-$(CONFIG_NET_VENDOR_NVIDIA) += nvidia/
  obj-$(CONFIG_LPC_ENET) += nxp/
  obj-$(CONFIG_NET_VENDOR_OKI) += oki-semi/
  obj-$(CONFIG_ETHOC) += ethoc.o
@@ -74,7 +74,7 @@ index 2e18df8ca8ec..f3eadac7b466 100644
  obj-$(CONFIG_NET_VENDOR_PASEMI) += pasemi/
  obj-$(CONFIG_NET_VENDOR_QLOGIC) += qlogic/
 diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index 3d06c65c2f49..293caff5180b 100644
+index f86775cfdcc9..5dee00aa095a 100644
 --- a/drivers/tty/serial/Kconfig
 +++ b/drivers/tty/serial/Kconfig
 @@ -543,6 +543,32 @@ config SERIAL_UARTLITE_NR_UARTS
