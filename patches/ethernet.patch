@@ -20,3 +20,16 @@ index ed50581..73cfa87 100644
      .d1({rgmii_txd_1, rgmii_tx_ctl_1}),
      .d2({rgmii_txd_2, rgmii_tx_ctl_2}),
      .q({phy_rgmii_txd, phy_rgmii_tx_ctl})
+diff --git a/syn/vivado/rgmii_phy_if.tcl b/syn/vivado/rgmii_phy_if.tcl
+index 8c85602..e8ce6ac 100644
+--- a/syn/vivado/rgmii_phy_if.tcl
++++ b/syn/vivado/rgmii_phy_if.tcl
+@@ -37,6 +37,6 @@ foreach inst [get_cells -hier -regexp -filter {(ORIG_REF_NAME =~ "rgmii_phy_if(_
+ 
+     set src_clk_period [if {[llength $src_clk]} {get_property -min PERIOD $src_clk} {expr 8.0}]
+ 
+-    set_max_delay -from [get_cells $inst/rgmii_tx_clk_1_reg] -to [get_cells $inst/clk_oddr_inst/oddr[0].oddr_inst] -datapath_only [expr $src_clk_period/4]
+-    set_max_delay -from [get_cells $inst/rgmii_tx_clk_2_reg] -to [get_cells $inst/clk_oddr_inst/oddr[0].oddr_inst] -datapath_only [expr $src_clk_period/4]
++    set_max_delay -from [get_cells $inst/rgmii_tx_clk_1_reg] -to [get_cells $inst/clk_oddr_inst/oddr[0].oddr_inst] -datapath_only [expr $src_clk_period*3/8]
++    set_max_delay -from [get_cells $inst/rgmii_tx_clk_2_reg] -to [get_cells $inst/clk_oddr_inst/oddr[0].oddr_inst] -datapath_only [expr $src_clk_period*3/8]
+ }

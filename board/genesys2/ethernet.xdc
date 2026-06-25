@@ -27,10 +27,13 @@ create_clock -period 8.000 -name rgmii_rx_clk [get_ports rgmii_rxc]
 # With RXDLY on, the center of data valid period is supposed to be at the clock edge, but it is set at -1.35ns offset.
 # This offset is not required by RGMII specs, but tests show it improves stability on Genesys 2 board.
 # Changing of the constraints require changes of IDELAY_VALUE in ethernet-genesys2.v.
-set_input_delay -add_delay -clock rgmii_rx_clk -max 2.00 [get_ports { rgmii_rd* rgmii_rx_ctl }]
-set_input_delay -add_delay -clock rgmii_rx_clk -min 0.70 [get_ports { rgmii_rd* rgmii_rx_ctl }]
-set_input_delay -add_delay -clock rgmii_rx_clk -max 2.00 -clock_fall [get_ports { rgmii_rd* rgmii_rx_ctl }]
-set_input_delay -add_delay -clock rgmii_rx_clk -min 0.70 -clock_fall [get_ports { rgmii_rd* rgmii_rx_ctl }]
+
+set_input_delay -clock rgmii_rx_clk -max 2.00 [get_ports { rgmii_rd* rgmii_rx_ctl }]
+set_input_delay -clock rgmii_rx_clk -min 0.70 [get_ports { rgmii_rd* rgmii_rx_ctl }]
+set_input_delay -clock rgmii_rx_clk -max 2.00 [get_ports { rgmii_rd* rgmii_rx_ctl }] -clock_fall -add_delay
+set_input_delay -clock rgmii_rx_clk -min 0.70 [get_ports { rgmii_rd* rgmii_rx_ctl }] -clock_fall -add_delay
 
 # To see implemented RX timing, run from Vivado Tcl Console:
 # report_timing -from [get_ports {rgmii_rd* rgmii_rx_ctl}] -rise_to rgmii_rx_clk -delay_type min_max -max_paths 10 -name rgmii_rx  -file rgmii_rx.txt
+
+# TX clock is delayed relative to MAC clock

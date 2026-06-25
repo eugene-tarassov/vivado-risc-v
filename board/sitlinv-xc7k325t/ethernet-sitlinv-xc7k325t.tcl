@@ -22,5 +22,6 @@ set files [list \
   [file normalize ../../ethernet/verilog-ethernet/lib/axis/syn/vivado/axis_async_fifo.tcl] \
   [file normalize ../../ethernet/verilog-ethernet/syn/vivado/eth_mac_fifo.tcl] \
   [file normalize ../../ethernet/verilog-ethernet/syn/vivado/eth_mac_1g_rgmii.tcl] \
+  [file normalize ../../ethernet/verilog-ethernet/syn/vivado/rgmii_phy_if.tcl] \
 ]
 add_files -norecurse -fileset $constraint_fileset $files

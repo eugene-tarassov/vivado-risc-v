@@ -45,15 +45,17 @@ set_property -dict { PACKAGE_PIN C11   IOSTANDARD LVCMOS33 } [get_ports { rgmii_
 create_clock -period 8.000 -name rgmii_a_rx_clk [get_ports rgmii_a_rxc]
 create_clock -period 8.000 -name rgmii_b_rx_clk [get_ports rgmii_b_rxc]
 
-set_input_delay -add_delay -clock rgmii_a_rx_clk -max 2.00 [get_ports { rgmii_a_rd* rgmii_a_rx_ctl }]
-set_input_delay -add_delay -clock rgmii_a_rx_clk -min 0.70 [get_ports { rgmii_a_rd* rgmii_a_rx_ctl }]
-set_input_delay -add_delay -clock rgmii_a_rx_clk -max 2.00 -clock_fall [get_ports { rgmii_a_rd* rgmii_a_rx_ctl }]
-set_input_delay -add_delay -clock rgmii_a_rx_clk -min 0.70 -clock_fall [get_ports { rgmii_a_rd* rgmii_a_rx_ctl }]
+set_input_delay -clock rgmii_a_rx_clk -max 2.00 [get_ports { rgmii_a_rd* rgmii_a_rx_ctl }]
+set_input_delay -clock rgmii_a_rx_clk -min 0.70 [get_ports { rgmii_a_rd* rgmii_a_rx_ctl }]
+set_input_delay -clock rgmii_a_rx_clk -max 2.00 [get_ports { rgmii_a_rd* rgmii_a_rx_ctl }] -clock_fall -add_delay
+set_input_delay -clock rgmii_a_rx_clk -min 0.70 [get_ports { rgmii_a_rd* rgmii_a_rx_ctl }] -clock_fall -add_delay
 
-set_input_delay -add_delay -clock rgmii_b_rx_clk -max 2.00 [get_ports { rgmii_b_rd* rgmii_b_rx_ctl }]
-set_input_delay -add_delay -clock rgmii_b_rx_clk -min 0.70 [get_ports { rgmii_b_rd* rgmii_b_rx_ctl }]
-set_input_delay -add_delay -clock rgmii_b_rx_clk -max 2.00 -clock_fall [get_ports { rgmii_b_rd* rgmii_b_rx_ctl }]
-set_input_delay -add_delay -clock rgmii_b_rx_clk -min 0.70 -clock_fall [get_ports { rgmii_b_rd* rgmii_b_rx_ctl }]
+set_input_delay -clock rgmii_b_rx_clk -max 2.00 [get_ports { rgmii_b_rd* rgmii_b_rx_ctl }]
+set_input_delay -clock rgmii_b_rx_clk -min 0.70 [get_ports { rgmii_b_rd* rgmii_b_rx_ctl }]
+set_input_delay -clock rgmii_b_rx_clk -max 2.00 [get_ports { rgmii_b_rd* rgmii_b_rx_ctl }] -clock_fall -add_delay
+set_input_delay -clock rgmii_b_rx_clk -min 0.70 [get_ports { rgmii_b_rd* rgmii_b_rx_ctl }] -clock_fall -add_delay
 
 # To see implemented RX timing, run from Vivado Tcl Console:
 # report_timing -from [get_ports {rgmii_b_rd* rgmii_b_rx_ctl}] -rise_to rgmii_b_rx_clk -delay_type min_max -max_paths 10 -name rgmii_b_rx  -file rgmii_b_rx.txt
+
+# TX clock is same as MAC clock

@@ -306,6 +306,9 @@ rocket-sbt:
 
 # --- generate Vivado Project ---
 
+# Multi-threading appears broken in Vivado. It causes intermittent failures.
+MAX_THREADS ?= 1
+
 .PHONY: vivado-tcl vivado-project vivado-gui bitstream
 
 FPGA_FNM    ?= riscv_wrapper.bit
@@ -321,7 +324,8 @@ prm_file    = workspace/$(CONFIG)/$(proj_name).prm
 vivado      = env XILINX_LOCAL_USER_DATA=no vivado -mode batch -nojournal -nolog -notrace -quiet
 
 workspace/$(CONFIG)/system-$(BOARD).tcl: workspace/$(CONFIG)/rocket.vhdl workspace/$(CONFIG)/system-$(BOARD).v
-	echo "set vivado_board_name $(BOARD)" >$@
+	echo "set_param general.maxThreads $(MAX_THREADS)" >$@
+	echo "set vivado_board_name $(BOARD)" >>$@
 	if [ "$(BOARD_PART)" != "" -a "$(BOARD_PART)" != "NONE" ] ; \
 	  then echo "set vivado_board_part $(BOARD_PART)" >>$@ ; \
 	  else echo "unset -nocomplain vivado_board_part" >>$@ ; fi
@@ -342,9 +346,6 @@ $(proj_time): workspace/$(CONFIG)/system-$(BOARD).tcl
 vivado-project: $(proj_time)
 
 # --- generate FPGA bitstream ---
-
-# Multi-threading appears broken in Vivado. It causes intermittent failures.
-MAX_THREADS ?= 1
 
 $(synthesis): $(proj_time)
 	echo "set_param general.maxThreads $(MAX_THREADS)" >$(proj_path)/make-synthesis.tcl

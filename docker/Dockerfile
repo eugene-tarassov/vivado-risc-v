@@ -24,9 +24,9 @@ ENV LANG="en_US.UTF-8" LANGUAGE="en_US:en" LC_ALL="en_US.UTF-8"
 COPY vivado-installer/ /vivado-installer/
 
 # Install the Xilinx Vivado tools and updates in headless mode
-ARG VIVADO_VERSION=2025.2
-# Xilinx installer tar file originally from: https://www.xilinx.com/support/download.html
-ARG VIVADO_INSTALLER="*_${VIVADO_VERSION}_*.tar.gz"
+ARG VIVADO_VERSION=2026.1
+# Xilinx installer tar file
+ARG VIVADO_INSTALLER="*_${VIVADO_VERSION}_*.tar*"
 ARG VIVADO_UPDATE=""
 # Installer config file
 ARG VIVADO_INSTALLER_CONFIG="/vivado-installer/install_config_vivado.${VIVADO_VERSION}.txt"
@@ -35,18 +35,24 @@ RUN \
   if [ $VIVADO_INSTALLER_CNT != 1 ] ; then \
     echo "No Xilinx installer tar file was provided." ; \
     echo "Expected 1 file named like vivado-installer/$VIVADO_INSTALLER." ; \
-    echo "Download the file from: https://www.xilinx.com/support/download.html" ; \
+    echo "Download the file from: https://www.amd.com/en/products/software/adaptive-socs-and-fpgas/vivado.html" ; \
     exit 1 ; \
   fi
 RUN \
   mkdir -p /vivado-installer/install && \
-  ( pigz -dc /vivado-installer/$VIVADO_INSTALLER | tar xa --strip-components=1 -C /vivado-installer/install ) && \
-  rm /vivado-installer/$VIVADO_INSTALLER && \
+  VIVADO_INSTALLER_PATH=$(realpath /vivado-installer/$VIVADO_INSTALLER) && \
+  if echo $VIVADO_INSTALLER_PATH | grep -q '$\.gz' ; then \
+    ( pigz -dc $VIVADO_INSTALLER_PATH | tar xa --strip-components=1 -C /vivado-installer/install ) ; \
+  else \
+    ( tar xf $VIVADO_INSTALLER_PATH --strip-components=1 -C /vivado-installer/install ) ; \
+  fi && \
+  rm $VIVADO_INSTALLER_PATH && \
   if [ ! -e ${VIVADO_INSTALLER_CONFIG} ] ; then \
-    /vivado-installer/install/xsetup \
-      -p 'Vivado' \
-      -e 'Vivado ML Enterprise' \
-      -b ConfigGen && \
+    if [ $VIVADO_VERSION \< 2026.1 ] ; then \
+      /vivado-installer/install/xsetup  -p 'Vivado' -e 'Vivado ML Enterprise' -b ConfigGen ; \
+    else \
+      /vivado-installer/install/xsetup  -p 'Vivado' -e 'Vivado Design Suite' -b ConfigGen ; \
+    fi && \
     echo "No installer configuration file was provided. Generating a default one for you to modify." && \
     echo "-------------" && \
     cat /root/.Xilinx/install_config.txt && \
@@ -84,6 +90,8 @@ RUN \
   git clone --branch ${VIVADO_VERSION} --single-branch https://github.com/Xilinx/XilinxBoardStore.git && \
   mkdir -p ${VIVADO_HOME}/data/boards/board_files/XilinxBoardStore && \
   cp -r XilinxBoardStore/boards/* ${VIVADO_HOME}/data/boards/board_files/XilinxBoardStore/ && \
+  rm -rf ${VIVADO_HOME}/data/boards/board_files/XilinxBoardStore/AlphaData && \
+  rm -rf ${VIVADO_HOME}/data/boards/board_files/XilinxBoardStore/Avnet/zub1cg && \
   rm -rf ${VIVADO_HOME}/data/boards/board_files/XilinxBoardStore/iWave && \
   rm -rf XilinxBoardStore && \
   git clone https://github.com/Digilent/vivado-boards.git && \
