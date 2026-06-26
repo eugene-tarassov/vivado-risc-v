@@ -1410,7 +1410,7 @@
             <preferred_ip vendor="xilinx.com" library="ip" name="pcie4_uscale_plus" order="2"/>
           </preferred_ips>
           <port_maps>
-            <port_map logical_port="txn" physical_port="pcie_tx0_nx8" dir="out" left="15" right="0">
+            <port_map logical_port="txn" physical_port="pcie_tx0_nx16" dir="out" left="15" right="0">
               <pin_maps>
                 <pin_map port_index="0" component_pin="pcie_tx0_n"/>
                 <pin_map port_index="1" component_pin="pcie_tx1_n"/>
@@ -1432,7 +1432,7 @@
               </pin_maps>
             </port_map>
 
-            <port_map logical_port="rxn" physical_port="pcie_rx0_nx8" dir="in" left="15" right="0">
+            <port_map logical_port="rxn" physical_port="pcie_rx0_nx16" dir="in" left="15" right="0">
               <pin_maps>
                 <pin_map port_index="0" component_pin="pcie_rx0_n"/>
                 <pin_map port_index="1" component_pin="pcie_rx1_n"/>
@@ -1454,7 +1454,7 @@
               </pin_maps>
             </port_map>
 
-            <port_map logical_port="txp" physical_port="pcie_tx0_px8" dir="out" left="15" right="0">
+            <port_map logical_port="txp" physical_port="pcie_tx0_px16" dir="out" left="15" right="0">
               <pin_maps>
                 <pin_map port_index="0" component_pin="pcie_tx0_p"/>
                 <pin_map port_index="1" component_pin="pcie_tx1_p"/>
@@ -1476,7 +1476,7 @@
               </pin_maps>
             </port_map>
 
-            <port_map logical_port="rxp" physical_port="pcie_rx0_px8" dir="in" left="15" right="0">
+            <port_map logical_port="rxp" physical_port="pcie_rx0_px16" dir="in" left="15" right="0">
               <pin_maps>
                 <pin_map port_index="0" component_pin="pcie_rx0_p"/>
                 <pin_map port_index="1" component_pin="pcie_rx1_p"/>

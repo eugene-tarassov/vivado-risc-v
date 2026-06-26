@@ -230,7 +230,7 @@
               </pin_maps>
             </port_map>
 
-            <port_map logical_port="DQS_T" physical_port="c0_ddr4_dqs_t" dir="out" left="17" right="0">
+            <port_map logical_port="DQS_T" physical_port="c0_ddr4_dqs_t" dir="inout" left="17" right="0">
               <pin_maps>
                 <pin_map port_index="0" component_pin="c0_ddr4_dqs_t0"/>
                 <pin_map port_index="1" component_pin="c0_ddr4_dqs_t1"/>
@@ -457,7 +457,7 @@
               </pin_maps>
             </port_map>
 
-            <port_map logical_port="DQS_T" physical_port="c1_ddr4_dqs_t" dir="out" left="17" right="0">
+            <port_map logical_port="DQS_T" physical_port="c1_ddr4_dqs_t" dir="inout" left="17" right="0">
               <pin_maps>
                 <pin_map port_index="0" component_pin="c1_ddr4_dqs_t0"/>
                 <pin_map port_index="1" component_pin="c1_ddr4_dqs_t1"/>
@@ -684,7 +684,7 @@
               </pin_maps>
             </port_map>
 
-            <port_map logical_port="DQS_T" physical_port="c2_ddr4_dqs_t" dir="out" left="17" right="0">
+            <port_map logical_port="DQS_T" physical_port="c2_ddr4_dqs_t" dir="inout" left="17" right="0">
               <pin_maps>
                 <pin_map port_index="0" component_pin="c2_ddr4_dqs_t0"/>
                 <pin_map port_index="1" component_pin="c2_ddr4_dqs_t1"/>
@@ -910,7 +910,7 @@
               </pin_maps>
             </port_map>
 
-            <port_map logical_port="DQS_T" physical_port="c3_ddr4_dqs_t" dir="out" left="17" right="0">
+            <port_map logical_port="DQS_T" physical_port="c3_ddr4_dqs_t" dir="inout" left="17" right="0">
               <pin_maps>
                 <pin_map port_index="0" component_pin="c3_ddr4_dqs_t0"/>
                 <pin_map port_index="1" component_pin="c3_ddr4_dqs_t1"/>
