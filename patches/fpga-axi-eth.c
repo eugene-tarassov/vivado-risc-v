@@ -604,10 +604,21 @@ static int axi_eth_dev_close(struct net_device * net_dev) {
     }
     priv->regs->rx_out = priv->rx_out;
 
+    while (priv->tx_out != priv->regs->tx_out) {
+        struct axi_eth_ring_item * i = priv->tx_ring + priv->tx_out;
+        if (i->skb) axi_eth_tx_done(net_dev, i);
+        priv->tx_out = (priv->tx_out + 1) & priv->ring_mask;
+    }
+    /* Dispose TX buffers not sent - TX is disabled */
     while (priv->tx_inp != priv->tx_out) {
         struct axi_eth_ring_item * i = priv->tx_ring + priv->tx_out;
-        while (priv->tx_out == priv->regs->tx_out) {}
-        if (i->skb) axi_eth_tx_done(net_dev, i);
+        struct sk_buff * skb = i->skb;
+        if (skb) {
+            dma_unmap_single(&priv->pdev->dev, i->dma_addr, i->dma_size, DMA_TO_DEVICE);
+            dev_kfree_skb_any(skb);
+            i->skb = NULL;
+            net_dev->stats.tx_dropped++;
+        }
         priv->tx_out = (priv->tx_out + 1) & priv->ring_mask;
     }
     priv->regs->tx_out = priv->tx_out;
