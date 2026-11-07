@@ -261,6 +261,8 @@ always @(posedge clock) begin
         tx_enable <= 0;
         rx_start <= 0;
         tx_start <= 0;
+        rx_int <= 0;
+        tx_int <= 0;
         int_enable <= 0;
         mdio_tx <= 0;
         mdio_start <= 0;
