@@ -606,7 +606,7 @@ always @(posedge clock) begin
                 if (m_axi_bresp) m_axi_wr_err <= 1;
                 if (rx_m_axi_stop0) rx_m_axi_stop <= 1;
                 rx_done[rx_pkt_out] <= rx_pkt_addr - rx_addr[rx_pkt_out];
-                rx_status[rx_pkt_out] <= { m_axi_wr_err, rx_bad_frame };
+                rx_status[rx_pkt_out] <= { m_axi_wr_err || m_axi_bresp != 0, rx_bad_frame };
             end
             if (m_axi_wvalid && m_axi_wready) begin
                 if (rx_burst_data_len != 0) begin
